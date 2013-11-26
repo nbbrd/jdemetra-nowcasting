@@ -38,42 +38,41 @@ import ec.tstoolkit.utilities.IntList;
  *
  * @author Jean Palate
  */
-public class DfmInitializer {
+public class PcInitializer implements IDfmInitializer {
 
-    private TsData[] input_;
-    private TsDomain domain_;
-    private DynamicFactorModel model_, modelc_;
     private Matrix data_, datac_;
-    private double[] w_;
     private ec.tstoolkit.pca.PrincipalComponents[] pc_;
+    private TsDomain idom_;
+    
+    public TsDomain getEstimationDomain(){
+        return idom_;
+    }
+    
+    public void setEstimationDomain(TsDomain dom){
+        idom_=dom;
+    }
 
-    public boolean initialize(DynamicFactorModel model, TsData[] input, TsDomain domain) {
+    @Override
+    public boolean initialize(DynamicFactorModel model, DfmInformationSet input) {
         clear();
-        model_ = model.normalize();
-        input_ = input;
-        domain_ = domain;
-        if (!computeMatrix()) {
+        if (!computeMatrix(input)) {
             return false;
         }
-        if (!computePrincipalComponents()) {
+        if (!computePrincipalComponents(model)) {
             return false;
         }
-        if (!computeVar()) {
+        if (!computeVar(model)) {
             return false;
         }
-        if (!computeLoadings()) {
+        if (!computeLoadings(model)) {
             return false;
         }
-        modelc_ = model_.normalize();
+        model.normalize();
         return true;
     }
 
     public Matrix getData() {
         return data_;
-    }
-    
-    public DynamicFactorModel getInitialModel(){
-        return modelc_;
     }
 
     public Matrix getInterpolatedData() {
@@ -85,21 +84,21 @@ public class DfmInitializer {
     }
 
     private void clear() {
-        modelc_=null;
-        datac_=null;
-        pc_=null;
+        data_=null;
+        datac_ = null;
+        pc_ = null;
     }
 
-    private boolean computeMatrix() {
-        DfmInformationSet info = new DfmInformationSet(input_);
-        data_ = info.generateMatrix(domain_);
-        if (domain_ == null) {
-            domain_ = info.getCurrentDomain();
+    private boolean computeMatrix(DfmInformationSet input) {
+        TsDomain domain = idom_;
+        if (domain == null) {
+            domain = input.getCurrentDomain();
         }
+        data_ = input.generateMatrix(domain);
         datac_ = new Matrix(data_.getRowsCount(), data_.getColumnsCount());
         AverageInterpolator interpolator = new AverageInterpolator();
-        for (int i = 0; i < input_.length; ++i) {
-            TsData c = new TsData(domain_.getStart(), data_.column(i));
+        for (int i = 0; i < data_.getColumnsCount(); ++i) {
+            TsData c = new TsData(domain.getStart(), data_.column(i));
             if (!interpolator.interpolate(c, null)) {
                 return false;
             }
@@ -108,20 +107,20 @@ public class DfmInitializer {
         return true;
     }
 
-    private boolean computePrincipalComponents() {
-        int nb = model_.getTransition().nbloks;
+    private boolean computePrincipalComponents(DynamicFactorModel model) {
+        int nb = model.getTransition().nbloks;
         pc_ = new PrincipalComponents[nb];
         for (int i = 0; i < nb; ++i) {
-            Matrix x = prepareDataForCompenent(i);
+            Matrix x = prepareDataForCompenent(model, i);
             pc_[i] = new PrincipalComponents();
             pc_[i].process(x);
         }
         return true;
     }
 
-    private Matrix prepareDataForCompenent(int cmp) {
+    private Matrix prepareDataForCompenent(DynamicFactorModel model, int cmp) {
         int np = 0;
-        for (DynamicFactorModel.MeasurementDescriptor desc : model_.getMeasurements()) {
+        for (DynamicFactorModel.MeasurementDescriptor desc : model.getMeasurements()) {
             for (int i = 0; i < desc.factors.length; ++i) {
                 if (desc.factors[i] == cmp) {
                     ++np;
@@ -132,7 +131,7 @@ public class DfmInitializer {
         Matrix m = new Matrix(datac_.getRowsCount(), np);
         np = 0;
         int s = 0;
-        for (DynamicFactorModel.MeasurementDescriptor desc : model_.getMeasurements()) {
+        for (DynamicFactorModel.MeasurementDescriptor desc : model.getMeasurements()) {
             for (int i = 0; i < desc.factors.length; ++i) {
                 if (desc.factors[i] == cmp) {
                     m.column(np).copy(datac_.column(s));
@@ -153,12 +152,12 @@ public class DfmInitializer {
         return m;
     }
 
-    private boolean computeVar() {
-        DynamicFactorModel.TransitionDescriptor tr = model_.getTransition();
+    private boolean computeVar(DynamicFactorModel model) {
+        DynamicFactorModel.TransitionDescriptor tr = model.getTransition();
         int nl = tr.nlags, nb = tr.nbloks;
         DataBlock[] f = new DataBlock[nb];
         DataBlock[] e = new DataBlock[nb];
-        Matrix M = new Matrix(domain_.getLength() - nl, nl * nb);
+        Matrix M = new Matrix(data_.getRowsCount() - nl, nl * nb);
         int c = 0;
         for (int i = 0; i < nb; ++i) {
             DataBlock cur = pc_[i].getFactor(0);
@@ -167,14 +166,14 @@ public class DfmInitializer {
                 M.column(c++).copy(cur.drop(nl - j, j));
             }
         }
-        RegModel model = new RegModel();
+        RegModel regmodel = new RegModel();
         for (int j = 0; j < M.getColumnsCount(); ++j) {
-            model.addX(M.column(j));
+            regmodel.addX(M.column(j));
         }
         for (int i = 0; i < nb; ++i) {
-            model.setY(f[i]);
+            regmodel.setY(f[i]);
             Ols ols = new Ols();
-            if (!ols.process(model)) {
+            if (!ols.process(regmodel)) {
                 return false;
             }
             tr.varParams.row(i).copyFrom(ols.getLikelihood().getB(), 0);
@@ -190,11 +189,11 @@ public class DfmInitializer {
         return true;
     }
 
-    private boolean computeLoadings() {
+    private boolean computeLoadings(DynamicFactorModel model) {
         // creates the matrix of factors
-        DynamicFactorModel.TransitionDescriptor tr = model_.getTransition();
-        int nb = tr.nbloks, blen = model_.getBlockLength();
-        Matrix M = new Matrix(domain_.getLength() - (blen - 1), nb * blen);
+        DynamicFactorModel.TransitionDescriptor tr = model.getTransition();
+        int nb = tr.nbloks, blen = model.getBlockLength();
+        Matrix M = new Matrix(data_.getRowsCount() - (blen - 1), nb * blen);
         int c = 0;
         for (int i = 0; i < nb; ++i) {
             DataBlock cur = pc_[i].getFactor(0);
@@ -203,10 +202,10 @@ public class DfmInitializer {
             }
         }
         int v = 0;
-        for (DynamicFactorModel.MeasurementDescriptor desc : model_.getMeasurements()) {
+        for (DynamicFactorModel.MeasurementDescriptor desc : model.getMeasurements()) {
             DataBlock y = datac_.column(v++).drop(blen - 1, 0);
-            RegModel model = new RegModel();
-            model.setY(y);
+            RegModel regmodel = new RegModel();
+            regmodel.setY(y);
             for (int j = 0; j < desc.factors.length; ++j) {
                 double[] x = new double[y.getLength()];
                 int fac = desc.factors[j];
@@ -215,10 +214,10 @@ public class DfmInitializer {
                 for (int r = 0; r < x.length; ++r) {
                     x[r] = desc.type.dot(M.row(r).extract(s, l));
                 }
-                model.addX(new DataBlock(x));
+                regmodel.addX(new DataBlock(x));
             }
             Ols ols = new Ols();
-            if (!ols.process(model)) {
+            if (!ols.process(regmodel)) {
                 return false;
             }
             System.arraycopy(ols.getLikelihood().getB(), 0, desc.coeff, 0, desc.coeff.length);

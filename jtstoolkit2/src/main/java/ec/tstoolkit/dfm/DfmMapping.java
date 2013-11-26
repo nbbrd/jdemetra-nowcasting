@@ -58,8 +58,8 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
     }
 
     private IReadDataBlock tvars(IReadDataBlock p) {
-        //return tv0 < 0 ? null : p.rextract(tv0, nb * (nb + 1) / 2);
-        return tv0 < 0 ? null : p.rextract(tv0, nb);
+        return tv0 < 0 ? null : p.rextract(tv0, nb * (nb + 1) / 2);
+       // return tv0 < 0 ? null : p.rextract(tv0, nb);
     }
 
     private DataBlock loadings(DataBlock p) {
@@ -75,23 +75,23 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
     }
 
     private DataBlock tvars(DataBlock p) {
-        return tv0 < 0 ? null : p.extract(tv0, nb );
- //       return tv0 < 0 ? null : p.extract(tv0, nb * (nb + 1) / 2);
+//        return tv0 < 0 ? null : p.extract(tv0, nb );
+       return tv0 < 0 ? null : p.extract(tv0, nb * (nb + 1) / 2);
     }
 
     private void mtvar(Matrix v, IReadDataBlock tv) {
-//        int i0 = 0;
-//        Matrix tmp = new Matrix(nb, nb);
-//        for (int i = 0; i < nb; ++i) {
-//            DataBlock x = tmp.row(i).range(0, i + 1);
-//            x.copy(tv.rextract(i0, i+1));
-//            i0 += i + 1;
-//        }
-//        SymmetricMatrix.XXt(tmp.subMatrix(), v.subMatrix());
-        v.set(0);
-        DataBlock d=v.diagonal();
-        d.copy(tv);
-        d.square();
+        int i0 = 0;
+        Matrix tmp = new Matrix(nb, nb);
+        for (int i = 0; i < nb; ++i) {
+            DataBlock x = tmp.row(i).range(0, i + 1);
+            x.copy(tv.rextract(i0, i+1));
+            i0 += i + 1;
+        }
+        SymmetricMatrix.XXt(tmp.subMatrix(), v.subMatrix());
+//        v.set(0);
+//        DataBlock d=v.diagonal();
+//        d.copy(tv);
+//        d.square();
     }
 
     public DfmMapping(DynamicFactorModel model) {
@@ -151,8 +151,8 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
         } else {
             v0 = p;
             tv0 = p + nb * nb * nl;
- //           p = tv0 + nb * (nb + 1) / 2;
-           p = tv0 + nb;
+            p = tv0 + nb * (nb + 1) / 2;
+  //         p = tv0 + nb;
         }
         np = p;
 
@@ -165,6 +165,10 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
         }
         //loadings(p).set(.1);
         return p;
+    }
+    
+    public IReadDataBlock parameters(){
+        return map(template);
     }
 
     @Override
@@ -202,6 +206,10 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
     public IReadDataBlock map(IMSsf mssf) {
         DynamicFactorModel.Ssf ssf = (DynamicFactorModel.Ssf) mssf;
         DynamicFactorModel m = ssf.getModel();
+        return map(m);
+    }
+    
+    public IReadDataBlock map(DynamicFactorModel m){
         // copy to p
         DataBlock p = new DataBlock(np);
         DataBlock l = loadings(p);
@@ -221,15 +229,15 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
         }
         DataBlock tv = tvars(p), vp = vparams(p);
         if (tv != null) {
-//            Matrix v = m.getTransition().covar.clone();
-//            SymmetricMatrix.lcholesky(v);
-//            i0 = 0;
-//            for (int i = 0; i < nb; ++i) {
-//                tv.extract(i0, i+1).copy(v.row(i).range(0, i + 1));
-//                i0 += i + 1;
-//            }
-            tv.copy(m.getTransition().covar.diagonal());
-            tv.sqrt();
+            Matrix v = m.getTransition().covar.clone();
+            SymmetricMatrix.lcholesky(v);
+            i0 = 0;
+            for (int i = 0; i < nb; ++i) {
+                tv.extract(i0, i+1).copy(v.row(i).range(0, i + 1));
+                i0 += i + 1;
+            }
+//            tv.copy(m.getTransition().covar.diagonal());
+//            tv.sqrt();
             Matrix t = m.getTransition().varParams;
             vp.copyFrom(t.internalStorage(), 0);
         }
@@ -238,13 +246,13 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
 
     @Override
     public boolean checkBoundaries(IReadDataBlock inparams) {
-        IReadDataBlock t=tvars(inparams);
-        if (t != null ){
-            for (int i=0; i<t.getLength(); ++i)
-                if (t.get(i)<0)
-                    return false;
-        }
-            
+//        IReadDataBlock t=tvars(inparams);
+//        if (t != null ){
+//            for (int i=0; i<t.getLength(); ++i)
+//                if (t.get(i)<0)
+//                    return false;
+//        }
+//            
 //        IReadDataBlock t = tvars(inparams);
 //        IReadDataBlock l = loadings(inparams);
 //        if (l != null) {

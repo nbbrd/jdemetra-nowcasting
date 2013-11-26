@@ -80,7 +80,7 @@ public class DfmInformationUpdates {
             return builder.toString();
         }
     }
-    private final List<Update> updates_ = new ArrayList<>();
+    private final List<Update> updates_ = new ArrayList<Update>();
     
     DfmInformationUpdates(){
         

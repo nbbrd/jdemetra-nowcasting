@@ -30,12 +30,9 @@ import ec.tstoolkit.timeseries.simplets.TsData;
  */
 public class DfmMonitor {
 
-    private final DynamicFactorModel model_;
-    private MSmoothingResults srslts_;
-    private MFilteringResults frslts_;
-    private DfmInformationSet input_;
-    private boolean bvar_; // false by default
-    private boolean normalize_ = true;
+    private IDfmInitializer initializer_;
+    private IDfmEstimator estimator_;
+    private IDfmProcessor processor_ = new DfmProcessor();
 
     /**
      * Creates a new monitor for a given model
@@ -44,112 +41,75 @@ public class DfmMonitor {
      * @throws DfmException An exception is thrown when the given model is null
      * or invalid
      */
-    public DfmMonitor(DynamicFactorModel model) throws DfmException {
-        if (model == null) {
-            throw new DfmException(DfmException.INVALID_MODEL);
-        }
-        model_ = model;
-    }
-    
-    public boolean isNormalizingVariance(){
-        return normalize_;
-    }
-
-    public void setNormalizingVariance(boolean n){
-        normalize_=n;
-    }
-    /**
-     * Retrieves the current data used by the monitor
-     *
-     * @return The Current data. May be null.
-     */
-    public DfmInformationSet getInput() {
-        return input_;
+    public DfmMonitor() throws DfmException {
     }
 
     /**
-     * Retrieves the model of the monitor
-     *
-     * @return The model of the monitor. Never null.
+     * @return the initializer
      */
-    public DynamicFactorModel getModel() {
-        return model_;
+    public IDfmInitializer getInitializer() {
+        return initializer_;
     }
 
     /**
-     * /**
-     * Processes the model with the given data. This method uses the current
-     * parameters of the model
-     *
-     * @param data The new data. The number of series should correspond to the
-     * number of measurement equations.
-     * @return True if the data have been successfully processed, false
-     * otherwise.
-     * @throws DfmException An exception is thrown when the number of series
-     * doesn't correspond to the number of measurement equations in the model.
+     * @param initializer_ the initializer_to set
      */
-    public boolean process(TsData[] data) throws DfmException {
-        try {
-            clear();
-            input_ = new DfmInformationSet(data);
-            Matrix M = input_.generateMatrix(null);
-            if (M.getColumnsCount() != model_.getMeasurementsCount()) {
-                throw new DfmException(DfmException.INCOMPATIBLE_DATA);
+    public void setInitializer(IDfmInitializer initializer) {
+        this.initializer_ = initializer;
+    }
+
+    /**
+     * @return the estimator
+     */
+    public IDfmEstimator getEstimator() {
+        return estimator_;
+    }
+
+    /**
+     * @param estimator the estimator to set
+     */
+    public void setEstimator(IDfmEstimator estimator) {
+        this.estimator_ = estimator;
+    }
+
+    /**
+     * @return the processor
+     */
+    public IDfmProcessor getProcessor() {
+        return processor_;
+    }
+
+    /**
+     * @param processor the processor to set
+     */
+    public void setProcessor(IDfmProcessor processor) {
+        this.processor_ = processor;
+    }
+
+    public boolean process(DynamicFactorModel model, TsData[] input) {
+        DfmInformationSet info = new DfmInformationSet(input);
+        if (initializer_ != null) {
+            if (!initializer_.initialize(model, info)) {
+                return false;
             }
-            MSmoother smoother = new MSmoother();
-            srslts_ = new MSmoothingResults();
-            smoother.setCalcVariance(bvar_);
-            IMSsf ssf = model_.ssfRepresentation();
-            smoother.process(ssf, new MultivariateSsfData(M.subMatrix().transpose(), null), srslts_);
-            frslts_=smoother.getFilteringResults();
-            if (normalize_) {
-                srslts_.setStandardError(1);
-            }
-            return true;
-        } catch (Exception err) {
-            srslts_ = null;
-            return false;
         }
+        if (estimator_ != null) {
+            if (!estimator_.estimate(model, info)) {
+                return false;
+            }
+        }
+        if (processor_ != null) {
+            if (!processor_.process(model, info)) {
+                return false;
+            }
+        }
+        return true;
     }
 
-    /**
-     * Retrieves the smoothing results
-     *
-     * @return The Smoothing results. May by null.
-     */
     public MSmoothingResults getSmoothingResults() {
-        return srslts_;
+        return processor_ != null ? processor_.getSmoothingResults() : null;
     }
-    
-    public MFilteringResults getFilteringResults(){
-        return frslts_;
-    }
-
-    /**
-     * Flag indicating that the variance of the smoothed states has been
-     * estimated.
-     *
-     * @return True if the variance of the smoothed states has been estimated,
-     * false otherwise. False by default
-     */
-    public boolean isCalcVariance() {
-        return bvar_;
-    }
-
-    /**
-     * Specifies the computation or not of the variance of the smoothed states.
-     * By default, the computation of the variance is not enabled. In the case
-     * of large models, the computation of the variance may be expensive.
-     *
-     * @param var True if the variance of the smoothed states has to be
-     * estimated, false otherwise.
-     */
-    public void setCalcVariance(boolean var) {
-        bvar_ = var;
-    }
-
-    private void clear() {
-        srslts_ = null;
-        input_ = null;
+    public MFilteringResults getFilteringResults() {
+        return processor_ != null ? processor_.getFilteringResults(): null;
     }
 }

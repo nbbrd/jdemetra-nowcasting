@@ -72,7 +72,8 @@ public class DfmMapping2 implements IParametricMapping<IMSsf> {
     }
 
     public DfmMapping2(DynamicFactorModel model, final boolean mfixed, final boolean tfixed) {
-        template = model.normalize();
+        template = model.clone();
+        template.normalize();
         template.getTransition().covar.set(0);
         template.getTransition().covar.diagonal().set(1);
         nb = template.getTransition().nbloks;

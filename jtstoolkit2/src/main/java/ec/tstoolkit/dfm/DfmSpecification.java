@@ -34,7 +34,7 @@ public class DfmSpecification implements IProcSpecification, Cloneable {
 
     public static final String BLOCK = "blocksize", VSPEC = "varspec", MSPEC = "mspec";
     private VarSpecification vspec;
-    private List<MeasurementSpecification> mspecs = new ArrayList<>();
+    private List<MeasurementSpecification> mspecs = new ArrayList<MeasurementSpecification>();
     private int blocksize;
 
     public void setBlockSize(final int blocksize) {

@@ -443,13 +443,14 @@ public class DynamicFactorModelTest {
 //        MFilter filter = new MFilter();
 //        MFilteringResults results = new MFilteringResults(true);
 //        filter.process(model.ssfRepresentation(), new MultivariateSsfData(d, null), results);
-            DfmMonitor monitor = new DfmMonitor(dmodel);
+            DfmMonitor monitor = new DfmMonitor();
+            monitor.setProcessor(new DfmProcessor());
             //           monitor.setCalcVariance(true);
             TsData[] s = new TsData[dd.getRowsCount()];
             for (int i = 0; i < s.length; ++i) {
                 s[i] = new TsData(new TsPeriod(TsFrequency.Monthly, 1980, 0), dd.row(i));
             }
-            monitor.process(s);
+            monitor.process(dmodel, s);
         }
         //        }
         long q1 = System.currentTimeMillis();
@@ -526,8 +527,8 @@ public class DynamicFactorModelTest {
         double e = n.dot(w);
         System.out.println("Test news");
         System.out.println(e);
-        DfmMonitor monitor = new DfmMonitor(dmodel);
-        monitor.process(s);
+        DfmMonitor monitor = new DfmMonitor();
+        monitor.process(dmodel, s);
         double x = news.getSsf().ZX(0, 25, monitor.getSmoothingResults().A(dd.getColumnsCount() - 1));
         System.out.println(x);
         x = news.getSsf().ZX(0, 25, news.getSmoothingResults().A(dd.getColumnsCount() - 1));

@@ -14,6 +14,7 @@ import ec.tstoolkit.maths.matrices.SymmetricMatrix;
 import ec.tstoolkit.mssf2.DefaultTimeInvariantMultivariateSsf;
 import ec.tstoolkit.mssf2.IMSsf;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
@@ -306,7 +307,7 @@ public class DynamicFactorModel implements Cloneable {
     }
     private int c_;
     private TransitionDescriptor tdesc_;
-    private List<MeasurementDescriptor> mdesc_ = new ArrayList<>();
+    private List<MeasurementDescriptor> mdesc_ = new ArrayList<MeasurementDescriptor>();
     private Initialization init_ = Initialization.Zero;
     private Matrix V0_;
 
@@ -326,8 +327,7 @@ public class DynamicFactorModel implements Cloneable {
      *
      * @return
      */
-    public DynamicFactorModel normalize() {
-        DynamicFactorModel n = clone();
+    public void normalize() {
         // scaling factors
         int nb = tdesc_.nbloks, nl = tdesc_.nlags;
         double[] w = new double[nb];
@@ -338,19 +338,19 @@ public class DynamicFactorModel implements Cloneable {
         // covar
         for (int i = 0; i < nb; ++i) {
             if (w[i] != 0) {
-                n.tdesc_.covar.set(i, i, 1);
+                tdesc_.covar.set(i, i, 1);
                 for (int j = 0; j < i; ++j) {
                     if (w[j] != 0) {
-                        n.tdesc_.covar.mul(i, j, 1 / (w[i] * w[j]));
+                        tdesc_.covar.mul(i, j, 1 / (w[i] * w[j]));
                     }
                 }
             }
         }
-        SymmetricMatrix.fromLower(n.tdesc_.covar);
+        SymmetricMatrix.fromLower(tdesc_.covar);
         // varParams
         for (int i = 0; i < nb; ++i) {
             if (w[i] != 0) {
-                DataBlock range = n.tdesc_.varParams.row(i).range(0, nl);
+                DataBlock range = tdesc_.varParams.row(i).range(0, nl);
                 for (int j = 0; j < nb; ++j) {
                     if (w[j] != 0 && i != j) {
                         range.mul(w[j] / w[i]);
@@ -360,12 +360,11 @@ public class DynamicFactorModel implements Cloneable {
             }
         }
         // loadings
-        for (MeasurementDescriptor desc : n.mdesc_) {
+        for (MeasurementDescriptor desc : mdesc_) {
             for (int i = 0; i < desc.factors.length; ++i) {
                 desc.coeff[i] *= w[desc.factors[i]];
             }
         }
-        return n;
     }
 
     @Override
@@ -376,7 +375,7 @@ public class DynamicFactorModel implements Cloneable {
             td.covar.copy(tdesc_.covar);
             td.varParams.copy(tdesc_.varParams);
             m.tdesc_ = td;
-            m.mdesc_ = new ArrayList<>();
+            m.mdesc_ = new ArrayList<MeasurementDescriptor>();
             for (MeasurementDescriptor md : mdesc_) {
                 m.mdesc_.add(new MeasurementDescriptor(
                         md.type, md.factors.clone(), md.coeff.clone(), md.var));
@@ -387,7 +386,29 @@ public class DynamicFactorModel implements Cloneable {
         }
     }
 
-    public DynamicFactorModel compactFactor(int from, int to) {
+    boolean copy(DynamicFactorModel m) {
+        if (tdesc_.nbloks != m.tdesc_.nbloks
+                || tdesc_.nlags != m.tdesc_.nlags
+                || mdesc_.size() != m.mdesc_.size()) {
+            return false;
+        }
+        TransitionDescriptor td = new TransitionDescriptor(tdesc_.nbloks, tdesc_.nlags);
+        td.covar.copy(tdesc_.covar);
+        td.varParams.copy(tdesc_.varParams);
+        m.tdesc_ = td;
+        for (int i = 0; i < mdesc_.size(); ++i) {
+            MeasurementDescriptor s = mdesc_.get(i),
+                    t = m.mdesc_.get(i);
+            if (!Arrays.equals(s.factors, t.factors)) {
+                return false;
+            }
+            System.arraycopy(s.coeff, 0, t.coeff, 0, s.coeff.length);
+            t.var = s.var;
+        }
+        return true;
+    }
+
+    public DynamicFactorModel compactFactors(int from, int to) {
         if (from < 0 || to < from || to >= tdesc_.nbloks) {
             return null;
         }
@@ -400,34 +421,34 @@ public class DynamicFactorModel implements Cloneable {
         m.tdesc_ = td;
         m.tdesc_.covar.diagonal().set(1);
         for (MeasurementDescriptor md : mdesc_) {
-            int nf=0;
-            boolean ok=false;
-            for (int i=0; i<md.factors.length; ++i){
-                if (md.factors[i]< from || md.factors[i]>to)
+            int nf = 0;
+            boolean ok = false;
+            for (int i = 0; i < md.factors.length; ++i) {
+                if (md.factors[i] < from || md.factors[i] > to) {
                     ++nf;
-                else if(!ok && md.factors[i]>= from && md.factors[i]<= to){
-                    ok=true;
+                } else if (!ok && md.factors[i] >= from && md.factors[i] <= to) {
+                    ok = true;
                     ++nf;
-                } 
+                }
             }
-            int[] fc=new int[nf];
-            nf=0;
-            ok=false;
-            for (int i=0; i<md.factors.length; ++i){
-                if (md.factors[i]< from)
-                    fc[nf++]=md.factors[i];
-                else if (md.factors[i]>to)
-                    fc[nf++]=md.factors[i]-nc;
-                else if(!ok && md.factors[i]>= from && md.factors[i]<= to){
-                    ok=true;
-                    fc[nf++]=from;
-                } 
+            int[] fc = new int[nf];
+            nf = 0;
+            ok = false;
+            for (int i = 0; i < md.factors.length; ++i) {
+                if (md.factors[i] < from) {
+                    fc[nf++] = md.factors[i];
+                } else if (md.factors[i] > to) {
+                    fc[nf++] = md.factors[i] - nc;
+                } else if (!ok && md.factors[i] >= from && md.factors[i] <= to) {
+                    ok = true;
+                    fc[nf++] = from;
+                }
             }
-            
+
             m.mdesc_.add(new MeasurementDescriptor(
                     md.type, fc, new double[nf], 1));
         }
-        
+
         return m;
     }
 

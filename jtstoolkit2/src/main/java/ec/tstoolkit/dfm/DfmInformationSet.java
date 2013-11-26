@@ -46,6 +46,10 @@ public class DfmInformationSet {
     public TsDomain getCurrentDomain() {
         return table_.getDomain();
     }
+    
+    public int getSeriesCount(){
+        return table_.getSeriesCount();
+    }
 
     /**
      *

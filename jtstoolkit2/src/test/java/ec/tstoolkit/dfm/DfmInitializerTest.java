@@ -151,8 +151,10 @@ public class DfmInitializerTest {
         for (int i = 0; i < s.length; ++i) {
             s[i] = new TsData(start, dd.row(i));
         }
-        DfmInitializer initializer = new DfmInitializer();
-        initializer.initialize(dmodel, s, s[0].getDomain().drop(120, 12));
+        PcInitializer initializer = new PcInitializer();
+        initializer.setEstimationDomain(s[0].getDomain().drop(120, 12));
+        DynamicFactorModel model0=dmodel.clone();
+        initializer.initialize(model0, new DfmInformationSet(s));
 //        for (int i = 0; i < dmodel.getTransition().nbloks; ++i) {
 //            DataBlock factor=initializer.getPrincipalComponents(i).getFactor(0);
 //            factor.sub(factor.sum()/factor.getLength());
@@ -160,7 +162,6 @@ public class DfmInitializerTest {
 //            factor.chs();
 //            System.out.println(factor);
 //        }
-        DynamicFactorModel model0 = initializer.getInitialModel();
         System.out.println(model0.getTransition().covar);
         System.out.println(model0.getTransition().varParams);
         for (DynamicFactorModel.MeasurementDescriptor desc : model0.getMeasurements()) {
@@ -177,11 +178,11 @@ public class DfmInitializerTest {
         for (int i = 0; i < s.length; ++i) {
             s[i] = new TsData(new TsPeriod(TsFrequency.Monthly, 1980, 0), dd.row(i));
         }
-        DfmMonitor monitor = new DfmMonitor(dmodel);
-        monitor.setCalcVariance(false);
-        monitor.process(s);
+        DfmProcessor processor = new DfmProcessor();
+        processor.setCalcVariance(false);
+        processor.process(dmodel, new DfmInformationSet(s));
         for (int i = 0; i < dmodel.getTransition().nbloks; ++i) {
-            DataBlock cmp = new DataBlock(monitor.getSmoothingResults().component(i * dmodel.getBlockLength()));
+            DataBlock cmp = new DataBlock(processor.getSmoothingResults().component(i * dmodel.getBlockLength()));
             cmp.sub(cmp.sum() / cmp.getLength());
             cmp.div(Math.sqrt(cmp.ssq() / cmp.getLength()));
             System.out.println(cmp);

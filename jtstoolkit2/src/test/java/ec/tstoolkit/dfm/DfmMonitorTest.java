@@ -19,6 +19,8 @@ package ec.tstoolkit.dfm;
 import data.Data;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DescriptiveStatistics;
+import ec.tstoolkit.dfm.DfmEstimator.IEstimationHook;
+import ec.tstoolkit.dfm.DynamicFactorModel.TransitionDescriptor;
 import static ec.tstoolkit.dfm.DynamicFactorModelTest.dmodel;
 import ec.tstoolkit.eco.Likelihood;
 import ec.tstoolkit.maths.matrices.Matrix;
@@ -162,23 +164,20 @@ public class DfmMonitorTest {
         for (int i = 0; i < s.length; ++i) {
             s[i] = new TsData(start, dd.row(i));
         }
-        DfmMonitor monitor = new DfmMonitor(dmodel);
-        monitor.setCalcVariance(false);
-        monitor.setNormalizingVariance(false);
-        monitor.process(s);
+        DfmMonitor monitor = new DfmMonitor();
+        monitor.process(dmodel, s);
         double[] component = monitor.getSmoothingResults().component(0);
 
         Likelihood ll = new Likelihood();
         evaluate(monitor.getFilteringResults(), ll);
         System.out.println(ll.getLogLikelihood());
-        DfmMonitor nmonitor = new DfmMonitor(dmodel.normalize());
-        nmonitor.setCalcVariance(false);
-        nmonitor.setNormalizingVariance(false);
-        nmonitor.process(s);
-        double[] ncomponent = nmonitor.getSmoothingResults().component(0);
+                DynamicFactorModel nmodel=dmodel.clone();
+        nmodel.normalize();
+        monitor.process(nmodel, s);
+        double[] ncomponent = monitor.getSmoothingResults().component(0);
 
         Likelihood nll = new Likelihood();
-        evaluate(nmonitor.getFilteringResults(), nll);
+        evaluate(monitor.getFilteringResults(), nll);
         System.out.println(nll.getLogLikelihood());
 
 //        for (int i=0; i<ncomponent.length; ++i){
@@ -190,69 +189,41 @@ public class DfmMonitorTest {
     }
 
     @Test
-    public void testGradient() {
+    public void testDavidModel() {
 
-        IMSsfData data = new MultivariateSsfData(dd.subMatrix(), null);
-        MSsfAlgorithm algorithm = new MSsfAlgorithm();
-        //nmodel = dmodel.normalize();
-        TsData[] s = new TsData[dd.getRowsCount()];
+        final TsData[] s = new TsData[dd.getRowsCount()];
         TsPeriod start = new TsPeriod(TsFrequency.Monthly, 1980, 0);
         for (int i = 0; i < s.length; ++i) {
             s[i] = new TsData(start, dd.row(i));
         }
-        DfmInitializer initializer = new DfmInitializer();
-        initializer.initialize(dmodel, s, s[0].getDomain().drop(120, 12));
-//        DynamicFactorModel nmodel = dmodel.normalize();
-        DynamicFactorModel nmodel = initializer.getInitialModel();
-        DfmMapping mapping = new DfmMapping(nmodel);
-        MSsfFunction fn = new MSsfFunction(data, mapping, algorithm);
-        DataBlock def = mapping.getDefault();
-        MSsfFunctionInstance pt = fn.ssqEvaluate(mapping.map(nmodel.ssfRepresentation()));
-        System.out.println(new DataBlock(pt.getParameters()));
-        //         MSsfFunctionInstance pt = fn.ssqEvaluate(def);
-        System.out.println(pt.getLikelihood().getLogLikelihood());
-        Optimizer opt = new Optimizer();
-        // ec.tstoolkit.maths.realfunctions.minpack.LevenbergMarquardtMinimizer opt
-        //        = new ec.tstoolkit.maths.realfunctions.minpack.LevenbergMarquardtMinimizer();
-        //opt.setHook(new LmHook());
-        for (int i = 0; i < 10; ++i) {
-            nmodel = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
-            mapping = new DfmMapping(nmodel, false, true);
-            fn = new MSsfFunction(data, mapping, algorithm);
-            opt.setMaxIter(i == 0 ? 10 : 3);
-            opt.minimize(fn, mapping.map(nmodel.ssfRepresentation()));
-            pt = (MSsfFunctionInstance) opt.getResult();
-            nmodel = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
-            mapping = new DfmMapping(nmodel, true, false);
-            fn = new MSsfFunction(data, mapping, algorithm);
-            opt.setMaxIter(3);
-            opt.minimize(fn, mapping.map(pt.ssf));
-            pt = (MSsfFunctionInstance) opt.getResult();
-            nmodel = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
-            mapping = new DfmMapping(nmodel, false, false);
-            fn = new MSsfFunction(data, mapping, algorithm);
-            boolean ok = opt.minimize(fn, mapping.map(pt.ssf));
-            pt = (MSsfFunctionInstance) opt.getResult();
-//            if (ok)
-//                break;
-        }
-        nmodel = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
-        pt = fn.ssqEvaluate(mapping.map(nmodel.ssfRepresentation()));
-        System.out.println(pt.getLikelihood().getLogLikelihood());
-        nmodel = nmodel.normalize();
-        mapping = new DfmMapping(nmodel, false, false);
-        fn = new MSsfFunction(data, mapping, algorithm);
-        pt = fn.ssqEvaluate(mapping.map(nmodel.ssfRepresentation()));
-        System.out.println(pt.getLikelihood().getLogLikelihood());
-        System.out.println(new DataBlock(opt.getGradient()).nrm2());
-        System.out.println(new DataBlock(pt.getParameters()));
-        DfmMonitor nmonitor = new DfmMonitor(nmodel);
-        nmonitor.setCalcVariance(false);
-        nmonitor.setNormalizingVariance(false);
-        nmonitor.process(s);
+        DynamicFactorModel dmodelc = dmodel.clone();
+        //dmodelc.setTransition(new TransitionDescriptor(3, 1));
+        //DynamicFactorModel cmodel=dmodelc.compactFactors(0, 1);
+        DfmMonitor monitor = new DfmMonitor();
+        PcInitializer initializer=new PcInitializer();
+        initializer.setEstimationDomain(s[0].getDomain().drop(120, 12));
+        DfmEstimator estimator=new DfmEstimator(new IEstimationHook() {
+            int i = 0;
 
-        for (int i = 0; i < nmodel.getTransition().nbloks; ++i) {
-            DataBlock cmp = new DataBlock(nmonitor.getSmoothingResults().component(i * nmodel.getBlockLength()));
+            @Override
+            public boolean next(DynamicFactorModel current, Likelihood ll) {
+//                DfmMonitor m = new DfmMonitor(current);
+//                m.setCalcVariance(false);
+//                m.process(s);
+//                DataBlock cmp = new DataBlock(m.getSmoothingResults().component(0));
+//                cmp.sub(cmp.sum() / cmp.getLength());
+//                cmp.div(Math.sqrt(cmp.ssq() / cmp.getLength()));
+//                System.out.println(cmp);
+                System.out.println(ll.getLogLikelihood());
+                return true;
+            }
+        });
+        estimator.setMaxIter(200);
+        monitor.setInitializer(initializer);
+        monitor.setEstimator(estimator);
+        monitor.process(dmodelc, s);
+        for (int i = 0; i < dmodelc.getTransition().nbloks; ++i) {
+            DataBlock cmp = new DataBlock(monitor.getSmoothingResults().component(i * dmodelc.getBlockLength()));
             cmp.sub(cmp.sum() / cmp.getLength());
             cmp.div(Math.sqrt(cmp.ssq() / cmp.getLength()));
             System.out.println(cmp);
@@ -265,7 +236,7 @@ public class DfmMonitorTest {
         IMSsfData data = new MultivariateSsfData(dd.subMatrix(), null);
         MSsfAlgorithm algorithm = new MSsfAlgorithm();
         algorithm.useSsq(false);
-        DynamicFactorModel nmodel = dmodel.normalize();
+        DynamicFactorModel nmodel = dmodel.clone();
         DfmMapping mapping = new DfmMapping(nmodel);
         MSsfFunction fn = new MSsfFunction(data, mapping, algorithm);
 
