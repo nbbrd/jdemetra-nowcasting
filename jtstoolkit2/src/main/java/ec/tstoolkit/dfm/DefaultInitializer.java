@@ -14,19 +14,28 @@
  * See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
+
 package ec.tstoolkit.dfm;
 
-import ec.tstoolkit.data.DataBlock;
-import ec.tstoolkit.maths.matrices.Matrix;
-import ec.tstoolkit.timeseries.simplets.TsDomain;
+import ec.tstoolkit.dfm.DynamicFactorModel.MeasurementDescriptor;
 
 /**
  *
  * @author Jean Palate
  */
-public interface IDfmEstimator {
-    boolean estimate(DynamicFactorModel dfm, DfmInformationSet input);
+public class DefaultInitializer implements IDfmInitializer {
 
-    Matrix getHessian();
-    DataBlock getGradient();
+    @Override
+    public boolean initialize(DynamicFactorModel dfm, DfmInformationSet data) {
+        dfm.getTransition().covar.clear();
+        dfm.getTransition().covar.diagonal().set(1);
+        dfm.getTransition().varParams.clear();
+        for (MeasurementDescriptor m : dfm.getMeasurements()){
+            for (int i=0; i<m.coeff.length; ++i)
+                m.coeff[i]=0;
+            m.var=1;
+        }
+        return true;
+    }
+    
 }

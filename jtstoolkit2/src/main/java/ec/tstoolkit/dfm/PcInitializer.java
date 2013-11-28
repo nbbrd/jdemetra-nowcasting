@@ -18,21 +18,15 @@ package ec.tstoolkit.dfm;
 
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DescriptiveStatistics;
-import ec.tstoolkit.data.IReadDataBlock;
-import ec.tstoolkit.data.ReadDataBlock;
 import ec.tstoolkit.eco.Ols;
 import ec.tstoolkit.eco.RegModel;
 import ec.tstoolkit.maths.matrices.Matrix;
-import ec.tstoolkit.maths.matrices.MatrixException;
 import ec.tstoolkit.maths.matrices.SingularValueDecomposition;
 import ec.tstoolkit.maths.matrices.SymmetricMatrix;
 import ec.tstoolkit.pca.PrincipalComponents;
 import ec.tstoolkit.timeseries.simplets.AverageInterpolator;
 import ec.tstoolkit.timeseries.simplets.TsData;
-import ec.tstoolkit.timeseries.simplets.TsDataTable;
-import ec.tstoolkit.timeseries.simplets.TsDataTableInfo;
 import ec.tstoolkit.timeseries.simplets.TsDomain;
-import ec.tstoolkit.utilities.IntList;
 
 /**
  *
@@ -43,13 +37,13 @@ public class PcInitializer implements IDfmInitializer {
     private Matrix data_, datac_;
     private ec.tstoolkit.pca.PrincipalComponents[] pc_;
     private TsDomain idom_;
-    
-    public TsDomain getEstimationDomain(){
+
+    public TsDomain getEstimationDomain() {
         return idom_;
     }
-    
-    public void setEstimationDomain(TsDomain dom){
-        idom_=dom;
+
+    public void setEstimationDomain(TsDomain dom) {
+        idom_ = dom;
     }
 
     @Override
@@ -84,7 +78,7 @@ public class PcInitializer implements IDfmInitializer {
     }
 
     private void clear() {
-        data_=null;
+        data_ = null;
         datac_ = null;
         pc_ = null;
     }
@@ -108,7 +102,7 @@ public class PcInitializer implements IDfmInitializer {
     }
 
     private boolean computePrincipalComponents(DynamicFactorModel model) {
-        int nb = model.getTransition().nbloks;
+        int nb = model.getFactorsCount();
         pc_ = new PrincipalComponents[nb];
         for (int i = 0; i < nb; ++i) {
             Matrix x = prepareDataForCompenent(model, i);
@@ -121,40 +115,53 @@ public class PcInitializer implements IDfmInitializer {
     private Matrix prepareDataForCompenent(DynamicFactorModel model, int cmp) {
         int np = 0;
         for (DynamicFactorModel.MeasurementDescriptor desc : model.getMeasurements()) {
-            for (int i = 0; i < desc.factors.length; ++i) {
-                if (desc.factors[i] == cmp) {
-                    ++np;
-                    break;
-                }
+            if (!Double.isNaN(desc.coeff[cmp])) {
+                ++np;
             }
         }
         Matrix m = new Matrix(datac_.getRowsCount(), np);
         np = 0;
         int s = 0;
         for (DynamicFactorModel.MeasurementDescriptor desc : model.getMeasurements()) {
-            for (int i = 0; i < desc.factors.length; ++i) {
-                if (desc.factors[i] == cmp) {
-                    m.column(np).copy(datac_.column(s));
-                    for (int j = 0; j < desc.factors.length; ++j) {
-                        int jcmp = desc.factors[j];
-                        if (jcmp < cmp) {
-                            SingularValueDecomposition svd = pc_[jcmp].getSvd();
-                            double l = -svd.S()[0] * svd.V().get(cmp, s);
-                            m.column(cmp).addAY(-1, svd.U().column(0));
-                        }
+            if (!Double.isNaN(desc.coeff[cmp])) {
+                m.column(np).copy(datac_.column(s));
+                for (int j = 0; j < cmp; ++j) {
+                    if (!Double.isNaN(desc.coeff[j])) {
+                        SingularValueDecomposition svd = pc_[j].getSvd();
+                        double l = -svd.S()[0] * svd.V().get(searchPos(model, s, j), 0);
+                        m.column(cmp).addAY(l, svd.U().column(0));
                     }
-                    ++np;
-                    break;
                 }
+                ++np;
             }
             ++s;
         }
         return m;
     }
+    
+    /**
+     * Searches the position of variable v in the singular value decomposition k
+     * @param model
+     * @param v
+     * @param k
+     * @return 
+     */
+    private int searchPos(DynamicFactorModel model, int v, int k){
+        int s=-1, q =0;
+       for (DynamicFactorModel.MeasurementDescriptor desc : model.getMeasurements()) {
+           if (! Double.isNaN(desc.coeff[k])){
+               ++s;
+           }
+           if (q == v)
+               break;
+           ++q;
+       }
+       return s;
+     }
 
     private boolean computeVar(DynamicFactorModel model) {
         DynamicFactorModel.TransitionDescriptor tr = model.getTransition();
-        int nl = tr.nlags, nb = tr.nbloks;
+        int nl = tr.nlags, nb = model.getFactorsCount();
         DataBlock[] f = new DataBlock[nb];
         DataBlock[] e = new DataBlock[nb];
         Matrix M = new Matrix(data_.getRowsCount() - nl, nl * nb);
@@ -192,7 +199,7 @@ public class PcInitializer implements IDfmInitializer {
     private boolean computeLoadings(DynamicFactorModel model) {
         // creates the matrix of factors
         DynamicFactorModel.TransitionDescriptor tr = model.getTransition();
-        int nb = tr.nbloks, blen = model.getBlockLength();
+        int nb = model.getFactorsCount(), blen = model.getBlockLength();
         Matrix M = new Matrix(data_.getRowsCount() - (blen - 1), nb * blen);
         int c = 0;
         for (int i = 0; i < nb; ++i) {
@@ -206,21 +213,26 @@ public class PcInitializer implements IDfmInitializer {
             DataBlock y = datac_.column(v++).drop(blen - 1, 0);
             RegModel regmodel = new RegModel();
             regmodel.setY(y);
-            for (int j = 0; j < desc.factors.length; ++j) {
-                double[] x = new double[y.getLength()];
-                int fac = desc.factors[j];
-                int s = fac * blen;
-                int l = desc.type.getLength();
-                for (int r = 0; r < x.length; ++r) {
-                    x[r] = desc.type.dot(M.row(r).extract(s, l));
+            for (int j = 0; j < nb; ++j) {
+                if (!Double.isNaN(desc.coeff[j])) {
+                    double[] x = new double[y.getLength()];
+                    int s=j*blen, l = desc.type.getLength();
+                    for (int r = 0; r < x.length; ++r) {
+                        x[r] = desc.type.dot(M.row(r).extract(s, l));
+                    }
+                    regmodel.addX(new DataBlock(x));
                 }
-                regmodel.addX(new DataBlock(x));
             }
             Ols ols = new Ols();
             if (!ols.process(regmodel)) {
                 return false;
             }
-            System.arraycopy(ols.getLikelihood().getB(), 0, desc.coeff, 0, desc.coeff.length);
+            double[] b = ols.getLikelihood().getB();
+            for (int i = 0, j = 0; j < nb; ++j) {
+                if (!Double.isNaN(desc.coeff[j])) {
+                    desc.coeff[j] = b[i++];
+                }
+            }
             desc.var = ols.getLikelihood().getSigma();
         }
         return true;

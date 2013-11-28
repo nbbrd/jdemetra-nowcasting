@@ -42,6 +42,14 @@ public class VarSpecification implements IProcSpecification, Cloneable {
         vparams = new Table<>(nvars, nvars * nlags);
         nparams = new Table<>(nvars, nvars);
     }
+    
+    public int getEquationsCount(){
+        return nparams.getRowsCount();
+    }
+    
+    public int getLagsCount(){
+        return vparams.getColumnsCount()/vparams.getRowsCount();
+    }
 
     public Table<Parameter> getVarParams() {
         return vparams;

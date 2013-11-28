@@ -177,7 +177,7 @@ public class DfmNews {
         int n = updates.size();
         int c = model_.getBlockLength();
         int xc = modelex_.getBlockLength();
-        int nb = model_.getTransition().nbloks;
+        int nb = model_.getFactorsCount();
         lcov_ = new Matrix(n, n);
         int d = ssf_.getStateDim();
         Matrix V = new Matrix(d, d);
@@ -258,7 +258,7 @@ public class DfmNews {
         DataBlock a = new DataBlock(n);
         int c = model_.getBlockLength();
         int xc = modelex_.getBlockLength();
-        int nb = model_.getTransition().nbloks;
+        int nb = model_.getFactorsCount();
         int d = ssf_.getStateDim();
         Matrix V = new Matrix(d, d);
         DataBlockIterator vcols = V.columns();

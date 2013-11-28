@@ -46,7 +46,8 @@ public class DfmDocument extends ActiveDocument<DfmSpecification, TsVariables, D
     
     @Override
     protected DfmResults recalc(DfmSpecification spec, TsVariables input) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        
+        return null;
     }
 }  
 

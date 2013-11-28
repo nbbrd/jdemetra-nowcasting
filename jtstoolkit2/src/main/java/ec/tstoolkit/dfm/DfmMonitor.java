@@ -93,6 +93,7 @@ public class DfmMonitor {
                 return false;
             }
         }
+            
         if (estimator_ != null) {
             if (!estimator_.estimate(model, info)) {
                 return false;

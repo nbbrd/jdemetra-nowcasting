@@ -48,9 +48,7 @@ import static org.junit.Assert.*;
  */
 public class DynamicFactorModelTest {
 
-    static final DynamicFactorModel model = new DynamicFactorModel(12);
-    static final DynamicFactorModel dmodel = new DynamicFactorModel(12);
-    static final Matrix d;
+    static final DynamicFactorModel dmodel = new DynamicFactorModel(12, 3);
     static final int N = 500;
     static final boolean stressTest = false;
 
@@ -140,24 +138,16 @@ public class DynamicFactorModelTest {
                 row.mul(1 / e);
 //                row.sub(mm);
 //                row.mul(1 / ee);
-                int ni = 0;
-                for (int k = 1; k < 4; ++k) {
-                    if (M.get(i, k) == 1) {
-                        ++ni;
+                double[] q = new double[3];
+                for (int k = 0; k < 3; ++k) {
+                    if (M.get(i, k + 1) == 1) {
+                        q[k] = Z.get(j, k * 12);
+                    } else {
+                        q[k] = Double.NaN;
                     }
-                }
-                int[] f = new int[ni];
-                for (int k = 1, l = 0; k < 4; ++k) {
-                    if (M.get(i, k) == 1) {
-                        f[l++] = k - 1;
-                    }
-                }
-                double[] q = new double[ni];
-                for (int l = 0; l < q.length; ++l) {
-                    q[l] = Z.get(j, l * 12);
                 }
                 DynamicFactorModel.MeasurementDescriptor desc = new DynamicFactorModel.MeasurementDescriptor(
-                        measurement((int) M.get(i, 0)), f, q, MVar.get(j, j));
+                        measurement((int) M.get(i, 0)), q, MVar.get(j, j));
                 dmodel.addMeasurement(desc);
                 ++j;
             }
@@ -178,91 +168,7 @@ public class DynamicFactorModelTest {
     }
 
     static {
-        // Number of factors, number of lags (same for each factor)
-        DynamicFactorModel.TransitionDescriptor tdesc = new DynamicFactorModel.TransitionDescriptor(3, 4);
-        tdesc.covar.diagonal().randomize();
-        tdesc.varParams.randomize();
-        tdesc.varParams.minus(.5);
-        tdesc.varParams.mul(.5);
-        model.setTransition(tdesc);
-
-        DynamicFactorModel.MeasurementDescriptor mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.L), 0, 1.25, 1.1);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.L), new int[]{1, 2}, new double[]{2.25, 2.33}, 1.2);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.CD), 1, 3.25, 1.3);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.CD), new int[]{0, 1, 2}, new double[]{4.25, 4.01, 4.33}, 1.4);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.C), 2, 5.25, 1.5);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.C), new int[]{0, 2}, new double[]{6.25, 6.33}, 1.6);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.L), 0, 1.25, 1.1);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.L), new int[]{1, 2}, new double[]{2.25, 2.33}, 1.2);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.CD), 1, 3.25, 1.3);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.CD), new int[]{0, 1, 2}, new double[]{4.25, 4.01, 4.33}, 1.4);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.C), 2, 5.25, 1.5);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.C), new int[]{0, 2}, new double[]{6.25, 6.33}, 1.6);
-        model.addMeasurement(mdesc);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.CD), 1, 3.25, 1.3);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.CD), new int[]{0, 1, 2}, new double[]{4.25, 4.01, 4.33}, 1.4);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.C), 2, 5.25, 1.5);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.C), new int[]{0, 2}, new double[]{6.25, 6.33}, 1.6);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.L), 0, 1.25, 1.1);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.L), new int[]{1, 2}, new double[]{2.25, 2.33}, 1.2);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.CD), 1, 3.25, 1.3);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.CD), new int[]{0, 1, 2}, new double[]{4.25, 4.01, 4.33}, 1.4);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.C), 2, 5.25, 1.5);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.C), new int[]{0, 2}, new double[]{6.25, 6.33}, 1.6);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.CD), 1, 3.25, 1.3);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.CD), new int[]{0, 1, 2}, new double[]{4.25, 4.01, 4.33}, 1.4);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.C), 2, 5.25, 1.5);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.C), new int[]{0, 2}, new double[]{6.25, 6.33}, 1.6);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.L), 0, 1.25, 1.1);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.L), new int[]{1, 2}, new double[]{2.25, 2.33}, 1.2);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.CD), 1, 3.25, 1.3);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.CD), new int[]{0, 1, 2}, new double[]{4.25, 4.01, 4.33}, 1.4);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.C), 2, 5.25, 1.5);
-        model.addMeasurement(mdesc);
-        mdesc = new DynamicFactorModel.MeasurementDescriptor(DynamicFactorModel.measurement(MeasurementType.C), new int[]{0, 2}, new double[]{6.25, 6.33}, 1.6);
-        model.addMeasurement(mdesc);
-        int K = model.getMeasurementsCount();
-        d = new Matrix(K, N);
-        d.randomize();
-        d.sub(.5);
-//        for (int i = 0; i < N; i += 4) {
-//            for (int j = 0; j < K / 2; ++j) {
-//                if (i % 4 != 0) {
-//                    d.set(j, i, Double.NaN);
-//                }
-//            }
-//        }
-        loadDavidModel();
+         loadDavidModel();
     }
 
     public DynamicFactorModelTest() {
@@ -270,7 +176,7 @@ public class DynamicFactorModelTest {
 
     //Test
     public void testModel() {
-        IMSsf ssf = model.ssfRepresentation();
+        IMSsf ssf = dmodel.ssfRepresentation();
         System.out.println(DefaultTimeInvariantMultivariateSsf.of(ssf));
     }
 
@@ -290,7 +196,7 @@ public class DynamicFactorModelTest {
 
     @Test
     public void testTX() {
-        IMSsf ssf = model.ssfRepresentation();
+        IMSsf ssf = dmodel.ssfRepresentation();
         DefaultTimeInvariantMultivariateSsf defssf = DefaultTimeInvariantMultivariateSsf.of(ssf);
         DataBlock x = new DataBlock(ssf.getStateDim());
         x.randomize();
@@ -322,7 +228,7 @@ public class DynamicFactorModelTest {
 
     @Test
     public void testXT() {
-        IMSsf ssf = model.ssfRepresentation();
+        IMSsf ssf = dmodel.ssfRepresentation();
         DefaultTimeInvariantMultivariateSsf defssf = DefaultTimeInvariantMultivariateSsf.of(ssf);
         DataBlock x = new DataBlock(ssf.getStateDim());
         x.randomize();
@@ -352,7 +258,7 @@ public class DynamicFactorModelTest {
 
     @Test
     public void testZX() {
-        IMSsf ssf = model.ssfRepresentation();
+        IMSsf ssf = dmodel.ssfRepresentation();
         DefaultTimeInvariantMultivariateSsf defssf = DefaultTimeInvariantMultivariateSsf.of(ssf);
         Matrix x = new Matrix(ssf.getStateDim(), ssf.getStateDim());
         x.randomize();
@@ -387,7 +293,7 @@ public class DynamicFactorModelTest {
         //for (int k = 0; k < 10; ++k) {
         ArrayFilter filter = new ArrayFilter();
         MPredictionErrorDecomposition results = new MPredictionErrorDecomposition(true);
-        filter.process((IArraySsf) model.ssfRepresentation(), new MultivariateSsfData(d.subMatrix(), null), results);
+        filter.process((IArraySsf) dmodel.ssfRepresentation(), new MultivariateSsfData(dd.subMatrix(), null), results);
         //}
         long q1 = System.currentTimeMillis();
         System.out.println("test2");
@@ -402,36 +308,36 @@ public class DynamicFactorModelTest {
     @Test
     public void testVar3() {
         long q0 = System.currentTimeMillis();
-        //for (int k = 0; k < 10; ++k) {
-        MFilter filter = new MFilter();
-        MPredictionErrorDecomposition results = new MPredictionErrorDecomposition(true);
-        filter.process(dmodel.ssfRepresentation(), new MultivariateSsfData(dd.subMatrix(), null), results);
-        //}
+        Likelihood ll = new Likelihood();
+        for (int k = 0; k < 10; ++k) {
+            MFilter filter = new MFilter();
+            MPredictionErrorDecomposition results = new MPredictionErrorDecomposition(true);
+            filter.process(dmodel.ssfRepresentation(), new MultivariateSsfData(dd.subMatrix(), null), results);
+            evaluate(results, ll);
+        }
         long q1 = System.currentTimeMillis();
         System.out.println("test3");
         //System.out.println(results.getLogDeterminant());
         //System.out.println(results.getSsqErr());
-        Likelihood ll = new Likelihood();
-        evaluate(results, ll);
         System.out.println(ll.getLogLikelihood());
         System.out.println(q1 - q0);
     }
 
-//    @Test
+    @Test
     public void testVarU() {
         long q0 = System.currentTimeMillis();
-        //for (int k = 0; k < 10; ++k) {
-        Filter filter = new Filter();
-        PredictionErrorDecomposition results = new PredictionErrorDecomposition(true);
-        filter.setSsf(new M2UAdapter((IMSsf2U) model.ssfRepresentation(), new FullM2UMap(model.getMeasurementsCount())));
-        filter.process(new M2UData(d, null), results);
-        //}
+        Likelihood ll = new Likelihood();
+        for (int k = 0; k < 10; ++k) {
+            Filter filter = new Filter();
+            PredictionErrorDecomposition results = new PredictionErrorDecomposition(true);
+            filter.setSsf(new M2UAdapter((IMSsf2U) dmodel.ssfRepresentation(), new FullM2UMap(dmodel.getMeasurementsCount())));
+            filter.process(new M2UData(dd, null), results);
+            evaluate(results, ll);
+        }
         long q1 = System.currentTimeMillis();
         System.out.println("testU");
         //System.out.println(results.getLogDeterminant());
         //System.out.println(results.getSsqErr());
-        Likelihood ll = new Likelihood();
-        evaluate(results, ll);
         System.out.println(ll.getLogLikelihood());
         System.out.println(q1 - q0);
     }
@@ -485,10 +391,10 @@ public class DynamicFactorModelTest {
         //}
         SmoothingResults sresults = new SmoothingResults();
         Smoother smoother = new Smoother();
-        smoother.setSsf(new M2UAdapter((IMSsf2U) model.ssfRepresentation(), new FullM2UMap(model.getMeasurementsCount())));
+        smoother.setSsf(new M2UAdapter((IMSsf2U) dmodel.ssfRepresentation(), new FullM2UMap(dmodel.getMeasurementsCount())));
 
         smoother.setCalcVar(false);
-        smoother.process(new M2UData(d, null), sresults);
+        smoother.process(new M2UData(dd, null), sresults);
 
         DiffuseFilteringResults results = smoother.getFilteringResults();
         long q1 = System.currentTimeMillis();
@@ -537,16 +443,16 @@ public class DynamicFactorModelTest {
         System.out.println(w);
         System.out.println(q1 - q0);
     }
-    
+
     @Test
-    public void testMapping(){
-        DfmMapping mapping=new DfmMapping(dmodel);
-        DfmMapping mapping1=new DfmMapping(dmodel, true,false);
-        DfmMapping mapping2=new DfmMapping(dmodel, false,true);
-        DataBlock x=new DataBlock(mapping.map(dmodel.ssfRepresentation()));
+    public void testMapping() {
+        DfmMapping mapping = new DfmMapping(dmodel);
+        DfmMapping mapping1 = new DfmMapping(dmodel, true, false);
+        DfmMapping mapping2 = new DfmMapping(dmodel, false, true);
+        DataBlock x = new DataBlock(mapping.map(dmodel.ssfRepresentation()));
         System.out.println(x);
-        DynamicFactorModel m=((DynamicFactorModel.Ssf)mapping1.map(mapping1.map(dmodel.ssfRepresentation()))).getModel();
-        x=new DataBlock(mapping.map(m.ssfRepresentation()));
+        DynamicFactorModel m = ((DynamicFactorModel.Ssf) mapping1.map(mapping1.map(dmodel.ssfRepresentation()))).getModel();
+        x = new DataBlock(mapping.map(m.ssfRepresentation()));
         System.out.println(x);
     }
 }

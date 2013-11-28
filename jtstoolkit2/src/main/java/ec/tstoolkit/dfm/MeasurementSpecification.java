@@ -31,7 +31,8 @@ public class MeasurementSpecification implements IProcSpecification {
 
     public static final String NAME = "name", COEFF = "coeff", VAR = "var", TYPE = "type";
     private String name;
-    private Parameter coeff, var;
+    private Parameter[] coeff;
+    private Parameter var;
     private DynamicFactorModel.MeasurementType type;
 
     @Override
@@ -70,7 +71,7 @@ public class MeasurementSpecification implements IProcSpecification {
             return false;
         }
         name = info.get(NAME, String.class);
-        coeff = info.get(COEFF, Parameter.class);
+        coeff = info.get(COEFF, Parameter[].class);
         var = info.get(VAR, Parameter.class);
         String t = info.get(TYPE, String.class);
         if (t == null) {
@@ -83,14 +84,14 @@ public class MeasurementSpecification implements IProcSpecification {
     /**
      * @return the coeff
      */
-    public Parameter getCoefficient() {
+    public Parameter[] getCoefficients() {
         return coeff;
     }
 
     /**
      * @param coeff the coeff to set
      */
-    public void setCoefficient(Parameter coeff) {
+    public void setCoefficient(Parameter[] coeff) {
         this.coeff = coeff;
     }
 

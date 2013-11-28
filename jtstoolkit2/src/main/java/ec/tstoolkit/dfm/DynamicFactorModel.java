@@ -14,17 +14,15 @@ import ec.tstoolkit.maths.matrices.SymmetricMatrix;
 import ec.tstoolkit.mssf2.DefaultTimeInvariantMultivariateSsf;
 import ec.tstoolkit.mssf2.IMSsf;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
  * @author palatej
  */
 public class DynamicFactorModel implements Cloneable {
+
 
     /**
      *
@@ -167,35 +165,16 @@ public class DynamicFactorModel implements Cloneable {
          * @param var
          */
         public MeasurementDescriptor(final IMeasurement type,
-                final int[] factors, final double[] coeff, final double var) {
+                final double[] coeff, final double var) {
             this.type = type;
             this.coeff = coeff.clone();
-            this.factors = factors.clone();
             this.var = var;
         }
 
-        /**
-         *
-         * @param type
-         * @param factor
-         * @param coeff
-         * @param var
-         */
-        public MeasurementDescriptor(final IMeasurement type,
-                final int factor, final double coeff, final double var) {
-            this.type = type;
-            this.coeff = new double[]{coeff};
-            this.factors = new int[]{factor};
-            this.var = var;
-        }
-        /**
+         /**
          *
          */
         public final IMeasurement type;
-        /**
-         *
-         */
-        public final int[] factors;
         /**
          *
          */
@@ -219,17 +198,12 @@ public class DynamicFactorModel implements Cloneable {
         public TransitionDescriptor(int nblocks, int nlags) {
             varParams = new Matrix(nblocks, nblocks * nlags);
             covar = new Matrix(nblocks, nblocks);
-            this.nbloks = nblocks;
             this.nlags = nlags;
         }
         /**
          *
          */
-        public final int nbloks,
-                /**
-                 *
-                 */
-                nlags;
+        public final int nlags;
         /**
          *
          */
@@ -306,8 +280,9 @@ public class DynamicFactorModel implements Cloneable {
         UserDefined
     }
     private int c_;
+    private final int nb_;
     private TransitionDescriptor tdesc_;
-    private List<MeasurementDescriptor> mdesc_ = new ArrayList<MeasurementDescriptor>();
+    private List<MeasurementDescriptor> mdesc_ = new ArrayList<>();
     private Initialization init_ = Initialization.Zero;
     private Matrix V0_;
 
@@ -315,8 +290,9 @@ public class DynamicFactorModel implements Cloneable {
      *
      * @param c
      */
-    public DynamicFactorModel(int c) {
+    public DynamicFactorModel(int c, int nb) {
         c_ = c;
+        nb_ = nb;
     }
 
     /**
@@ -329,14 +305,14 @@ public class DynamicFactorModel implements Cloneable {
      */
     public void normalize() {
         // scaling factors
-        int nb = tdesc_.nbloks, nl = tdesc_.nlags;
-        double[] w = new double[nb];
+        int nl = tdesc_.nlags;
+        double[] w = new double[nb_];
         tdesc_.covar.diagonal().copyTo(w, 0);
-        for (int i = 0; i < nb; ++i) {
+        for (int i = 0; i < nb_; ++i) {
             w[i] = Math.sqrt(w[i]);
         }
         // covar
-        for (int i = 0; i < nb; ++i) {
+        for (int i = 0; i < nb_; ++i) {
             if (w[i] != 0) {
                 tdesc_.covar.set(i, i, 1);
                 for (int j = 0; j < i; ++j) {
@@ -348,10 +324,10 @@ public class DynamicFactorModel implements Cloneable {
         }
         SymmetricMatrix.fromLower(tdesc_.covar);
         // varParams
-        for (int i = 0; i < nb; ++i) {
+        for (int i = 0; i < nb_; ++i) {
             if (w[i] != 0) {
                 DataBlock range = tdesc_.varParams.row(i).range(0, nl);
-                for (int j = 0; j < nb; ++j) {
+                for (int j = 0; j < nb_; ++j) {
                     if (w[j] != 0 && i != j) {
                         range.mul(w[j] / w[i]);
                     }
@@ -361,8 +337,10 @@ public class DynamicFactorModel implements Cloneable {
         }
         // loadings
         for (MeasurementDescriptor desc : mdesc_) {
-            for (int i = 0; i < desc.factors.length; ++i) {
-                desc.coeff[i] *= w[desc.factors[i]];
+            for (int i = 0; i < desc.coeff.length; ++i) {
+                if (!Double.isNaN(desc.coeff[i])) {
+                    desc.coeff[i] *= w[i];
+                }
             }
         }
     }
@@ -371,14 +349,14 @@ public class DynamicFactorModel implements Cloneable {
     public DynamicFactorModel clone() {
         try {
             DynamicFactorModel m = (DynamicFactorModel) super.clone();
-            TransitionDescriptor td = new TransitionDescriptor(tdesc_.nbloks, tdesc_.nlags);
+            TransitionDescriptor td = new TransitionDescriptor(nb_, tdesc_.nlags);
             td.covar.copy(tdesc_.covar);
             td.varParams.copy(tdesc_.varParams);
             m.tdesc_ = td;
-            m.mdesc_ = new ArrayList<MeasurementDescriptor>();
+            m.mdesc_ = new ArrayList<>();
             for (MeasurementDescriptor md : mdesc_) {
                 m.mdesc_.add(new MeasurementDescriptor(
-                        md.type, md.factors.clone(), md.coeff.clone(), md.var));
+                        md.type, md.coeff.clone(), md.var));
             }
             return m;
         } catch (CloneNotSupportedException ex) {
@@ -387,21 +365,16 @@ public class DynamicFactorModel implements Cloneable {
     }
 
     boolean copy(DynamicFactorModel m) {
-        if (tdesc_.nbloks != m.tdesc_.nbloks
+        if (nb_ != m.nb_
                 || tdesc_.nlags != m.tdesc_.nlags
                 || mdesc_.size() != m.mdesc_.size()) {
             return false;
         }
-        TransitionDescriptor td = new TransitionDescriptor(tdesc_.nbloks, tdesc_.nlags);
-        td.covar.copy(tdesc_.covar);
-        td.varParams.copy(tdesc_.varParams);
-        m.tdesc_ = td;
+        tdesc_.covar.copy(m.tdesc_.covar);
+        tdesc_.varParams.copy(m.tdesc_.varParams);
         for (int i = 0; i < mdesc_.size(); ++i) {
-            MeasurementDescriptor s = mdesc_.get(i),
-                    t = m.mdesc_.get(i);
-            if (!Arrays.equals(s.factors, t.factors)) {
-                return false;
-            }
+            MeasurementDescriptor s = m.mdesc_.get(i),
+                    t = mdesc_.get(i);
             System.arraycopy(s.coeff, 0, t.coeff, 0, s.coeff.length);
             t.var = s.var;
         }
@@ -409,46 +382,38 @@ public class DynamicFactorModel implements Cloneable {
     }
 
     public DynamicFactorModel compactFactors(int from, int to) {
-        if (from < 0 || to < from || to >= tdesc_.nbloks) {
+        if (from < 0 || to < from || to >= nb_) {
             return null;
         }
         if (to == from) {
             return clone();
         }
         int nc = to - from;
-        DynamicFactorModel m = new DynamicFactorModel(c_);
-        TransitionDescriptor td = new TransitionDescriptor(tdesc_.nbloks - nc, tdesc_.nlags);
+        DynamicFactorModel m = new DynamicFactorModel(c_, nb_ - nc);
+        TransitionDescriptor td = new TransitionDescriptor(nb_ - nc, tdesc_.nlags);
         m.tdesc_ = td;
         m.tdesc_.covar.diagonal().set(1);
         for (MeasurementDescriptor md : mdesc_) {
-            int nf = 0;
-            boolean ok = false;
-            for (int i = 0; i < md.factors.length; ++i) {
-                if (md.factors[i] < from || md.factors[i] > to) {
-                    ++nf;
-                } else if (!ok && md.factors[i] >= from && md.factors[i] <= to) {
-                    ok = true;
-                    ++nf;
+            double[] ncoeff = new double[nb_ - nc];
+            for (int i = 0; i < from; ++i) {
+                ncoeff[i] = md.coeff[i];
+            }
+            for (int i = to; i < nb_; ++i) {
+                ncoeff[i - nc] = md.coeff[i];
+            }
+            boolean used = false;
+            for (int i = from; i <= to; ++i) {
+                if (!Double.isNaN(md.coeff[i])) {
+                    used = true;
+                    break;
                 }
             }
-            int[] fc = new int[nf];
-            nf = 0;
-            ok = false;
-            for (int i = 0; i < md.factors.length; ++i) {
-                if (md.factors[i] < from) {
-                    fc[nf++] = md.factors[i];
-                } else if (md.factors[i] > to) {
-                    fc[nf++] = md.factors[i] - nc;
-                } else if (!ok && md.factors[i] >= from && md.factors[i] <= to) {
-                    ok = true;
-                    fc[nf++] = from;
-                }
+            if (!used) {
+                ncoeff[from] = Double.NaN;
             }
-
             m.mdesc_.add(new MeasurementDescriptor(
-                    md.type, fc, new double[nf], 1));
+                    md.type, ncoeff, 1));
         }
-
         return m;
     }
 
@@ -460,6 +425,9 @@ public class DynamicFactorModel implements Cloneable {
         return c_;
     }
 
+    int getFactorsCount() {
+        return nb_; //To change body of generated methods, choose Tools | Templates.
+    }
     /**
      *
      * @param c
@@ -546,35 +514,41 @@ public class DynamicFactorModel implements Cloneable {
 
     class Ssf extends DefaultTimeInvariantMultivariateSsf {
 
+        private boolean mused(MeasurementDescriptor m, int i) {
+            double z = m.coeff[i];
+            return z != 0 && !Double.isNaN(z);
+        }
+
         public DynamicFactorModel getModel() {
             return DynamicFactorModel.this;
         }
         private final DataBlock ttmp, xtmp;
 
         private Ssf(Initialization init, Matrix V0) {
-            int nl = tdesc_.nlags, nb = tdesc_.nbloks;
-            int mdim = nb * c_, vdim = mdesc_.size();
-            this.initialize(mdim, vdim, nb, true);
-            ttmp = new DataBlock(nb);
+            int nl = tdesc_.nlags;
+            int mdim = nb_ * c_, vdim = mdesc_.size();
+            this.initialize(mdim, vdim, nb_, true);
+            ttmp = new DataBlock(nb_);
             xtmp = new DataBlock(mdim);
             // Measurement
             for (int i = 0; i < vdim; ++i) {
                 MeasurementDescriptor zdesc = mdesc_.get(i);
                 m_H[i] = zdesc.var;
                 DataBlock z = m_Z.row(i);
-                for (int j = 0; j < zdesc.factors.length; ++j) {
-                    IMeasurement m = zdesc.type;
-                    int start = c_ * zdesc.factors[j];
-                    DataBlock cur = z.range(start, start + m.getLength());
-                    m.fill(cur);
-                    cur.mul(zdesc.coeff[j]);
+                for (int j = 0, start = 0; j < nb_; ++j, start += c_) {
+                    if (mused(zdesc, j)) {
+                        IMeasurement m = zdesc.type;
+                        DataBlock cur = z.range(start, start + m.getLength());
+                        m.fill(cur);
+                        cur.mul(zdesc.coeff[j]);
+                    }
                 }
             }
             // Transition
             // T, S
-            for (int i = 0, r = 0; i < nb; ++i, r += c_) {
+            for (int i = 0, r = 0; i < nb_; ++i, r += c_) {
                 m_S.set(r, i, 1);
-                for (int j = 0, c = 0; j < nb; ++j, c += c_) {
+                for (int j = 0, c = 0; j < nb_; ++j, c += c_) {
                     SubMatrix B = m_T.subMatrix(r, r + c_, c, c + c_);
                     if (i == j) {
                         B.subDiagonal(-1).set(1);
@@ -601,13 +575,13 @@ public class DynamicFactorModel implements Cloneable {
 
         @Override
         public void TX(int pos, DataBlock x) {
-            int nb = tdesc_.nbloks, nl = tdesc_.nlags;
+            int nl = tdesc_.nlags;
             // compute first the next item
-            for (int i = 0; i < nb; ++i) {
+            for (int i = 0; i < nb_; ++i) {
                 double r = 0;
                 DataBlock p = tdesc_.varParams.row(i).range(0, nl);
                 DataBlock xb = x.range(0, nl);
-                for (int j = 0; j < nb; ++j) {
+                for (int j = 0; j < nb_; ++j) {
                     if (j != 0) {
                         p.move(nl);
                         xb.move(c_);
@@ -640,9 +614,8 @@ public class DynamicFactorModel implements Cloneable {
 
         @Override
         public void addV(final int pos, final SubMatrix v) {
-            int nb = tdesc_.nbloks;
-            for (int i = 0; i < nb; ++i) {
-                DataBlock cv = v.column(i * c_).extract(0, nb, c_);
+            for (int i = 0; i < nb_; ++i) {
+                DataBlock cv = v.column(i * c_).extract(0, nb_, c_);
                 cv.add(tdesc_.covar.column(i));
             }
         }
@@ -651,11 +624,12 @@ public class DynamicFactorModel implements Cloneable {
         public double ZX(final int pos, int v, final DataBlock x) {
             MeasurementDescriptor zdesc = mdesc_.get(v);
             double r = 0;
-            for (int j = 0; j < zdesc.factors.length; ++j) {
-                IMeasurement m = zdesc.type;
-                int start = c_ * zdesc.factors[j];
-                DataBlock cur = x.range(start, start + m.getLength());
-                r += zdesc.coeff[j] * m.dot(cur);
+            for (int j = 0, start = 0; j < nb_; ++j, start += c_) {
+                if (mused(zdesc, j)) {
+                    IMeasurement m = zdesc.type;
+                    DataBlock cur = x.range(start, start + m.getLength());
+                    r += zdesc.coeff[j] * m.dot(cur);
+                }
             }
             return r;
         }
@@ -673,12 +647,13 @@ public class DynamicFactorModel implements Cloneable {
         public void ZM(final int pos, final int v, final SubMatrix M, final DataBlock zm) {
             MeasurementDescriptor zdesc = mdesc_.get(v);
             zm.set(0);
-            for (int j = 0; j < zdesc.factors.length; ++j) {
-                IMeasurement m = zdesc.type;
-                int start = c_ * zdesc.factors[j];
-                for (int c = 0; c < M.getColumnsCount(); ++c) {
-                    DataBlock cur = M.column(c).range(start, start + m.getLength());
-                    zm.add(c, zdesc.coeff[j] * m.dot(cur));
+            for (int j = 0, start = 0; j < nb_; ++j, start += c_) {
+                if (mused(zdesc, j)) {
+                    IMeasurement m = zdesc.type;
+                    for (int c = 0; c < M.getColumnsCount(); ++c) {
+                        DataBlock cur = M.column(c).range(start, start + m.getLength());
+                        zm.add(c, zdesc.coeff[j] * m.dot(cur));
+                    }
                 }
             }
 //           DataBlockIterator cols = m.columns();
@@ -691,11 +666,11 @@ public class DynamicFactorModel implements Cloneable {
         @Override
         public void XT(int pos, DataBlock x) {
             // put the results in xtmp;
-            int nb = tdesc_.nbloks, nl = tdesc_.nlags;
-            for (int i = 0, k = 0, l = 0; i < nb; ++i) {
+            int nl = tdesc_.nlags;
+            for (int i = 0, k = 0, l = 0; i < nb_; ++i) {
                 for (int j = 0; j < nl; ++j, ++k) {
                     double r = x.get(k + 1);
-                    r += tdesc_.varParams.column(l++).dot(x.extract(0, nb, c_));
+                    r += tdesc_.varParams.column(l++).dot(x.extract(0, nb_, c_));
                     xtmp.set(k, r);
                 }
                 for (int j = nl; j < c_ - 1; ++j, ++k) {
@@ -707,12 +682,12 @@ public class DynamicFactorModel implements Cloneable {
         }
 
         private Matrix getInitialVariance() {
-            int nb = tdesc_.nbloks, nl = tdesc_.nlags;
+            int nl = tdesc_.nlags;
             // We have to solve the steady state equation:
             // V = T V T' + Q
             // We consider the nlag*nb, nlag*nb sub-system
 
-            int n = nb * nl;
+            int n = nb_ * nl;
             Matrix cov = new Matrix(n, n);
             int np = (n * (n + 1)) / 2;
             Matrix M = new Matrix(np, np);
@@ -755,8 +730,8 @@ public class DynamicFactorModel implements Cloneable {
             }
             SymmetricMatrix.fromLower(cov);
             Matrix fullCov = new Matrix(getStateDim(), getStateDim());
-            for (int r = 0; r < nb; ++r) {
-                for (int c = 0; c < nb; ++c) {
+            for (int r = 0; r < nb_; ++r) {
+                for (int c = 0; c < nb_; ++c) {
                     fullCov.subMatrix(r * c_, r * c_ + nl, c * c_, c * c_ + nl).copy(cov.subMatrix(r * nl, (r + 1) * nl, c * nl, (c + 1) * nl));
                 }
             }
@@ -767,46 +742,6 @@ public class DynamicFactorModel implements Cloneable {
             return fullCov;
         }
 
-        private Matrix getInitialVariance2() {
-            int nb = tdesc_.nbloks, nl = tdesc_.nlags;
-            // We have to solve the steady state equation:
-            // V = T V T' + Q
-            // first implementation, completely unoptimized
-            int n = getStateDim();
-            Matrix cov = new Matrix(n, n);
-            Matrix t = new Matrix(n, n);
-            Matrix q = new Matrix(n, n);
-            T(0, t.subMatrix());
-            V(0, q.subMatrix());
-            int np = (n * (n + 1)) / 2;
-            Matrix M = new Matrix(np, np);
-            double[] b = new double[np];
-            // fill the matrix
-            for (int c = 0, i = 0; c < n; ++c) {
-                for (int r = c; r < n; ++r, ++i) {
-                    M.set(i, i, 1);
-                    b[i] = q.get(r, c);
-                    for (int k = 0; k < n; ++k) {
-                        for (int l = 0; l < n; ++l) {
-                            double z = t.get(r, l) * t.get(c, k);
-                            if (z != 0) {
-                                int p = l <= k ? pos(k, l, n) : pos(l, k, n);
-                                M.add(i, p, -z);
-                            }
-                        }
-                    }
-                }
-            }
-            HouseholderR hous = new HouseholderR(false);
-            hous.decompose(M);
-            double[] solve = hous.solve(b);
-            for (int i = 0, j = 0; i < n; i++) {
-                cov.column(i).drop(i, 0).copyFrom(solve, j);
-                j += n - i;
-            }
-            SymmetricMatrix.fromLower(cov);
-            return cov;
-        }
     }
 
     private static int pos(int r, int c, int n) {

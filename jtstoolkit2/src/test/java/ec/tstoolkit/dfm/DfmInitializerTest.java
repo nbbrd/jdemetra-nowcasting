@@ -36,7 +36,7 @@ import static org.junit.Assert.*;
  */
 public class DfmInitializerTest {
 
-    static final DynamicFactorModel dmodel = new DynamicFactorModel(12);
+    static final DynamicFactorModel dmodel = new DynamicFactorModel(12, 3);
     static final int N = 500;
     static final boolean stressTest = false;
 
@@ -100,24 +100,18 @@ public class DfmInitializerTest {
                 double e = stats.getStdev();
                 row.sub(m);
                 row.mul(1 / e);
-                int ni = 0;
-                for (int k = 1; k < 4; ++k) {
-                    if (M.get(i, k) == 1) {
-                        ++ni;
+                double[] q = new double[3];
+                for (int k = 0; k < 3; ++k) {
+                    if (M.get(i, k + 1) == 1) {
+                        q[k] = Z.get(j, k * 12);
+                    } else {
+                        q[k] = Double.NaN;
                     }
                 }
-                int[] f = new int[ni];
-                for (int k = 1, l = 0; k < 4; ++k) {
-                    if (M.get(i, k) == 1) {
-                        f[l++] = k - 1;
-                    }
-                }
-                double[] q = new double[ni];
                 for (int l = 0; l < q.length; ++l) {
-                    q[l] = Z.get(j, l * 12);
                 }
                 DynamicFactorModel.MeasurementDescriptor desc = new DynamicFactorModel.MeasurementDescriptor(
-                        measurement((int) M.get(i, 0)), f, q, MVar.get(j, j));
+                        measurement((int) M.get(i, 0)), q, MVar.get(j, j));
                 dmodel.addMeasurement(desc);
                 ++j;
             }
@@ -153,7 +147,7 @@ public class DfmInitializerTest {
         }
         PcInitializer initializer = new PcInitializer();
         initializer.setEstimationDomain(s[0].getDomain().drop(120, 12));
-        DynamicFactorModel model0=dmodel.clone();
+        DynamicFactorModel model0 = dmodel.clone();
         initializer.initialize(model0, new DfmInformationSet(s));
 //        for (int i = 0; i < dmodel.getTransition().nbloks; ++i) {
 //            DataBlock factor=initializer.getPrincipalComponents(i).getFactor(0);
@@ -172,7 +166,8 @@ public class DfmInitializerTest {
             System.out.println(desc.var);
         }
     }
-        //@Test
+    //@Test
+
     public void testSmoohter() {
         TsData[] s = new TsData[dd.getRowsCount()];
         for (int i = 0; i < s.length; ++i) {
@@ -181,7 +176,7 @@ public class DfmInitializerTest {
         DfmProcessor processor = new DfmProcessor();
         processor.setCalcVariance(false);
         processor.process(dmodel, new DfmInformationSet(s));
-        for (int i = 0; i < dmodel.getTransition().nbloks; ++i) {
+        for (int i = 0; i < dmodel.getFactorsCount(); ++i) {
             DataBlock cmp = new DataBlock(processor.getSmoothingResults().component(i * dmodel.getBlockLength()));
             cmp.sub(cmp.sum() / cmp.getLength());
             cmp.div(Math.sqrt(cmp.ssq() / cmp.getLength()));
@@ -189,5 +184,4 @@ public class DfmInitializerTest {
         }
 
     }
-
 }

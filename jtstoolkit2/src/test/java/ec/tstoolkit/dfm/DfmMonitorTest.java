@@ -49,7 +49,7 @@ import static org.junit.Assert.*;
  */
 public class DfmMonitorTest {
 
-    static final DynamicFactorModel dmodel = new DynamicFactorModel(12);
+    static final DynamicFactorModel dmodel = new DynamicFactorModel(12, 3);
     static final int N = 500;
     static final boolean stressTest = false;
 
@@ -113,24 +113,16 @@ public class DfmMonitorTest {
                 double e = stats.getStdev();
                 row.sub(m);
                 row.mul(1 / e);
-                int ni = 0;
-                for (int k = 1; k < 4; ++k) {
-                    if (M.get(i, k) == 1) {
-                        ++ni;
+                double[] q = new double[3];
+                for (int k = 0; k < 3; ++k) {
+                    if (M.get(i, k + 1) == 1) {
+                        q[k] = Z.get(j, k * 12);
+                    } else {
+                        q[k] = Double.NaN;
                     }
-                }
-                int[] f = new int[ni];
-                for (int k = 1, l = 0; k < 4; ++k) {
-                    if (M.get(i, k) == 1) {
-                        f[l++] = k - 1;
-                    }
-                }
-                double[] q = new double[ni];
-                for (int l = 0; l < q.length; ++l) {
-                    q[l] = Z.get(j, l * 12);
                 }
                 DynamicFactorModel.MeasurementDescriptor desc = new DynamicFactorModel.MeasurementDescriptor(
-                        measurement((int) M.get(i, 0)), f, q, MVar.get(j, j));
+                        measurement((int) M.get(i, 0)), q, MVar.get(j, j));
                 dmodel.addMeasurement(desc);
                 ++j;
             }
@@ -171,7 +163,7 @@ public class DfmMonitorTest {
         Likelihood ll = new Likelihood();
         evaluate(monitor.getFilteringResults(), ll);
         System.out.println(ll.getLogLikelihood());
-                DynamicFactorModel nmodel=dmodel.clone();
+        DynamicFactorModel nmodel = dmodel.clone();
         nmodel.normalize();
         monitor.process(nmodel, s);
         double[] ncomponent = monitor.getSmoothingResults().component(0);
@@ -197,12 +189,14 @@ public class DfmMonitorTest {
             s[i] = new TsData(start, dd.row(i));
         }
         DynamicFactorModel dmodelc = dmodel.clone();
+        dmodelc.normalize();
+        System.out.println(new DfmMapping(dmodelc).parameters());
         //dmodelc.setTransition(new TransitionDescriptor(3, 1));
         //DynamicFactorModel cmodel=dmodelc.compactFactors(0, 1);
         DfmMonitor monitor = new DfmMonitor();
-        PcInitializer initializer=new PcInitializer();
+        PcInitializer initializer = new PcInitializer();
         initializer.setEstimationDomain(s[0].getDomain().drop(120, 12));
-        DfmEstimator estimator=new DfmEstimator(new IEstimationHook() {
+        DfmEstimator estimator = new DfmEstimator(new IEstimationHook() {
             int i = 0;
 
             @Override
@@ -214,20 +208,24 @@ public class DfmMonitorTest {
 //                cmp.sub(cmp.sum() / cmp.getLength());
 //                cmp.div(Math.sqrt(cmp.ssq() / cmp.getLength()));
 //                System.out.println(cmp);
-                System.out.println(ll.getLogLikelihood());
+                System.out.print(ll.getLogLikelihood());
+                System.out.print('\t');
+                System.out.println(new DfmMapping(current).parameters());
                 return true;
             }
         });
-        estimator.setMaxIter(200);
+        estimator.setMaxIter(100);
         monitor.setInitializer(initializer);
         monitor.setEstimator(estimator);
         monitor.process(dmodelc, s);
-        for (int i = 0; i < dmodelc.getTransition().nbloks; ++i) {
+        dmodelc.normalize();
+        for (int i = 0; i < dmodelc.getFactorsCount(); ++i) {
             DataBlock cmp = new DataBlock(monitor.getSmoothingResults().component(i * dmodelc.getBlockLength()));
             cmp.sub(cmp.sum() / cmp.getLength());
             cmp.div(Math.sqrt(cmp.ssq() / cmp.getLength()));
             System.out.println(cmp);
         }
+        System.out.println(new DfmMapping(dmodelc).parameters());
     }
 
     //  @Test

@@ -59,7 +59,7 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
 
     private IReadDataBlock tvars(IReadDataBlock p) {
         return tv0 < 0 ? null : p.rextract(tv0, nb * (nb + 1) / 2);
-       // return tv0 < 0 ? null : p.rextract(tv0, nb);
+        // return tv0 < 0 ? null : p.rextract(tv0, nb);
     }
 
     private DataBlock loadings(DataBlock p) {
@@ -76,7 +76,7 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
 
     private DataBlock tvars(DataBlock p) {
 //        return tv0 < 0 ? null : p.extract(tv0, nb );
-       return tv0 < 0 ? null : p.extract(tv0, nb * (nb + 1) / 2);
+        return tv0 < 0 ? null : p.extract(tv0, nb * (nb + 1) / 2);
     }
 
     private void mtvar(Matrix v, IReadDataBlock tv) {
@@ -84,7 +84,7 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
         Matrix tmp = new Matrix(nb, nb);
         for (int i = 0; i < nb; ++i) {
             DataBlock x = tmp.row(i).range(0, i + 1);
-            x.copy(tv.rextract(i0, i+1));
+            x.copy(tv.rextract(i0, i + 1));
             i0 += i + 1;
         }
         SymmetricMatrix.XXt(tmp.subMatrix(), v.subMatrix());
@@ -100,7 +100,7 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
 
     public DfmMapping(DynamicFactorModel model, final boolean mfixed, final boolean tfixed) {
         template = model.clone();
-        nb = template.getTransition().nbloks;
+        nb = template.getFactorsCount();
         nl = template.getTransition().nlags;
         nm = template.getMeasurementsCount();
         // measurement: all loadings, all var
@@ -116,7 +116,9 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
         } else {
             int n = 0;
             for (MeasurementDescriptor desc : template.getMeasurements()) {
-                n += desc.coeff.length;
+                for (int i=0; i<nb; ++i)
+                    if (! Double.isNaN(desc.coeff[i]))
+                        ++n;
             }
             nml = n - nb;
             mmax = new int[nb];
@@ -126,10 +128,9 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
             n = 0;
             fmax = new double[nb];
             for (MeasurementDescriptor desc : template.getMeasurements()) {
-                for (int i = 0; i < desc.factors.length; ++i) {
-                    int j = desc.factors[i];
-                    double f = desc.coeff[i];
-                    if (mmax[j] < 0 || Math.abs(f) > fmax[j]) {
+                for (int j = 0; j < nb; ++j) {
+                    double f = desc.coeff[j];
+                    if (!Double.isNaN(f) && (mmax[j] < 0 || Math.abs(f) > fmax[j])) {
                         mmax[j] = n;
                         fmax[j] = f;
                     }
@@ -152,7 +153,7 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
             v0 = p;
             tv0 = p + nb * nb * nl;
             p = tv0 + nb * (nb + 1) / 2;
-  //         p = tv0 + nb;
+            //         p = tv0 + nb;
         }
         np = p;
 
@@ -166,8 +167,8 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
         //loadings(p).set(.1);
         return p;
     }
-    
-    public IReadDataBlock parameters(){
+
+    public IReadDataBlock parameters() {
         return map(template);
     }
 
@@ -180,11 +181,13 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
         if (l != null) {
             int n = 0;
             for (MeasurementDescriptor desc : m.getMeasurements()) {
-                for (int k = 0; k < desc.factors.length; ++k) {
-                    if (n != mmax[desc.factors[k]]) {
-                        desc.coeff[k] = l.get(i0++);
-                    } else {
-                        desc.coeff[k] = fmax[desc.factors[k]];
+                for (int k = 0; k < nb; ++k) {
+                    if (!Double.isNaN(desc.coeff[k])) {
+                        if (n != mmax[k]) {
+                            desc.coeff[k] = l.get(i0++);
+                        } else {
+                            desc.coeff[k] = fmax[k];
+                        }
                     }
                 }
                 double x = mv.get(j0++);
@@ -208,8 +211,8 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
         DynamicFactorModel m = ssf.getModel();
         return map(m);
     }
-    
-    public IReadDataBlock map(DynamicFactorModel m){
+
+    public IReadDataBlock map(DynamicFactorModel m) {
         // copy to p
         DataBlock p = new DataBlock(np);
         DataBlock l = loadings(p);
@@ -218,8 +221,8 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
         if (l != null) {
             int n = 0;
             for (MeasurementDescriptor desc : m.getMeasurements()) {
-                for (int k = 0; k < desc.factors.length; ++k) {
-                    if (n != mmax[desc.factors[k]]) {
+                for (int k = 0; k < nb; ++k) {
+                    if (!Double.isNaN(desc.coeff[k]) && n != mmax[k]) {
                         l.set(i0++, desc.coeff[k]);
                     }
                 }
@@ -233,7 +236,7 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
             SymmetricMatrix.lcholesky(v);
             i0 = 0;
             for (int i = 0; i < nb; ++i) {
-                tv.extract(i0, i+1).copy(v.row(i).range(0, i + 1));
+                tv.extract(i0, i + 1).copy(v.row(i).range(0, i + 1));
                 i0 += i + 1;
             }
 //            tv.copy(m.getTransition().covar.diagonal());

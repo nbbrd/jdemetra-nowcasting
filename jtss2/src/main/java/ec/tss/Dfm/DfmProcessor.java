@@ -36,17 +36,16 @@ public class DfmProcessor implements IProcessingFactory<DfmSpecification, TsVari
     
     @Override
     public void dispose() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
     public AlgorithmDescriptor getInformation() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return DESCRIPTOR;
     }
 
     @Override
     public boolean canHandle(IProcSpecification spec) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return spec instanceof DfmSpecification;
     }
 
     @Override

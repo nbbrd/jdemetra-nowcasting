@@ -76,7 +76,7 @@ public class DfmMapping2 implements IParametricMapping<IMSsf> {
         template.normalize();
         template.getTransition().covar.set(0);
         template.getTransition().covar.diagonal().set(1);
-        nb = template.getTransition().nbloks;
+        nb = template.getFactorsCount();
         nl = template.getTransition().nlags;
         nm = template.getMeasurementsCount();
         // measurement: all loadings, all var

@@ -14,7 +14,6 @@
  * See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
-
 package ec.tstoolkit.mssf2;
 
 import ec.tstoolkit.data.IReadDataBlock;
@@ -57,25 +56,25 @@ public class MSsfFunction<S extends IMSsf> implements IFunction, ISsqFunction {
      * @param algorithm
      */
     public MSsfFunction(IMSsfData data, IParametricMapping<S> mapper,
-	    IMSsfAlgorithm algorithm) {
-	this.data = data;
-	this.mapper = mapper;
-	this.algorithm = algorithm;
+            IMSsfAlgorithm algorithm) {
+        this.data = data;
+        this.mapper = mapper;
+        this.algorithm = algorithm;
     }
 
     @Override
     public MSsfFunctionInstance<S> evaluate(IReadDataBlock parameters) {
-	return new MSsfFunctionInstance<>(this, parameters);
+        return new MSsfFunctionInstance<>(this, parameters);
     }
 
     @Override
     public NumericalDerivatives getDerivatives(IFunctionInstance point) {
-	return new NumericalDerivatives(this, point, false,true);
+        return new NumericalDerivatives(this, point, false, true);
     }
 
     @Override
     public SsqNumericalDerivatives getDerivatives(ISsqFunctionInstance point) {
-	return new SsqNumericalDerivatives(this, point, false, true);
+        return new SsqNumericalDerivatives(this, point, false, true);
     }
 
     /**
@@ -84,11 +83,11 @@ public class MSsfFunction<S extends IMSsf> implements IFunction, ISsqFunction {
      */
     @Override
     public IParametersDomain getDomain() {
-	return mapper;
+        return mapper;
     }
 
     @Override
     public MSsfFunctionInstance<S> ssqEvaluate(IReadDataBlock parameters) {
-	return new MSsfFunctionInstance<>(this, parameters);
+        return new MSsfFunctionInstance<>(this, parameters);
     }
 }

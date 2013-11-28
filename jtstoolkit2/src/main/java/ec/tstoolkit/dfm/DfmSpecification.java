@@ -16,11 +16,14 @@
  */
 package ec.tstoolkit.dfm;
 
+import ec.tstoolkit.Parameter;
 import ec.tstoolkit.var.VarSpecification;
 import ec.tstoolkit.algorithm.IProcSpecification;
+import ec.tstoolkit.data.Table;
 import ec.tstoolkit.dfm.DynamicFactorModel;
 import ec.tstoolkit.information.Information;
 import ec.tstoolkit.information.InformationSet;
+import ec.tstoolkit.maths.matrices.SymmetricMatrix;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -93,5 +96,38 @@ public class DfmSpecification implements IProcSpecification, Cloneable {
                 mspecs.add(x);
         }
         return true;
+    }
+    
+    public DynamicFactorModel build(){
+        int nb=vspec.getEquationsCount(), nl=vspec.getLagsCount();
+        DynamicFactorModel dfm=new DynamicFactorModel(blocksize, nb);
+        DynamicFactorModel.TransitionDescriptor tdesc=
+                new DynamicFactorModel.TransitionDescriptor(nb, nl);
+        // copy equations
+        Table<Parameter> v = vspec.getVarParams();
+        for (int r=0; r<v.getRowsCount(); ++r){
+            for (int c=0; c<v.getColumnsCount(); ++c){
+                Parameter p=v.get(r, c);
+                if (Parameter.isDefined(p))
+                    tdesc.varParams.set(r,c,p.getValue());
+            }
+        }
+       // copy noises
+        Table<Parameter> n = vspec.getNoiseParams();
+        for (int r=0; r<n.getRowsCount(); ++r){
+            for (int c=0; c<=r; ++c){
+                Parameter p=n.get(r, c);
+                if (Parameter.isDefined(p))
+                    tdesc.covar.set(r,c,p.getValue());
+            }
+        }
+        SymmetricMatrix.fromLower(tdesc.covar);
+        dfm.setTransition(tdesc);
+        // measurements
+        for (MeasurementSpecification m: mspecs){
+            int[] f=new int[0];
+        }
+        return dfm;
+        
     }
 }
