@@ -9,7 +9,7 @@
     </parent>
   
     <artifactId>demetra-tss2</artifactId>
-    <name>jtss2</name>
+    <name>Demetra - Tss 2</name>
 
     <dependencyManagement>
         <dependencies>

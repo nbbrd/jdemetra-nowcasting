@@ -10,7 +10,7 @@
     </parent>
   
     <artifactId>demetra-tstoolkit2</artifactId>
-    <name>jtstoolkit2</name>
+    <name>Demetra - Tstoolkit 2</name>
 
     <dependencyManagement>
         <dependencies>

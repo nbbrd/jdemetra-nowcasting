@@ -14,7 +14,6 @@
         <jdk.version>1.7</jdk.version>
         <demetra.version>1.4.0</demetra.version>
         <nbdemetra.version>1.4.0</nbdemetra.version>
-        <brandingToken>nbbdemetra</brandingToken>
         <!-- plugins versions > -->
         <maven-compiler-plugin.version>3.1</maven-compiler-plugin.version>
         <maven-jar-plugin.version>2.4</maven-jar-plugin.version>
@@ -32,6 +31,7 @@
         <module>jtss2</module>
         <module>nbdemetra-core2</module>
         <module>nbdemetra-dfm</module>
+        <module>nbb-seer-app</module>
     </modules>
     
     <dependencyManagement>
