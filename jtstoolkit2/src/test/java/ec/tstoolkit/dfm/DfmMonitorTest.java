@@ -19,14 +19,11 @@ package ec.tstoolkit.dfm;
 import data.Data;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DescriptiveStatistics;
+import ec.tstoolkit.data.IReadDataBlock;
 import ec.tstoolkit.dfm.DfmEstimator.IEstimationHook;
 import ec.tstoolkit.dfm.DynamicFactorModel.TransitionDescriptor;
-import static ec.tstoolkit.dfm.DynamicFactorModelTest.dmodel;
 import ec.tstoolkit.eco.Likelihood;
 import ec.tstoolkit.maths.matrices.Matrix;
-import ec.tstoolkit.maths.realfunctions.IFunctionInstance;
-import ec.tstoolkit.maths.realfunctions.ISsqFunctionDerivatives;
-import ec.tstoolkit.maths.realfunctions.ISsqFunctionInstance;
 import ec.tstoolkit.maths.realfunctions.minpack.IEstimationProblem;
 import ec.tstoolkit.maths.realfunctions.minpack.ILmHook;
 import ec.tstoolkit.maths.realfunctions.minpack.SsqEstimationProblem;
@@ -39,9 +36,7 @@ import ec.tstoolkit.ssf2.ResidualsCumulator;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
-import java.util.Random;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 /**
  *
@@ -191,23 +186,18 @@ public class DfmMonitorTest {
         DynamicFactorModel dmodelc = dmodel.clone();
         dmodelc.normalize();
         System.out.println(new DfmMapping(dmodelc).parameters());
-        //dmodelc.setTransition(new TransitionDescriptor(3, 1));
-        //DynamicFactorModel cmodel=dmodelc.compactFactors(0, 1);
+//        dmodelc.setTransition(new TransitionDescriptor(3, 2));
+//        dmodelc = dmodelc.compactFactors(0, 2);
         DfmMonitor monitor = new DfmMonitor();
         PcInitializer initializer = new PcInitializer();
-        initializer.setEstimationDomain(s[0].getDomain().drop(120, 12));
+//        initializer.setEstimationDomain(s[0].getDomain().drop(120,12));
         DfmEstimator estimator = new DfmEstimator(new IEstimationHook() {
             int i = 0;
 
             @Override
             public boolean next(DynamicFactorModel current, Likelihood ll) {
-//                DfmMonitor m = new DfmMonitor(current);
-//                m.setCalcVariance(false);
-//                m.process(s);
-//                DataBlock cmp = new DataBlock(m.getSmoothingResults().component(0));
-//                cmp.sub(cmp.sum() / cmp.getLength());
-//                cmp.div(Math.sqrt(cmp.ssq() / cmp.getLength()));
-//                System.out.println(cmp);
+                System.out.print(++i);
+                System.out.print('\t');
                 System.out.print(ll.getLogLikelihood());
                 System.out.print('\t');
                 System.out.println(new DfmMapping(current).parameters());
@@ -215,7 +205,9 @@ public class DfmMonitorTest {
             }
         });
         estimator.setMaxIter(100);
+       // estimator.setMaxInitialIter(30);
         monitor.setInitializer(initializer);
+        //        monitor.setInitializer(new DefaultInitializer());
         monitor.setEstimator(estimator);
         monitor.process(dmodelc, s);
         dmodelc.normalize();
@@ -225,64 +217,8 @@ public class DfmMonitorTest {
             cmp.div(Math.sqrt(cmp.ssq() / cmp.getLength()));
             System.out.println(cmp);
         }
-        System.out.println(new DfmMapping(dmodelc).parameters());
-    }
-
-    //  @Test
-    public void testBfgs() {
-
-        IMSsfData data = new MultivariateSsfData(dd.subMatrix(), null);
-        MSsfAlgorithm algorithm = new MSsfAlgorithm();
-        algorithm.useSsq(false);
-        DynamicFactorModel nmodel = dmodel.clone();
-        DfmMapping mapping = new DfmMapping(nmodel);
-        MSsfFunction fn = new MSsfFunction(data, mapping, algorithm);
-
-        DataBlock def = mapping.getDefault();
-        MSsfFunctionInstance evaluate = fn.ssqEvaluate(mapping.map(nmodel.ssfRepresentation()));
-        //      MSsfFunctionInstance evaluate = fn.ssqEvaluate(def);
-        //       System.out.println(evaluate.getLikelihood().getLogLikelihood());
-        //       Optimizer opt = new Optimizer();
-        BfgsMinimizer opt = new BfgsMinimizer();
-        opt.minimize(fn, evaluate);
-        evaluate = (MSsfFunctionInstance) opt.getResult();
-        System.out.println(evaluate.getLikelihood().getLogLikelihood());
-        System.out.println(new DataBlock(opt.getGradient()).nrm2());
-        System.out.println(new DataBlock(opt.getResult().getParameters()));
-    }
-}
-
-class Optimizer extends ec.tstoolkit.maths.realfunctions.levmar.LevenbergMarquardtMethod {
-
-    @Override
-    protected boolean iterate() {
-        boolean rslt = super.iterate();
-        MSsfFunctionInstance evaluate = (MSsfFunctionInstance) getResult();
-        System.out.println(evaluate.getLikelihood().getLogLikelihood());
-        return rslt;
-
-    }
-}
-
-class BfgsMinimizer extends ec.tstoolkit.maths.realfunctions.riso.LbfgsMinimizer {
-
-    @Override
-    protected boolean next() {
-        boolean rslt = super.next();
-        System.out.println(getObjective());
-        return rslt;
-
-    }
-}
-
-class LmHook implements ILmHook {
-
-    @Override
-    public void hook(IEstimationProblem problem, boolean success) {
-        if (success) {
-            SsqEstimationProblem sp = (SsqEstimationProblem) problem;
-            MSsfFunctionInstance evaluate = (MSsfFunctionInstance) sp.getResult();
-            System.out.println(evaluate.getSsqE());//.getLikelihood().getLogLikelihood());
-        }
+        System.out.println(estimator.getGradient());
+        IReadDataBlock map = new DfmMapping2(dmodelc).map(dmodelc);
+        System.out.println(map);
     }
 }

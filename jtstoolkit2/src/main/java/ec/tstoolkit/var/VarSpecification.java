@@ -20,8 +20,6 @@ import ec.tstoolkit.Parameter;
 import ec.tstoolkit.algorithm.IProcSpecification;
 import ec.tstoolkit.data.Table;
 import ec.tstoolkit.information.InformationSet;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Specification for a VAR model

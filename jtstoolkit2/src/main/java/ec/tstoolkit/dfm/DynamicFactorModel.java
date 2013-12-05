@@ -23,32 +23,42 @@ import java.util.List;
  */
 public class DynamicFactorModel implements Cloneable {
 
-
     /**
-     *
+     * The IMeasurement interface represents the behaviour of a measurement
+     * equation on a given factor (and its lags).
      */
     public static interface IMeasurement {
 
         /**
+         * The number of lags (nlags) implied by the measurement
          *
-         * @return
+         * @return Lags in [t to t-nlags[ are used by the measurement in t
          */
         int getLength();
 
         /**
+         * Fills the polynomial of the measurement (without the actual
+         * coefficient) Typical values are: 1 [0 ... 0] 1 1 ... 1 1 2 3 2 1 [0
+         * 0... 0]
          *
-         * @param z
+         * @param z The buffer that will contain the polynomial. The length of
+         * the buffer is defined by "getLength()".
          */
         void fill(DataBlock z);
 
         /**
+         * Computes the product of the polynomial (z) with a block of data
          *
-         * @param x
-         * @return
+         * @param x The block of data. The length of the data is defined by
+         * "getLength()".
+         * @return returns z * x
          */
         double dot(DataBlock x);
     }
 
+    /**
+     * Z = 1 [0 ... 0]
+     */
     private static class _L implements IMeasurement {
 
         static final _L ML = new _L();
@@ -69,6 +79,9 @@ public class DynamicFactorModel implements Cloneable {
         }
     }
 
+    /**
+     * Z = 1 1 ... 1 (len times)
+     */
     private static class _C implements IMeasurement {
 
         static final _C MC12 = new _C(12), MC4 = new _C(4);
@@ -94,6 +107,10 @@ public class DynamicFactorModel implements Cloneable {
         }
     }
 
+    /**
+     * Z = 1 2 3 2 1 [ 0 ... 0] for len = 3 (from monthly growth to quarterly
+     * growth) Z = 1 2 1 for len = 2 Z = 1 2 3 4 3 2 1 for len = 4 ...
+     */
     private static class _CD implements IMeasurement {
 
         static final _CD MCD3 = new _CD(3);
@@ -135,19 +152,16 @@ public class DynamicFactorModel implements Cloneable {
      */
     public static enum MeasurementType {
 
-        // Level: z*(1 0 0 0 0 0 0 0 0 0 0 0)
         /**
-         *
+         * Level: z*(1 0 0 0 0 0 0 0 0 0 0 0)
          */
         L,
-        // Cumulated differences: z*(1 2 3 2 1 0 0 0 0 0 0 0)
         /**
-         *
+         * Cumulated differences: z*(1 2 3 2 1 0 0 0 0 0 0 0)
          */
         CD,
-        // Cumul: z*(1 1 1 1 1 1 1 1 1 1 1 1)
         /**
-         *
+         * Cumul: z*(1 1 1 1 1 1 1 1 1 1 1 1)
          */
         C;
     }
@@ -158,11 +172,12 @@ public class DynamicFactorModel implements Cloneable {
     public static final class MeasurementDescriptor {
 
         /**
+         * Creates a new measurement descriptor
          *
-         * @param type
-         * @param factors
-         * @param coeff
-         * @param var
+         * @param type Type of the measurement equation
+         * @param coeff Coefficients (1 by factor). Unused factors are
+         * identified by a "Double.NaN" coefficient.
+         * @param var Variance of the measurement equation (>=0)
          */
         public MeasurementDescriptor(final IMeasurement type,
                 final double[] coeff, final double var) {
@@ -170,29 +185,30 @@ public class DynamicFactorModel implements Cloneable {
             this.coeff = coeff.clone();
             this.var = var;
         }
-
-         /**
-         *
+        /**
+         * Type of the measurement equation
          */
         public final IMeasurement type;
         /**
-         *
+         * Coefficients (1 by factor). Unused factors are identified by a
+         * "Double.NaN" coefficient.
          */
         public final double[] coeff;
         /**
-         *
+         * Variance of the measurement equation (>=0)
          */
         public double var;
     }
 
     /**
-     *
+     * Description of the VAR part of the model
      */
     public static final class TransitionDescriptor {
 
         /**
+         * Creates a new descriptor of the transition equation (VAR).
          *
-         * @param nblocks Number of blocks
+         * @param nblocks Number of factors
          * @param nlags Number of lags in the VAR model
          */
         public TransitionDescriptor(int nblocks, int nlags) {
@@ -201,23 +217,27 @@ public class DynamicFactorModel implements Cloneable {
             this.nlags = nlags;
         }
         /**
-         *
+         * Number of lags
          */
         public final int nlags;
         /**
-         *
+         * Parameters of the VAR equations The row i contains the coefficients
+         * c(i,k) of fi(t): fi(t)= c(i,0)f0(t-1)+...+c(i,nlags-1)f0(t-nlags)+...
+         * +c(i,k)fn(t-1)...+c(i,l)fn(t-nlags))
          */
         public final Matrix varParams;
         /**
-         *
+         * Covariance matrix of the innovations
          */
         public final Matrix covar;
     }
 
     /**
+     * Gets the default measurement for a given type.
      *
-     * @param type
-     * @return
+     * @param type The type of the measurement
+     * @return For type C, returns (1...1) (length=12); for type CD, returns (1
+     * 2 3 2 1); for type L, returns (1)
      */
     public static IMeasurement measurement(final MeasurementType type) {
         switch (type) {
@@ -233,9 +253,11 @@ public class DynamicFactorModel implements Cloneable {
     }
 
     /**
+     * Gets the measurement corresponding to given length and type.
      *
-     * @param len
-     * @param type
+     * @param len The "length" of the measurement (see details on each
+     * measurement type for further information)
+     * @param type The type of the measurement
      * @return
      */
     public static IMeasurement measurement(final int len, final MeasurementType type) {
@@ -262,57 +284,62 @@ public class DynamicFactorModel implements Cloneable {
     }
 
     /**
-     *
+     * Initialisation of the model. Only the covariance of the state array is
+     * considered in the model (the initial prediction errors are defined with
+     * the data).
      */
     public static enum Initialization {
 
         /**
-         *
+         * Zero initialisation. [A(-1)=0,] P(-1)=0 -> [A(0|-1)=0,] P(0|-1)=Q
+         * (transition innovations)
          */
         Zero,
         /**
-         *
+         * Steady state (or unconditional) initialisation, defined by V=TVT'+Q
+         * [A(0|-1)=0,] V
          */
         SteadyState,
         /**
-         *
+         * [A(0) and] P(0) are pre-specified
          */
         UserDefined
     }
     private int c_;
-    private final int nb_;
+    private final int nf_;
     private TransitionDescriptor tdesc_;
     private List<MeasurementDescriptor> mdesc_ = new ArrayList<>();
     private Initialization init_ = Initialization.Zero;
     private Matrix V0_;
 
     /**
+     * Creates a new dynamic factors model
      *
-     * @param c
+     * @param c The number of lags for each factors (in [t, t-c[) that has to be
+     * integrated in the model
+     * @param nf The number of factors
      */
-    public DynamicFactorModel(int c, int nb) {
+    public DynamicFactorModel(int c, int nf) {
         c_ = c;
-        nb_ = nb;
+        nf_ = nf;
     }
 
     /**
      * Rescale the model so that the variances of the transition shocks are
-     * equal to 1. The methods divides the factors by the standard deviation of
+     * equal to 1. The method divides each factor by the standard deviation of
      * the corresponding transition shock and updates the different coefficients
-     * accordingly
-     *
-     * @return
+     * accordingly.
      */
     public void normalize() {
         // scaling factors
         int nl = tdesc_.nlags;
-        double[] w = new double[nb_];
+        double[] w = new double[nf_];
         tdesc_.covar.diagonal().copyTo(w, 0);
-        for (int i = 0; i < nb_; ++i) {
+        for (int i = 0; i < nf_; ++i) {
             w[i] = Math.sqrt(w[i]);
         }
         // covar
-        for (int i = 0; i < nb_; ++i) {
+        for (int i = 0; i < nf_; ++i) {
             if (w[i] != 0) {
                 tdesc_.covar.set(i, i, 1);
                 for (int j = 0; j < i; ++j) {
@@ -324,10 +351,10 @@ public class DynamicFactorModel implements Cloneable {
         }
         SymmetricMatrix.fromLower(tdesc_.covar);
         // varParams
-        for (int i = 0; i < nb_; ++i) {
+        for (int i = 0; i < nf_; ++i) {
             if (w[i] != 0) {
                 DataBlock range = tdesc_.varParams.row(i).range(0, nl);
-                for (int j = 0; j < nb_; ++j) {
+                for (int j = 0; j < nf_; ++j) {
                     if (w[j] != 0 && i != j) {
                         range.mul(w[j] / w[i]);
                     }
@@ -336,12 +363,20 @@ public class DynamicFactorModel implements Cloneable {
             }
         }
         // loadings
+        double vmax = 0;
+        for (MeasurementDescriptor desc : mdesc_) {
+            if (desc.var > vmax) {
+                vmax = desc.var;
+            }
+        }
+        double emax = Math.sqrt(vmax);
         for (MeasurementDescriptor desc : mdesc_) {
             for (int i = 0; i < desc.coeff.length; ++i) {
                 if (!Double.isNaN(desc.coeff[i])) {
-                    desc.coeff[i] *= w[i];
+                    desc.coeff[i] *= w[i]/emax;
                 }
             }
+            desc.var/=vmax;
         }
     }
 
@@ -349,7 +384,7 @@ public class DynamicFactorModel implements Cloneable {
     public DynamicFactorModel clone() {
         try {
             DynamicFactorModel m = (DynamicFactorModel) super.clone();
-            TransitionDescriptor td = new TransitionDescriptor(nb_, tdesc_.nlags);
+            TransitionDescriptor td = new TransitionDescriptor(nf_, tdesc_.nlags);
             td.covar.copy(tdesc_.covar);
             td.varParams.copy(tdesc_.varParams);
             m.tdesc_ = td;
@@ -364,8 +399,17 @@ public class DynamicFactorModel implements Cloneable {
         }
     }
 
-    boolean copy(DynamicFactorModel m) {
-        if (nb_ != m.nb_
+    /**
+     * Copies the parameters of a given model in this object
+     *
+     * @param m The model being copied
+     * @return True if the models have the same structure and can be copied
+     * false otherwise. Models have the same structure means that they have: -
+     * same VAR structure (number of factors, number of lags) - same number of
+     * measurement equations
+     */
+    public boolean copy(DynamicFactorModel m) {
+        if (nf_ != m.nf_
                 || tdesc_.nlags != m.tdesc_.nlags
                 || mdesc_.size() != m.mdesc_.size()) {
             return false;
@@ -381,24 +425,31 @@ public class DynamicFactorModel implements Cloneable {
         return true;
     }
 
+    /**
+     * Compacts the factors of a given models
+     *
+     * @param from The first factor to merge
+     * @param to The last factor (included) to merge
+     * @return A new model is returned. It should be re-estimated.
+     */
     public DynamicFactorModel compactFactors(int from, int to) {
-        if (from < 0 || to < from || to >= nb_) {
+        if (from < 0 || to < from || to >= nf_) {
             return null;
         }
         if (to == from) {
             return clone();
         }
         int nc = to - from;
-        DynamicFactorModel m = new DynamicFactorModel(c_, nb_ - nc);
-        TransitionDescriptor td = new TransitionDescriptor(nb_ - nc, tdesc_.nlags);
+        DynamicFactorModel m = new DynamicFactorModel(c_, nf_ - nc);
+        TransitionDescriptor td = new TransitionDescriptor(nf_ - nc, tdesc_.nlags);
         m.tdesc_ = td;
         m.tdesc_.covar.diagonal().set(1);
         for (MeasurementDescriptor md : mdesc_) {
-            double[] ncoeff = new double[nb_ - nc];
+            double[] ncoeff = new double[nf_ - nc];
             for (int i = 0; i < from; ++i) {
                 ncoeff[i] = md.coeff[i];
             }
-            for (int i = to; i < nb_; ++i) {
+            for (int i = to + 1; i < nf_; ++i) {
                 ncoeff[i - nc] = md.coeff[i];
             }
             boolean used = false;
@@ -418,6 +469,7 @@ public class DynamicFactorModel implements Cloneable {
     }
 
     /**
+     * The number of lags for each factor
      *
      * @return
      */
@@ -425,22 +477,40 @@ public class DynamicFactorModel implements Cloneable {
         return c_;
     }
 
-    int getFactorsCount() {
-        return nb_; //To change body of generated methods, choose Tools | Templates.
-    }
     /**
+     * The number of factors
      *
-     * @param c
+     * @return
      */
-    public void setBlockLength(int c) {
+    int getFactorsCount() {
+        return nf_;
+    }
+
+    /**
+     * Changes the number of lags of each factor that is included in the model
+     *
+     * @param c The size of each block of factors (lags in [t, t-c[ belong to
+     * the model). c should larger or equal to the number of lags in the
+     * transition equation.
+     * @throws A DfmException is thrown when the model is invalid (see above)
+     */
+    public void setBlockLength(int c) throws DfmException {
+        if (tdesc_ != null && c < tdesc_.nlags) {
+            throw new DfmException(DfmException.INVALID_MODEL);
+        }
         c_ = c;
     }
 
     /**
+     * Sets a new descriptor for the transition equation (VAR model)
      *
-     * @param desc
+     * @param desc The descriptor of the transition equation
+     * @throws A DfmException is thrown when the model is invalid
      */
-    public void setTransition(TransitionDescriptor desc) {
+    public void setTransition(TransitionDescriptor desc) throws DfmException {
+        if (desc.covar.getRowsCount() != nf_ || c_ < desc.nlags) {
+            throw new DfmException(DfmException.INVALID_MODEL);
+        }
         tdesc_ = desc;
     }
 
@@ -526,16 +596,16 @@ public class DynamicFactorModel implements Cloneable {
 
         private Ssf(Initialization init, Matrix V0) {
             int nl = tdesc_.nlags;
-            int mdim = nb_ * c_, vdim = mdesc_.size();
-            this.initialize(mdim, vdim, nb_, true);
-            ttmp = new DataBlock(nb_);
+            int mdim = nf_ * c_, vdim = mdesc_.size();
+            this.initialize(mdim, vdim, nf_, true);
+            ttmp = new DataBlock(nf_);
             xtmp = new DataBlock(mdim);
             // Measurement
             for (int i = 0; i < vdim; ++i) {
                 MeasurementDescriptor zdesc = mdesc_.get(i);
                 m_H[i] = zdesc.var;
                 DataBlock z = m_Z.row(i);
-                for (int j = 0, start = 0; j < nb_; ++j, start += c_) {
+                for (int j = 0, start = 0; j < nf_; ++j, start += c_) {
                     if (mused(zdesc, j)) {
                         IMeasurement m = zdesc.type;
                         DataBlock cur = z.range(start, start + m.getLength());
@@ -546,9 +616,9 @@ public class DynamicFactorModel implements Cloneable {
             }
             // Transition
             // T, S
-            for (int i = 0, r = 0; i < nb_; ++i, r += c_) {
+            for (int i = 0, r = 0; i < nf_; ++i, r += c_) {
                 m_S.set(r, i, 1);
-                for (int j = 0, c = 0; j < nb_; ++j, c += c_) {
+                for (int j = 0, c = 0; j < nf_; ++j, c += c_) {
                     SubMatrix B = m_T.subMatrix(r, r + c_, c, c + c_);
                     if (i == j) {
                         B.subDiagonal(-1).set(1);
@@ -577,11 +647,11 @@ public class DynamicFactorModel implements Cloneable {
         public void TX(int pos, DataBlock x) {
             int nl = tdesc_.nlags;
             // compute first the next item
-            for (int i = 0; i < nb_; ++i) {
+            for (int i = 0; i < nf_; ++i) {
                 double r = 0;
                 DataBlock p = tdesc_.varParams.row(i).range(0, nl);
                 DataBlock xb = x.range(0, nl);
-                for (int j = 0; j < nb_; ++j) {
+                for (int j = 0; j < nf_; ++j) {
                     if (j != 0) {
                         p.move(nl);
                         xb.move(c_);
@@ -614,8 +684,8 @@ public class DynamicFactorModel implements Cloneable {
 
         @Override
         public void addV(final int pos, final SubMatrix v) {
-            for (int i = 0; i < nb_; ++i) {
-                DataBlock cv = v.column(i * c_).extract(0, nb_, c_);
+            for (int i = 0; i < nf_; ++i) {
+                DataBlock cv = v.column(i * c_).extract(0, nf_, c_);
                 cv.add(tdesc_.covar.column(i));
             }
         }
@@ -624,7 +694,7 @@ public class DynamicFactorModel implements Cloneable {
         public double ZX(final int pos, int v, final DataBlock x) {
             MeasurementDescriptor zdesc = mdesc_.get(v);
             double r = 0;
-            for (int j = 0, start = 0; j < nb_; ++j, start += c_) {
+            for (int j = 0, start = 0; j < nf_; ++j, start += c_) {
                 if (mused(zdesc, j)) {
                     IMeasurement m = zdesc.type;
                     DataBlock cur = x.range(start, start + m.getLength());
@@ -647,7 +717,7 @@ public class DynamicFactorModel implements Cloneable {
         public void ZM(final int pos, final int v, final SubMatrix M, final DataBlock zm) {
             MeasurementDescriptor zdesc = mdesc_.get(v);
             zm.set(0);
-            for (int j = 0, start = 0; j < nb_; ++j, start += c_) {
+            for (int j = 0, start = 0; j < nf_; ++j, start += c_) {
                 if (mused(zdesc, j)) {
                     IMeasurement m = zdesc.type;
                     for (int c = 0; c < M.getColumnsCount(); ++c) {
@@ -667,10 +737,10 @@ public class DynamicFactorModel implements Cloneable {
         public void XT(int pos, DataBlock x) {
             // put the results in xtmp;
             int nl = tdesc_.nlags;
-            for (int i = 0, k = 0, l = 0; i < nb_; ++i) {
+            for (int i = 0, k = 0, l = 0; i < nf_; ++i) {
                 for (int j = 0; j < nl; ++j, ++k) {
                     double r = x.get(k + 1);
-                    r += tdesc_.varParams.column(l++).dot(x.extract(0, nb_, c_));
+                    r += tdesc_.varParams.column(l++).dot(x.extract(0, nf_, c_));
                     xtmp.set(k, r);
                 }
                 for (int j = nl; j < c_ - 1; ++j, ++k) {
@@ -687,7 +757,7 @@ public class DynamicFactorModel implements Cloneable {
             // V = T V T' + Q
             // We consider the nlag*nb, nlag*nb sub-system
 
-            int n = nb_ * nl;
+            int n = nf_ * nl;
             Matrix cov = new Matrix(n, n);
             int np = (n * (n + 1)) / 2;
             Matrix M = new Matrix(np, np);
@@ -730,8 +800,8 @@ public class DynamicFactorModel implements Cloneable {
             }
             SymmetricMatrix.fromLower(cov);
             Matrix fullCov = new Matrix(getStateDim(), getStateDim());
-            for (int r = 0; r < nb_; ++r) {
-                for (int c = 0; c < nb_; ++c) {
+            for (int r = 0; r < nf_; ++r) {
+                for (int c = 0; c < nf_; ++c) {
                     fullCov.subMatrix(r * c_, r * c_ + nl, c * c_, c * c_ + nl).copy(cov.subMatrix(r * nl, (r + 1) * nl, c * nl, (c + 1) * nl));
                 }
             }
@@ -741,7 +811,6 @@ public class DynamicFactorModel implements Cloneable {
             }
             return fullCov;
         }
-
     }
 
     private static int pos(int r, int c, int n) {

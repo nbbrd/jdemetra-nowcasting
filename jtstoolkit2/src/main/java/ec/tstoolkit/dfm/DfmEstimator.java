@@ -39,11 +39,11 @@ public class DfmEstimator implements IDfmEstimator {
         boolean next(DynamicFactorModel current, Likelihood ll);
     }
 
-    private static class Minimizer extends LevenbergMarquardtMethod {
+    static class Minimizer extends LevenbergMarquardtMethod {
 
         private final IEstimationHook hook_;
 
-        private Minimizer(IEstimationHook hook) {
+        Minimizer(IEstimationHook hook) {
             hook_ = hook;
         }
 
@@ -61,8 +61,9 @@ public class DfmEstimator implements IDfmEstimator {
     private int maxiter_ = 100;
     private boolean converged_;
     private final ISsqFunctionMinimizer min_;
-    private int nstart_ = 10, nnext_ = 3;
+    private int nstart_ = 20, nnext_ = 3;
     private TsDomain idom_;
+    private boolean useBlockIterations_ = true;
 
     public DfmEstimator() {
         min_ = new LevenbergMarquardtMethod();
@@ -108,6 +109,14 @@ public class DfmEstimator implements IDfmEstimator {
         nnext_ = n;
     }
 
+    public boolean isUsingBlockIterations() {
+        return this.useBlockIterations_;
+    }
+
+    public void setUsingBlockIterations(boolean block) {
+        this.useBlockIterations_ = block;
+    }
+
     public boolean hasConverged() {
         return converged_;
     }
@@ -125,34 +134,53 @@ public class DfmEstimator implements IDfmEstimator {
             int niter = 0;
             DynamicFactorModel model = dfm.clone();
             model.normalize();
-            while (true) {
-                mapping = new DfmMapping(model, false, true);
-                fn = new MSsfFunction(mdata, mapping, algorithm);
-                min_.setMaxIter(niter == 0 ? nstart_ : nnext_);
-                min_.minimize(fn, fn.evaluate(mapping.map(model)));
-                niter += min_.getIterCount();
-                pt = (MSsfFunctionInstance) min_.getResult();
-                model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
-                mapping = new DfmMapping(model, true, false);
-                fn = new MSsfFunction(mdata, mapping, algorithm);
+            min_.setMaxIter(nstart_);
+            SimpleDfmMapping smapping = new SimpleDfmMapping(model);
+            smapping.validate(model);
+            fn = new MSsfFunction(mdata, smapping, algorithm);
+            min_.minimize(fn, fn.evaluate(smapping.map(model)));
+            pt = (MSsfFunctionInstance) min_.getResult();
+            model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
+
+            if (useBlockIterations_) {
                 min_.setMaxIter(nnext_);
-                min_.minimize(fn, fn.evaluate(mapping.map(model)));
-                niter += min_.getIterCount();
-                pt = (MSsfFunctionInstance) min_.getResult();
-                model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
+                while (true) {
+                    model.normalize();
+                    mapping = new DfmMapping(model, true, false);
+                    fn = new MSsfFunction(mdata, mapping, algorithm);
+                    min_.minimize(fn, fn.evaluate(mapping.map(model)));
+                    niter += min_.getIterCount();
+                    pt = (MSsfFunctionInstance) min_.getResult();
+                    model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
+                    model.normalize();
+                    mapping = new DfmMapping(model, false, true);
+                    fn = new MSsfFunction(mdata, mapping, algorithm);
+                    min_.minimize(fn, fn.evaluate(mapping.map(model)));
+                    niter += min_.getIterCount();
+                    pt = (MSsfFunctionInstance) min_.getResult();
+                    model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
+                    model.normalize();
+                    mapping = new DfmMapping(model, false, false);
+                    fn = new MSsfFunction(mdata, mapping, algorithm);
+                    converged_ = min_.minimize(fn, fn.evaluate(mapping.map(model)))
+                            && min_.getIterCount() < nnext_;
+                    niter += min_.getIterCount();
+                    pt = (MSsfFunctionInstance) min_.getResult();
+                    model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
+                    if (converged_ || niter >= maxiter_) {
+                        break;
+                    }
+                }
+            } else {
+                model.normalize();
                 mapping = new DfmMapping(model, false, false);
                 fn = new MSsfFunction(mdata, mapping, algorithm);
-                converged_ = min_.minimize(fn, fn.evaluate(mapping.map(model)))
-                        && min_.getIterCount() < nnext_;
-                niter += min_.getIterCount();
+                min_.setMaxIter(maxiter_);
+                converged_ = min_.minimize(fn, fn.evaluate(mapping.map(model)));
                 pt = (MSsfFunctionInstance) min_.getResult();
                 model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
-                if (converged_ || niter >= maxiter_) {
-                    break;
-                }
             }
             dfm.copy(model);
-            dfm.normalize();
             return true;
         } catch (Exception err) {
             return false;
@@ -168,5 +196,4 @@ public class DfmEstimator implements IDfmEstimator {
     public DataBlock getGradient() {
         return new DataBlock(min_.getGradient());
     }
-
 }

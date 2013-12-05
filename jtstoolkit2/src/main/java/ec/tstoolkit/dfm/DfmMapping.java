@@ -22,6 +22,7 @@ import ec.tstoolkit.data.IReadDataBlock;
 import ec.tstoolkit.dfm.DynamicFactorModel.MeasurementDescriptor;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.maths.matrices.MatrixException;
+import ec.tstoolkit.maths.matrices.SingularValueDecomposition;
 import ec.tstoolkit.maths.matrices.SymmetricMatrix;
 import ec.tstoolkit.maths.realfunctions.IParametricMapping;
 import ec.tstoolkit.maths.realfunctions.ParamValidation;
@@ -41,7 +42,8 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
     private final int np;
     private final int nml, nm, nb, nl;
     private final int l0, mv0, v0, tv0;
-    private double lmax = 5;
+    private final int ivmax;
+    private final double vmax;
     private final int[] mmax;
     private final double[] fmax;
 
@@ -102,58 +104,80 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
         template = model.clone();
         nb = template.getFactorsCount();
         nl = template.getTransition().nlags;
-        nm = template.getMeasurementsCount();
         // measurement: all loadings, all var
         // vparams
         // covar
         int p = 0;
         if (mfixed) {
             nml = 0;
+            nm = 0;
             l0 = -1;
             mv0 = -1;
             mmax = null;
             fmax = null;
+            ivmax = -1;
+            vmax = 0;
+            v0 = 0;
+            tv0 = nb * nb * nl;
+            p = nb * nb * nl + nb * (nb + 1) / 2;
         } else {
-            int n = 0;
+            int n = 0, m = 0;
+            int iv = -1;
+            double v = 0;
             for (MeasurementDescriptor desc : template.getMeasurements()) {
-                for (int i=0; i<nb; ++i)
-                    if (! Double.isNaN(desc.coeff[i]))
+                if (desc.var > v) {
+                    v = desc.var;
+                    iv = m;
+                }
+                for (int i = 0; i < nb; ++i) {
+                    if (!Double.isNaN(desc.coeff[i])) {
                         ++n;
-            }
-            nml = n - nb;
-            mmax = new int[nb];
-            for (int i = 0; i < nb; ++i) {
-                mmax[i] = -1;
-            }
-            n = 0;
-            fmax = new double[nb];
-            for (MeasurementDescriptor desc : template.getMeasurements()) {
-                for (int j = 0; j < nb; ++j) {
-                    double f = desc.coeff[j];
-                    if (!Double.isNaN(f) && (mmax[j] < 0 || Math.abs(f) > fmax[j])) {
-                        mmax[j] = n;
-                        fmax[j] = f;
                     }
                 }
-                ++n;
-            }
-            for (int i = 0; i < nb; ++i) {
-                if (fmax[i] == 0) {
-                    fmax[i] = 1;
-                }
+                ++m;
             }
             l0 = 0;
-            mv0 = nml;
-            p += nml + nm;
-        }
-        if (tfixed) {
-            v0 = -1;
-            tv0 = -1;
-        } else {
-            v0 = p;
-            tv0 = p + nb * nb * nl;
-            p = tv0 + nb * (nb + 1) / 2;
-            //         p = tv0 + nb;
+            ivmax = iv;
+            vmax = v;
+            nm = template.getMeasurementsCount() - 1;
+            if (tfixed) {
+                nml = n;
+                mmax = null;
+                fmax = null;
+                mv0 = nml;
+                v0 = -1;
+                tv0 = -1;
+                p = nm + nml;
+            } else {
+                nml = n - nb;
+                mmax = new int[nb];
+                for (int i = 0; i < nb; ++i) {
+                    mmax[i] = -1;
+                }
+                n = 0;
+                fmax = new double[nb];
+                for (MeasurementDescriptor desc : template.getMeasurements()) {
+                    for (int j = 0; j < nb; ++j) {
+                        double f = desc.coeff[j];
+                        if (!Double.isNaN(f) && (mmax[j] < 0 || Math.abs(f) > fmax[j])) {
+                            mmax[j] = n;
+                            fmax[j] = f;
+                        }
+                    }
+                    ++n;
+                }
+                for (int i = 0; i < nb; ++i) {
+                    if (fmax[i] == 0) {
+                        fmax[i] = 1;
+                    }
+                }
+                mv0 = nml;
+                //         p = tv0 + nb;
+                p += nml + nm;
+                v0 = p;
+                tv0 = p + nb * nb * nl;
+                p = tv0 + nb * (nb + 1) / 2;
+            }
         }
         np = p;
 
@@ -183,15 +207,19 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
             for (MeasurementDescriptor desc : m.getMeasurements()) {
                 for (int k = 0; k < nb; ++k) {
                     if (!Double.isNaN(desc.coeff[k])) {
-                        if (n != mmax[k]) {
+                        if (mmax == null || n != mmax[k]) {
                             desc.coeff[k] = l.get(i0++);
                         } else {
                             desc.coeff[k] = fmax[k];
                         }
                     }
                 }
-                double x = mv.get(j0++);
-                desc.var = x * x;
+                if (n == ivmax) {
+                    desc.var = vmax;
+                } else {
+                    double x = mv.get(j0++);
+                    desc.var = x * x;
+                }
                 ++n;
             }
         }
@@ -222,11 +250,13 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
             int n = 0;
             for (MeasurementDescriptor desc : m.getMeasurements()) {
                 for (int k = 0; k < nb; ++k) {
-                    if (!Double.isNaN(desc.coeff[k]) && n != mmax[k]) {
+                    if (!Double.isNaN(desc.coeff[k]) && (mmax == null || n != mmax[k])) {
                         l.set(i0++, desc.coeff[k]);
                     }
                 }
-                mv.set(j0++, Math.sqrt(desc.var));
+                if (n != ivmax) {
+                    mv.set(j0++, Math.sqrt(desc.var));
+                }
                 ++n;
             }
         }
@@ -249,34 +279,23 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
 
     @Override
     public boolean checkBoundaries(IReadDataBlock inparams) {
-//        IReadDataBlock t=tvars(inparams);
-//        if (t != null ){
-//            for (int i=0; i<t.getLength(); ++i)
-//                if (t.get(i)<0)
-//                    return false;
+//        // check the stability of VAR
+//        IReadDataBlock vp = vparams(inparams);
+//        if (vp == null) {
+//            return true;
 //        }
-//            
-//        IReadDataBlock t = tvars(inparams);
-//        IReadDataBlock l = loadings(inparams);
-//        if (l != null) {
-//            for (int i = 0; i < nml; ++i) {
-//                if (Math.abs(l.get(i)) > lmax) {
-//                    return false;
-//                }
+//        Matrix Q = new Matrix(nb * nl, nb * nl);
+//        for (int i = 0, i0 = 0; i < nb; ++i) {
+//            for (int l = 0; l < nl; ++l, i0 += nb) {
+//                DataBlock c = Q.column(l*nb + i).range(0, nb);
+//                c.copy(vp.rextract(i0, nb));
 //            }
 //        }
-//        if (t != null) {
-//            for (int i = 1, k = 0; i < nb; ++i) {
-//                double x = 0;
-//                for (int j = 0; j < i; ++j, ++k) {
-//                    double y = t.get(k);
-//                    x += y * y;
-//                }
-//                if (x >= 1) {
-//                    return false;
-//                }
-//            }
-//        }
+//        Q.subDiagonal(-nb).set(1);
+//        SingularValueDecomposition svd = new SingularValueDecomposition();
+//        svd.decompose(Q);
+//        double[] s = svd.S();
+//        return s[0] < 1;
         return true;
     }
 
@@ -302,36 +321,26 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
 
     @Override
     public ParamValidation validate(IDataBlock ioparams) {
-//        boolean changed = false;
-//        if (l0 >= 0) {
-//            for (int i = 0; i < nml; ++i) {
-//                double cur = ioparams.get(l0 + i);
-//                if (Math.abs(cur) > lmax) {
-//                    changed = true;
-//                    ioparams.set(l0 + i, cur < 0 ? -lmax : lmax);
-//                }
+//        IReadDataBlock vp = vparams(ioparams);
+//        if (vp == null) {
+//            return ParamValidation.Valid;
+//        }
+//        Matrix Q = new Matrix(nb * nl, nb * nl);
+//        for (int i = 0, i0 = 0; i < nb; ++i) {
+//            for (int l = 0; l < nl; ++l, i0 += nb) {
+//                DataBlock c = Q.column(l*nb + i).range(0, nb);
+//                c.copy(vp.rextract(i0, nb));
 //            }
 //        }
-//        IReadDataBlock t = tvars(ioparams);
-//        if (t != null) {
-//            for (int i = 1, k = 0; i < nb; ++i) {
-//                int l = k;
-//                double x = 0;
-//                for (int j = 0; j < i; ++j, ++k) {
-//                    double y = t.get(k);
-//                    x += y * y;
-//                }
-//                if (x >= 1) {
-//                    changed = true;
-//                    double w = .99 / Math.sqrt(x);
-//                    int s = tv0;
-//                    for (int j = 0; j < i; ++j, ++l) {
-//                        ioparams.set(s + l, t.get(l) * w);
-//                    }
-//                }
-//            }
+//        Q.subDiagonal(-nb).set(1);
+//        SingularValueDecomposition svd = new SingularValueDecomposition();
+//        svd.decompose(Q);
+//        double[] s = svd.S();
+//        if (s[0] < 1) {
+//            return ParamValidation.Valid;
+//        } else {
+//            return ParamValidation.Invalid;
 //        }
-//        return changed ? ParamValidation.Changed : ParamValidation.Valid;
         return ParamValidation.Valid;
     }
 }

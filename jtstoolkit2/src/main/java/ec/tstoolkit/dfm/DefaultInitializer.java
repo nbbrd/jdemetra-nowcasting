@@ -1,41 +1,36 @@
 /*
- * Copyright 2013 National Bank of Belgium
- * 
- * Licensed under the EUPL, Version 1.1 or – as soon they will be approved 
- * by the European Commission - subsequent versions of the EUPL (the "Licence");
- * You may not use this work except in compliance with the Licence.
- * You may obtain a copy of the Licence at:
- * 
- * http://ec.europa.eu/idabc/eupl
- * 
- * Unless required by applicable law or agreed to in writing, software 
- * distributed under the Licence is distributed on an "AS IS" basis,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the Licence for the specific language governing permissions and 
- * limitations under the Licence.
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
  */
-
 package ec.tstoolkit.dfm;
 
 import ec.tstoolkit.dfm.DynamicFactorModel.MeasurementDescriptor;
 
 /**
  *
- * @author Jean Palate
+ * @author Jean
  */
 public class DefaultInitializer implements IDfmInitializer {
 
     @Override
     public boolean initialize(DynamicFactorModel dfm, DfmInformationSet data) {
-        dfm.getTransition().covar.clear();
-        dfm.getTransition().covar.diagonal().set(1);
-        dfm.getTransition().varParams.clear();
-        for (MeasurementDescriptor m : dfm.getMeasurements()){
+        for (MeasurementDescriptor m : dfm.getMeasurements()) {
+            m.var = 1;
             for (int i=0; i<m.coeff.length; ++i)
-                m.coeff[i]=0;
-            m.var=1;
+                if (! Double.isNaN(m.coeff[i]))
+                    m.coeff[i]=0;
+        }
+        int nf = dfm.getFactorsCount();
+        DynamicFactorModel.TransitionDescriptor t = dfm.getTransition();
+        int nl = t.nlags;
+        t.covar.set(0);
+        t.covar.diagonal().set(1);
+        for (int i = 0; i < nf; ++i) {
+            t.varParams.set(0);
+            t.varParams.set(i, i * nl, .9);
         }
         return true;
     }
-    
+
 }

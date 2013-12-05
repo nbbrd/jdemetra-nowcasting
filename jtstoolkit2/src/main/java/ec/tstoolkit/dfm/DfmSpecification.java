@@ -17,12 +17,16 @@
 package ec.tstoolkit.dfm;
 
 import ec.tstoolkit.Parameter;
+import ec.tstoolkit.ParameterType;
 import ec.tstoolkit.var.VarSpecification;
 import ec.tstoolkit.algorithm.IProcSpecification;
 import ec.tstoolkit.data.Table;
 import ec.tstoolkit.dfm.DynamicFactorModel;
+import ec.tstoolkit.dfm.DynamicFactorModel.IMeasurement;
+import ec.tstoolkit.dfm.DynamicFactorModel.MeasurementDescriptor;
 import ec.tstoolkit.information.Information;
 import ec.tstoolkit.information.InformationSet;
+import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.maths.matrices.SymmetricMatrix;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +43,8 @@ public class DfmSpecification implements IProcSpecification, Cloneable {
     private VarSpecification vspec;
     private List<MeasurementSpecification> mspecs = new ArrayList<MeasurementSpecification>();
     private int blocksize;
-
+    
+ 
     public void setBlockSize(final int blocksize) {
         this.blocksize = blocksize;
     }
@@ -98,6 +103,31 @@ public class DfmSpecification implements IProcSpecification, Cloneable {
         return true;
     }
     
+    public static DfmSpecification of (DynamicFactorModel m){
+        DfmSpecification spec=new DfmSpecification();
+        spec.blocksize=m.getBlockLength();
+        spec.vspec=new VarSpecification();
+        spec.vspec.setSize(m.getFactorsCount(), m.getTransition().nlags);
+        // fill the transition equation
+        Table<Parameter> v = spec.vspec.getVarParams();
+        Matrix vparams=m.getTransition().varParams;
+        for (int r=0; r<v.getRowsCount(); ++r){
+            for (int c=0; c<v.getColumnsCount(); ++c){
+                v.set(r, c, new Parameter(vparams.get(r, c), ParameterType.Estimated));
+            }
+        }
+       // copy noises
+        Table<Parameter> n = spec.vspec.getNoiseParams();
+        Matrix tvar=m.getTransition().covar;
+        for (int r=0; r<n.getRowsCount(); ++r){
+            for (int c=0; c<=r; ++c){
+                n.set(r, c,new Parameter(tvar.get(r, c), ParameterType.Estimated));
+            }
+        }
+        
+        return spec;
+    }
+    
     public DynamicFactorModel build(){
         int nb=vspec.getEquationsCount(), nl=vspec.getLagsCount();
         DynamicFactorModel dfm=new DynamicFactorModel(blocksize, nb);
@@ -125,9 +155,22 @@ public class DfmSpecification implements IProcSpecification, Cloneable {
         dfm.setTransition(tdesc);
         // measurements
         for (MeasurementSpecification m: mspecs){
-            int[] f=new int[0];
+            IMeasurement type=DynamicFactorModel.measurement(m.getType());
+            double[] coeff=new double[nb];
+            Parameter p[]=m.getCoefficients();
+            for (int i=0; i<nb; ++i){
+                if (Parameter.isDefined(p[i])){
+                    if (p[i].isFixed() && p[i].getValue() == 0)
+                        coeff[i]=Double.NaN;
+                    else 
+                        coeff[i]=p[i].getValue();
+                }
+                double var=1;
+               if (Parameter.isDefault(m.getVariance()))
+                   var=m.getVariance().getValue();
+               dfm.addMeasurement(new MeasurementDescriptor(type, coeff,var));
+            }
         }
         return dfm;
-        
     }
 }

@@ -26,13 +26,7 @@ import ec.tstoolkit.design.Development;
 @Development(status = Development.Status.Alpha)
 public class DfmException extends BaseException {
     
-    /**
-     *
-     */
     public static final String INCOMPATIBLE_DATA="Incompatible data", 
-            /**
-             *
-             */
             INVALID_MODEL="Invalid model";
 
     /**

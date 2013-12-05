@@ -65,7 +65,7 @@ public class PrincipalComponents {
     
     public DataBlock getFactor(int pos){
         DataBlock u=svd_.U().column(pos).deepClone();
-        u.mul(svd_.S()[pos]);
+        u.mul(svd_.getSingularValues()[pos]);
         return u;
     }
 }

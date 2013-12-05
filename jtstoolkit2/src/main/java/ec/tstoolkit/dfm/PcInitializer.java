@@ -24,9 +24,12 @@ import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.maths.matrices.SingularValueDecomposition;
 import ec.tstoolkit.maths.matrices.SymmetricMatrix;
 import ec.tstoolkit.pca.PrincipalComponents;
+import ec.tstoolkit.timeseries.Day;
+import ec.tstoolkit.timeseries.TsPeriodSelector;
 import ec.tstoolkit.timeseries.simplets.AverageInterpolator;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDomain;
+import java.util.Arrays;
 
 /**
  *
@@ -86,17 +89,16 @@ public class PcInitializer implements IDfmInitializer {
     private boolean computeMatrix(DfmInformationSet input) {
         TsDomain domain = idom_;
         if (domain == null) {
-            domain = input.getCurrentDomain();
+            domain = searchDomain(input);
         }
         data_ = input.generateMatrix(domain);
         datac_ = new Matrix(data_.getRowsCount(), data_.getColumnsCount());
         AverageInterpolator interpolator = new AverageInterpolator();
         for (int i = 0; i < data_.getColumnsCount(); ++i) {
             TsData c = new TsData(domain.getStart(), data_.column(i));
-            if (!interpolator.interpolate(c, null)) {
-                return false;
+            if (interpolator.interpolate(c, null)) {
+                datac_.column(i).copy(c);
             }
-            datac_.column(i).copy(c);
         }
         return true;
     }
@@ -138,26 +140,28 @@ public class PcInitializer implements IDfmInitializer {
         }
         return m;
     }
-    
+
     /**
      * Searches the position of variable v in the singular value decomposition k
+     *
      * @param model
      * @param v
      * @param k
-     * @return 
+     * @return
      */
-    private int searchPos(DynamicFactorModel model, int v, int k){
-        int s=-1, q =0;
-       for (DynamicFactorModel.MeasurementDescriptor desc : model.getMeasurements()) {
-           if (! Double.isNaN(desc.coeff[k])){
-               ++s;
-           }
-           if (q == v)
-               break;
-           ++q;
-       }
-       return s;
-     }
+    private int searchPos(DynamicFactorModel model, int v, int k) {
+        int s = -1, q = 0;
+        for (DynamicFactorModel.MeasurementDescriptor desc : model.getMeasurements()) {
+            if (!Double.isNaN(desc.coeff[k])) {
+                ++s;
+            }
+            if (q == v) {
+                break;
+            }
+            ++q;
+        }
+        return s;
+    }
 
     private boolean computeVar(DynamicFactorModel model) {
         DynamicFactorModel.TransitionDescriptor tr = model.getTransition();
@@ -211,30 +215,54 @@ public class PcInitializer implements IDfmInitializer {
         int v = 0;
         for (DynamicFactorModel.MeasurementDescriptor desc : model.getMeasurements()) {
             DataBlock y = datac_.column(v++).drop(blen - 1, 0);
-            RegModel regmodel = new RegModel();
-            regmodel.setY(y);
-            for (int j = 0; j < nb; ++j) {
-                if (!Double.isNaN(desc.coeff[j])) {
-                    double[] x = new double[y.getLength()];
-                    int s=j*blen, l = desc.type.getLength();
-                    for (int r = 0; r < x.length; ++r) {
-                        x[r] = desc.type.dot(M.row(r).extract(s, l));
+            if (y.isZero()) {
+                desc.var = 1;
+            } else {
+                RegModel regmodel = new RegModel();
+                regmodel.setY(y);
+                for (int j = 0; j < nb; ++j) {
+                    if (!Double.isNaN(desc.coeff[j])) {
+                        double[] x = new double[y.getLength()];
+                        int s = j * blen, l = desc.type.getLength();
+                        for (int r = 0; r < x.length; ++r) {
+                            x[r] = desc.type.dot(M.row(r).extract(s, l));
+                        }
+                        regmodel.addX(new DataBlock(x));
                     }
-                    regmodel.addX(new DataBlock(x));
+                }
+                Ols ols = new Ols();
+                if (ols.process(regmodel)) {
+                    double[] b = ols.getLikelihood().getB();
+                    for (int i = 0, j = 0; j < nb; ++j) {
+                        if (!Double.isNaN(desc.coeff[j])) {
+                            desc.coeff[j] = b[i++];
+                        }
+                    }
+                    desc.var = ols.getLikelihood().getSigma();
+                } else {
+                    desc.var = 1;
                 }
             }
-            Ols ols = new Ols();
-            if (!ols.process(regmodel)) {
-                return false;
-            }
-            double[] b = ols.getLikelihood().getB();
-            for (int i = 0, j = 0; j < nb; ++j) {
-                if (!Double.isNaN(desc.coeff[j])) {
-                    desc.coeff[j] = b[i++];
-                }
-            }
-            desc.var = ols.getLikelihood().getSigma();
         }
         return true;
+    }
+    private double ns = .75;
+
+    private TsDomain searchDomain(DfmInformationSet input) {
+        int n = input.getSeriesCount();
+        Day[] start = new Day[n];
+        Day[] end = new Day[n];
+        for (int i = 0; i < n; ++i) {
+            TsDomain cur = input.series(i).cleanExtremities().getDomain();
+            start[i] = cur.getStart().firstday();
+            end[i] = cur.getLast().lastday();
+        }
+        Arrays.sort(start);
+        Arrays.sort(end);
+        TsPeriodSelector sel = new TsPeriodSelector();
+        Day s = null, e = null;
+        int t = (int) ((n - 1) * ns);
+        sel.between(start[t], end[n - 1 - t]);
+        return input.getCurrentDomain().select(sel);
     }
 }
