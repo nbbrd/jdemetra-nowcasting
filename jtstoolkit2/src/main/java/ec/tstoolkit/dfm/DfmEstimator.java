@@ -61,7 +61,7 @@ public class DfmEstimator implements IDfmEstimator {
     private int maxiter_ = 100;
     private boolean converged_;
     private final ISsqFunctionMinimizer min_;
-    private int nstart_ = 20, nnext_ = 3;
+    private int nstart_ = 15, nnext_ = 5;
     private TsDomain idom_;
     private boolean useBlockIterations_ = true;
 

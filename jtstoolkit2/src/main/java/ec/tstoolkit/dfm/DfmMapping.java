@@ -20,9 +20,10 @@ import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.IDataBlock;
 import ec.tstoolkit.data.IReadDataBlock;
 import ec.tstoolkit.dfm.DynamicFactorModel.MeasurementDescriptor;
+import ec.tstoolkit.maths.matrices.IEigenSystem;
 import ec.tstoolkit.maths.matrices.Matrix;
+import ec.tstoolkit.maths.matrices.EigenSystem;
 import ec.tstoolkit.maths.matrices.MatrixException;
-import ec.tstoolkit.maths.matrices.SingularValueDecomposition;
 import ec.tstoolkit.maths.matrices.SymmetricMatrix;
 import ec.tstoolkit.maths.realfunctions.IParametricMapping;
 import ec.tstoolkit.maths.realfunctions.ParamValidation;
@@ -279,24 +280,27 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
 
     @Override
     public boolean checkBoundaries(IReadDataBlock inparams) {
-//        // check the stability of VAR
-//        IReadDataBlock vp = vparams(inparams);
-//        if (vp == null) {
-//            return true;
-//        }
-//        Matrix Q = new Matrix(nb * nl, nb * nl);
-//        for (int i = 0, i0 = 0; i < nb; ++i) {
-//            for (int l = 0; l < nl; ++l, i0 += nb) {
-//                DataBlock c = Q.column(l*nb + i).range(0, nb);
-//                c.copy(vp.rextract(i0, nb));
-//            }
-//        }
-//        Q.subDiagonal(-nb).set(1);
-//        SingularValueDecomposition svd = new SingularValueDecomposition();
-//        svd.decompose(Q);
-//        double[] s = svd.S();
-//        return s[0] < 1;
-        return true;
+        // check the stability of VAR
+        try{
+        IReadDataBlock vp = vparams(inparams);
+        if (vp == null) {
+            return true;
+        }
+        Matrix Q = new Matrix(nb * nl, nb * nl);
+        for (int i = 0, i0 = 0; i < nb; ++i) {
+            for (int l = 0; l < nl; ++l, i0 += nb) {
+                DataBlock c = Q.column(l*nb + i).range(0, nb);
+                c.copy(vp.rextract(i0, nb));
+            }
+        }
+        Q.subDiagonal(-nb).set(1);
+        IEigenSystem es=EigenSystem.create(Q, false);
+        return es.getEigenValues(1)[0].abs() < 1;
+        }
+        catch (MatrixException err){
+            return false;
+        }
+//        return true;
     }
 
     @Override
@@ -328,15 +332,13 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
 //        Matrix Q = new Matrix(nb * nl, nb * nl);
 //        for (int i = 0, i0 = 0; i < nb; ++i) {
 //            for (int l = 0; l < nl; ++l, i0 += nb) {
-//                DataBlock c = Q.column(l*nb + i).range(0, nb);
+//                DataBlock c = Q.column(l * nb + i).range(0, nb);
 //                c.copy(vp.rextract(i0, nb));
 //            }
 //        }
 //        Q.subDiagonal(-nb).set(1);
-//        SingularValueDecomposition svd = new SingularValueDecomposition();
-//        svd.decompose(Q);
-//        double[] s = svd.S();
-//        if (s[0] < 1) {
+//        IEigenSystem es = EigenSystem.create(Q, false);
+//        if (es.getEigenValues(1)[0].abs() < 1) {
 //            return ParamValidation.Valid;
 //        } else {
 //            return ParamValidation.Invalid;

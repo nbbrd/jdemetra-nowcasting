@@ -205,7 +205,7 @@ public class DfmMonitorTest {
             }
         });
         estimator.setMaxIter(100);
-       // estimator.setMaxInitialIter(30);
+ //       estimator.setMaxInitialIter(2);
         monitor.setInitializer(initializer);
         //        monitor.setInitializer(new DefaultInitializer());
         monitor.setEstimator(estimator);

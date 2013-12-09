@@ -482,7 +482,7 @@ public class DynamicFactorModel implements Cloneable {
      *
      * @return
      */
-    int getFactorsCount() {
+    public int getFactorsCount() {
         return nf_;
     }
 
