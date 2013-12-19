@@ -8,6 +8,8 @@ package ec.tstoolkit.dfm;
 import data.Data;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DescriptiveStatistics;
+import ec.tstoolkit.dfm.DynamicFactorModel.MeasurementDescriptor;
+import ec.tstoolkit.dfm.DynamicFactorModel.MeasurementStructure;
 import ec.tstoolkit.dfm.DynamicFactorModel.MeasurementType;
 import ec.tstoolkit.eco.Likelihood;
 import ec.tstoolkit.maths.matrices.Matrix;
@@ -38,6 +40,7 @@ import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Random;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -455,4 +458,16 @@ public class DynamicFactorModelTest {
         x = new DataBlock(mapping.map(m.ssfRepresentation()));
         System.out.println(x);
     }
+    
+    @Test
+    public void testMeasurements() {
+        HashSet<MeasurementStructure> set=new HashSet<>();
+        for (MeasurementDescriptor mdesc : dmodel.getMeasurements()){
+            set.add(mdesc.getStructure());
+        }
+        for (MeasurementStructure s : set){
+            System.out.println(s);
+        }
+    }
+    
 }

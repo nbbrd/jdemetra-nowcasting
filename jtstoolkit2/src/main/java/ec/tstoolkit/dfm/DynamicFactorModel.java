@@ -14,8 +14,10 @@ import ec.tstoolkit.maths.matrices.SymmetricMatrix;
 import ec.tstoolkit.mssf2.DefaultTimeInvariantMultivariateSsf;
 import ec.tstoolkit.mssf2.IMSsf;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  *
@@ -166,6 +168,73 @@ public class DynamicFactorModel implements Cloneable {
         C;
     }
 
+    public static final class MeasurementStructure implements Comparable<MeasurementStructure> {
+
+        public final MeasurementType type;
+        public final boolean[] used;
+
+        public MeasurementStructure(final MeasurementType type, final boolean[] used) {
+            this.type = type;
+            this.used = used;
+        }
+
+        @Override
+        public int compareTo(MeasurementStructure o) {
+            int cmp = type.compareTo(o.type);
+            if (cmp != 0) {
+                return cmp;
+            } else {
+                if (used.length < o.used.length) {
+                    return -1;
+                }
+                if (used.length > o.used.length) {
+                    return 1;
+                }
+                for (int i = 0; i < used.length; ++i) {
+                    if (!used[i] && o.used[i]) {
+                        return -1;
+                    } else if (used[i] && !o.used[i]) {
+                        return 1;
+                    }
+                }
+                return 0;
+            }
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+            builder.append(type).append('[');
+            if (used.length > 0) {
+                builder.append(used[0] ? 1 : 0);
+            }
+           for (int i = 1; i < used.length; ++i) {
+                builder.append(' ').append(used[i] ? 1 : 0);
+            }
+            builder.append(']');
+            return builder.toString();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o instanceof MeasurementStructure) {
+                MeasurementStructure m = (MeasurementStructure) o;
+                return type == m.type && Arrays.equals(used, m.used);
+            } else {
+                return false;
+            }
+
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 5;
+            hash = 37 * hash + Objects.hashCode(this.type);
+            hash = 37 * hash + Arrays.hashCode(this.used);
+            return hash;
+        }
+    }
+
     /**
      * Represent the measurement: y(t) = coeff*Z*a(t) + e(t), e=N(0, var)
      */
@@ -185,6 +254,17 @@ public class DynamicFactorModel implements Cloneable {
             this.coeff = coeff.clone();
             this.var = var;
         }
+
+        public MeasurementDescriptor(final MeasurementStructure structure) {
+            this.type = measurement(structure.type);
+            this.coeff = new double[structure.used.length];
+            for (int i = 0; i < coeff.length; ++i) {
+                if (!structure.used[i]) {
+                    coeff[i] = Double.NaN;
+                }
+            }
+            this.var = 1;
+        }
         /**
          * Type of the measurement equation
          */
@@ -198,6 +278,22 @@ public class DynamicFactorModel implements Cloneable {
          * Variance of the measurement equation (>=0)
          */
         public double var;
+
+        public boolean isUsed(int fac) {
+            return !Double.isNaN(coeff[fac]);
+        }
+
+        public boolean[] getUsedFactors() {
+            boolean[] used = new boolean[coeff.length];
+            for (int i = 0; i < used.length; ++i) {
+                used[i] = !Double.isNaN(coeff[i]);
+            }
+            return used;
+        }
+
+        public MeasurementStructure getStructure() {
+            return new MeasurementStructure(getMeasurementType(type), getUsedFactors());
+        }
     }
 
     /**
@@ -249,6 +345,18 @@ public class DynamicFactorModel implements Cloneable {
                 return _L.ML;
             default:
                 return null;
+        }
+    }
+
+    public static MeasurementType getMeasurementType(final IMeasurement m) {
+        if (m instanceof _C) {
+            return MeasurementType.C;
+        } else if (m instanceof _CD) {
+            return MeasurementType.CD;
+        } else if (m instanceof _L) {
+            return MeasurementType.L;
+        } else {
+            return null;
         }
     }
 
@@ -373,10 +481,10 @@ public class DynamicFactorModel implements Cloneable {
         for (MeasurementDescriptor desc : mdesc_) {
             for (int i = 0; i < desc.coeff.length; ++i) {
                 if (!Double.isNaN(desc.coeff[i])) {
-                    desc.coeff[i] *= w[i]/emax;
+                    desc.coeff[i] *= w[i] / emax;
                 }
             }
-            desc.var/=vmax;
+            desc.var /= vmax;
         }
     }
 
