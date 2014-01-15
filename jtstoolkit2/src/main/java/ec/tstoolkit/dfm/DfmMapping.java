@@ -345,4 +345,9 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
 //        }
         return ParamValidation.Valid;
     }
+    
+    @Override
+    public String getDescription(int idx) {
+         return PARAM+idx; 
+    }
 }

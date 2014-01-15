@@ -57,5 +57,10 @@ public class DfmProcessor implements IProcessingFactory<DfmSpecification, TsVari
     public Map<String, Class> getSpecificationDictionary(Class<DfmSpecification> specClass) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
+
+    @Override
+    public Map<String, Class> getOutputDictionary() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
     
 }

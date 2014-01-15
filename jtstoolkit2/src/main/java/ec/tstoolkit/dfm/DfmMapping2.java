@@ -215,4 +215,9 @@ public class DfmMapping2 implements IParametricMapping<IMSsf> {
     public ParamValidation validate(IDataBlock ioparams) {
         return ParamValidation.Valid;
     }
+    
+    @Override
+    public String getDescription(int idx) {
+         return PARAM+idx; 
+    }
 }

@@ -68,10 +68,11 @@ public class SimpleDfmMapping implements IParametricMapping<IMSsf> {
         template.getTransition().covar.set(0);
         template.getTransition().covar.diagonal().set(1);
         nb = template.getFactorsCount();
-        Matrix vp=template.getTransition().varParams;
-        for (int i=0; i<vp.getColumnsCount(); ++i){
-            if (i%template.getTransition().nlags !=0)
+        Matrix vp = template.getTransition().varParams;
+        for (int i = 0; i < vp.getColumnsCount(); ++i) {
+            if (i % template.getTransition().nlags != 0) {
                 vp.column(i).set(0);
+            }
         }
         nl = 1;
         nm = template.getMeasurementsCount() - 1;
@@ -212,13 +213,19 @@ public class SimpleDfmMapping implements IParametricMapping<IMSsf> {
     }
 
     void validate(DynamicFactorModel model) {
-        Matrix vp=model.getTransition().varParams;
-        int nl=model.getTransition().nlags;
-        for (int i=0; i<nb; ++i){
-            double r=vp.get(i, i*nl);
-            if (Math.abs(r)>1)
-                vp.set(i, i*nl,Math.signum(r)*Math.min(.99, 1/Math.abs(r)));
+        Matrix vp = model.getTransition().varParams;
+        int nl = model.getTransition().nlags;
+        for (int i = 0; i < nb; ++i) {
+            double r = vp.get(i, i * nl);
+            if (Math.abs(r) > 1) {
+                vp.set(i, i * nl, Math.signum(r) * Math.min(.99, 1 / Math.abs(r)));
+            }
         }
-       
     }
+
+    @Override
+    public String getDescription(int idx) {
+        return PARAM + idx;
+    }
+
 }
