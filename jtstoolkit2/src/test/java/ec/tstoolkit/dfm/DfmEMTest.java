@@ -18,7 +18,7 @@ import org.junit.Test;
 
 /**
  *
- * @author deanton
+ * @author deanton 
  */
 public class DfmEMTest {
 
@@ -174,8 +174,9 @@ public class DfmEMTest {
      //em.emstep(dmodel, dfmdata);
   // em.allcomponents();
   // em.emstep(dmodel,dfmdata) ;   
-   
-   em.initialize(dmodel,dfmdata); 
+  // em.initCalc(dmodel, dfmdata);  // private, cannot be tested
+ //  em.calc(dmodel,dfmdata);       // private, cannot be tested 
+   em.initialize(dmodel,dfmdata);  // public, can be tested
     }
     
        

@@ -102,7 +102,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         oldL = null;
         conv = false;
       
-        maxiter = 100;
+        maxiter = 1000;
         
         eps = 1e-6;
         nf_ = dfm.getFactorsCount(); // nf_=sum(r);
@@ -310,58 +310,70 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         return logicSelect;
     }
 
-    private void calc(DynamicFactorModel dfm,  DfmInformationSet data) { // private  modifier has been eliminated
+   private   void calc(DynamicFactorModel dfm0,  DfmInformationSet data) { // private  modifier has been eliminated
 
-        
         iter = 0;
         
 
-
+        dfm=dfm0.clone();
         dfmproc.process(dfm, data);
       // dfmproc.getFilteringResults().evaluate(L);
       //   double Ln    = L.getLogLikelihood();
       //   double oldLn = Ln;
       //  double Ln   = 0;
       //  double oldLn= 0;
+        System.out.print(dfm.getTransition().covar);
        
         dfmproc.getFilteringResults().evaluate(L);
         double Ln  = L.getLogLikelihood();
        
         double oldLn=0;
-        while ( iter < maxiter && !convergence(Ln, oldLn)) {
+        while ( iter < maxiter && !convergence(Ln, oldLn,iter)) {
 //        while ( iter < maxiter && !convergence(Ln, oldLn)) {
 
+            System.out.println("Iter=" + iter + ", Ln=" + Ln + " ("+oldLn  +")");
+              
             iter++;
+      //       System.out.println(iter);
             oldLn = Ln;
+         
             Ln = emstep(dfm,data); // Given the parameters of dfm, get moments
             
 // Given moments of dfm, recompute parameters and plugged them
             //                                               into dfmclone
 //         System.out.println(iter);
-            System.out.println("Iter=" + iter + ", Ln=" + Ln);
+         
         }
 
     }
-
-    private boolean convergence(double Ln, double oldLn) {
-        double epsi = (Ln - oldLn) / Math.abs(oldLn);
+  
+    private boolean convergence(double Ln, double oldLn, int iter) {
+        
+        double epsi = (Ln - oldLn);// / Math.abs(oldLn);
         if (epsi > eps) {  // instead of getEps?
+        //     System.out.print(iter);
+            System.out.print("   The likelihood is increasing very fast ");
+        //    System.out.print(oldLn);
+        //    System.out.println(Ln);
+          
             return false;
         } else if (epsi <= eps && epsi > 0) {
-            System.out.print("The likelihood is increasing! ");
-            System.out.print(oldLn);
-            System.out.println(Ln);
+       //      System.out.print(iter);
+            System.out.print("   The likelihood is increasing very slow! ");
+       //     System.out.print(oldLn);
+        //    System.out.println(Ln);
             return true;
         } else {
-            System.out.print("The likelihood is decreasing! ");
-            System.out.print(oldLn);
-            System.out.println(Ln);
+          //  System.out.print(iter);
+            System.out.print("   The likelihood is decreasing! ");
+        //    System.out.print(oldLn);
+        //    System.out.println(Ln);
 
             return false;
         }
     }
 
-    double emstep(DynamicFactorModel dfm, DfmInformationSet data) {
+ private   double emstep(DynamicFactorModel dfm, DfmInformationSet data) {
     //    dfmproc = new DfmProcessor();
         //    dfmproc.process(dfm, data);
         //    MSmoothingResults srslts_;
@@ -387,15 +399,15 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         eZLZL = EZLZL(dfm,data);
         ezZL = EzZL(dfm,data);
 
-       System.out.println(dfm.getTransition().varParams.subMatrix(0,1,0,1));
+//       System.out.println(dfm.getTransition().varParams.subMatrix(0,1,0,1));
         
         // XS=B, where S is a symmetric positive definite matrix.
         A_ = ezZL.clone();     //  true stays,  always changes      
         SymmetricMatrix.lsolve(eZLZL, A_.subMatrix(), true);
 
-        System.out.println(A_.subMatrix(0, 1, 0, 1));
-        System.out.println(iter);
-        System.out.println("comparing.......................");
+//        System.out.println(A_.subMatrix(0, 1, 0, 1));
+//        System.out.println(iter);
+//        System.out.println("comparing.......................");
  
              
          // VAR form in my state space representation
@@ -446,7 +458,8 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         Q = new Matrix(c_ * nf_, c_ * nf_);
 
         // WHY IT IS NOT WORKING, Q_ = (ezz.minus(A_.times(ezZL.transpose() ))).mul(1.0/nobs);
-        Q_ = (ezz.minus(A_.times(ezZL.transpose())));
+        double scale = 1.0/nobs;
+        Q_ = (ezz.minus(A_.times(ezZL.transpose()))).times(scale);
 
         for (int i = 0; i < temp2_.length; i++) {
             for (int j = 0; j < temp2_.length; j++) {
@@ -577,6 +590,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
                 MeasurementDescriptor desc = dfm.getMeasurements().get(idx_M[j]);
                 for (int k = 0; k < dfm.getFactorsCount(); ++k) {
                     if (!Double.isNaN(desc.coeff[k])) {
+    // --->                      
                         desc.coeff[k] = C_new.get(idx_M[j], c_ * k);
                     }
                 }
@@ -675,6 +689,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
                 MeasurementDescriptor desc = dfm.getMeasurements().get(idx_Q[j]);
                 for (int k = 0; k < dfm.getFactorsCount(); ++k) {
                     if (!Double.isNaN(desc.coeff[k])) {
+   // --->                   
                         desc.coeff[k] = C_new.get(idx_Q[j], c_ * k);
                     }
                 }
@@ -774,6 +789,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
                 MeasurementDescriptor desc = dfm.getMeasurements().get(idx_Y[j]);
                 for (int k = 0; k < dfm.getFactorsCount(); ++k) {
                     if (!Double.isNaN(desc.coeff[k])) {
+      // --->             
                         desc.coeff[k] = C_new.get(idx_Y[j], c_ * k);
                     }
                 }
@@ -834,7 +850,9 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         //System.out.println("check it");
         //System.out.println(R_new);
          
-        double scale = 1.0/nobs;
+      //   scale = 1.0/nobs;
+      
+        
         R_new.mul(scale);
         
        // System.out.println("check it again .....");
@@ -851,13 +869,14 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         List<MeasurementDescriptor> measurements = dfm.getMeasurements();
         int counting=0;
         for (MeasurementDescriptor desc : measurements) {
-            desc.var = R_new.get(counting, counting);
+   //--->         desc.var = R_new.get(counting, counting);
             counting++;
         }
         
-        dfm.getTransition().covar.copy(Q_);
-        dfm.getTransition().varParams.copy(A_);
+  //--->  dfm.getTransition().covar.copy(Q_);
+  //--->  dfm.getTransition().varParams.copy(A_);
 
+   //     System.out.print(Q_);
         
     //    System.out.println(C_new);
 //         dfmproc = new DfmProcessor();
@@ -865,7 +884,10 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
 //        dfmproc.process(dfm, data);
 //         DfmProcessor dfmproc_update = new DfmProcessor();
          dfmproc.process(dfm, data);
-         dfmproc.getFilteringResults().evaluate(L);
+         frslts_=dfmproc.getFilteringResults();
+
+         frslts_.evaluate(L);
+
          logLike = L.getLogLikelihood();
        // Ezz = null;
         //  EZLZL = null;
@@ -981,16 +1003,16 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
     }
 
     @Override
-    public boolean initialize(DynamicFactorModel dfm, DfmInformationSet data) {
-        initCalc(dfm, data);
-        calc(dfm,data);
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public boolean initialize(DynamicFactorModel dfm0, DfmInformationSet data) {
+        initCalc(dfm0, data);
+        calc(dfm0,data);
+       throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-    public boolean estimate(DynamicFactorModel dfm, DfmInformationSet input) {
-        initCalc(dfm, data);
-        calc(dfm,data);
+    public boolean estimate(DynamicFactorModel dfm0, DfmInformationSet input) {
+        initCalc(dfm0, data);
+        calc(dfm0,data);
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
