@@ -183,7 +183,7 @@ public class DynamicFactorModel implements Cloneable {
             int cmp = type.compareTo(o.type);
             if (cmp != 0) {
                 return cmp;
-            } else {
+            } else { // DAVID: if the type is the same
                 if (used.length < o.used.length) {
                     return -1;
                 }
@@ -208,7 +208,7 @@ public class DynamicFactorModel implements Cloneable {
             if (used.length > 0) {
                 builder.append(used[0] ? 1 : 0);
             }
-           for (int i = 1; i < used.length; ++i) {
+            for (int i = 1; i < used.length; ++i) {
                 builder.append(' ').append(used[i] ? 1 : 0);
             }
             builder.append(']');
@@ -235,6 +235,65 @@ public class DynamicFactorModel implements Cloneable {
         }
     }
 
+    public static final class MeasurementLoads implements Comparable<MeasurementLoads> {
+
+        public final boolean[] used;
+
+        public MeasurementLoads(final boolean[] used) {
+            this.used = used;
+        }
+
+        @Override
+        public int compareTo(MeasurementLoads o) {
+            if (used.length < o.used.length) {
+                return -1;
+            }
+            if (used.length > o.used.length) {
+                return 1;
+            }
+            for (int i = 0; i < used.length; ++i) {
+                if (!used[i] && o.used[i]) {
+                    return -1;
+                } else if (used[i] && !o.used[i]) {
+                    return 1;
+                }
+            }
+            return 0;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+            builder.append('[');
+            if (used.length > 0) {
+                builder.append(used[0] ? 1 : 0);
+            }
+            for (int i = 1; i < used.length; ++i) {
+                builder.append(' ').append(used[i] ? 1 : 0);
+            }
+            builder.append(']');
+            return builder.toString();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o instanceof MeasurementLoads) {
+                MeasurementLoads m = (MeasurementLoads) o;
+                return Arrays.equals(used, m.used);
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 3;
+            hash = 41 * hash + Arrays.hashCode(this.used);
+            return hash;
+        }
+
+    }
+
     /**
      * Represent the measurement: y(t) = coeff*Z*a(t) + e(t), e=N(0, var)
      */
@@ -255,6 +314,7 @@ public class DynamicFactorModel implements Cloneable {
             this.var = var;
         }
 
+        // WHY DO WE NEED THIS CONSTRUCTOR?
         public MeasurementDescriptor(final MeasurementStructure structure) {
             this.type = measurement(structure.type);
             this.coeff = new double[structure.used.length];
@@ -263,8 +323,12 @@ public class DynamicFactorModel implements Cloneable {
                     coeff[i] = Double.NaN;
                 }
             }
-            this.var = 1;
+            this.var = 1;   // DAVID: why is equal to 1?  I think it must be initialized
         }
+        
+        
+    
+        
         /**
          * Type of the measurement equation
          */
@@ -277,14 +341,16 @@ public class DynamicFactorModel implements Cloneable {
         /**
          * Variance of the measurement equation (>=0)
          */
-        public double var;
+        public double var; // DAVID: why not final?
 
+   
+                
         public boolean isUsed(int fac) {
             return !Double.isNaN(coeff[fac]);
         }
 
         public boolean[] getUsedFactors() {
-            boolean[] used = new boolean[coeff.length];
+            boolean[] used = new boolean[coeff.length]; // DAVID: I THINK THIS LINE SHOULD BE COMMENTED (OTHERWISE IT CREATES A NEW USED)
             for (int i = 0; i < used.length; ++i) {
                 used[i] = !Double.isNaN(coeff[i]);
             }
@@ -293,6 +359,10 @@ public class DynamicFactorModel implements Cloneable {
 
         public MeasurementStructure getStructure() {
             return new MeasurementStructure(getMeasurementType(type), getUsedFactors());
+        }
+
+        public MeasurementLoads getLoads() {
+            return new MeasurementLoads(getUsedFactors());
         }
     }
 
