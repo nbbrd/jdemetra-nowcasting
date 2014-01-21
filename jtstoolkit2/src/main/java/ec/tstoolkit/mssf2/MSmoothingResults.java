@@ -175,6 +175,13 @@ public class MSmoothingResults {
      *
      * @return
      */
+    public MatrixStorage getSmoothedStatesVariance() {
+        return m_P;
+    }
+    /**
+     *
+     * @return
+     */
     public boolean isSavingP() {
         return m_bP;
     }

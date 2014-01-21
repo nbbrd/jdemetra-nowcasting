@@ -94,15 +94,16 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
     int[] idx_M, idx_Q, idx_Y;
     List<Integer> Lidx_M, Lidx_Q, Lidx_Y;
 
-    void initCalc(DynamicFactorModel dfm, DfmInformationSet data) {
-        this.dfm = dfm;
+    void initCalc(DynamicFactorModel dfm0, DfmInformationSet data) {
+        this.dfm = dfm0;
         this.data = data;
+
         nobs = data.getCurrentDomain().getLength();
         L = new Likelihood();
         oldL = null;
         conv = false;
       
-        maxiter = 1000;
+        maxiter = 3000;
         
         eps = 1e-6;
         nf_ = dfm.getFactorsCount(); // nf_=sum(r);
@@ -313,7 +314,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
    private   void calc(DynamicFactorModel dfm0,  DfmInformationSet data) { // private  modifier has been eliminated
 
         iter = 0;
-        
+        double[] LnStore = new  double[maxiter];        
 
         dfm=dfm0.clone();
         dfmproc.process(dfm, data);
@@ -328,17 +329,19 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         double Ln  = L.getLogLikelihood();
        
         double oldLn=0;
-        while ( iter < maxiter && !convergence(Ln, oldLn,iter)) {
+         while ( iter < maxiter) {
+     //     while ( iter < maxiter && !convergence(Ln, oldLn,iter)) {    
 //        while ( iter < maxiter && !convergence(Ln, oldLn)) {
 
-            System.out.println("Iter=" + iter + ", Ln=" + Ln + " ("+oldLn  +")");
+//            System.out.println("Iter=" + iter + ", Ln=" + Ln + " ("+oldLn  +")");
+            System.out.println(Ln);
               
             iter++;
       //       System.out.println(iter);
             oldLn = Ln;
          
             Ln = emstep(dfm,data); // Given the parameters of dfm, get moments
-            
+            LnStore[iter]=Ln;
 // Given moments of dfm, recompute parameters and plugged them
             //                                               into dfmclone
 //         System.out.println(iter);
@@ -374,12 +377,12 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
     }
 
  private   double emstep(DynamicFactorModel dfm, DfmInformationSet data) {
-    //    dfmproc = new DfmProcessor();
-        //    dfmproc.process(dfm, data);
-        //    MSmoothingResults srslts_;
+        //    dfmproc = new DfmProcessor();
+        //     dfmproc.process(dfm, data);
+        //     MSmoothingResults srslts_;
         //     srslts_ = dfmproc.getSmoothingResults();
         //     MFilteringResults frslts_;
-        //    frslts_ = dfmproc.getFilteringResults();
+        //     frslts_ = dfmproc.getFilteringResults();
 
       
         double logLike;
@@ -395,13 +398,24 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         m_used = m_a.getCurrentSize();
         m_dim = m_a.getDim();
         
-        ezz = Ezz(dfm,data);
-        eZLZL = EZLZL(dfm,data);
-        ezZL = EzZL(dfm,data);
+        ezz   = Ezz();
+        eZLZL = EZLZL();
+        ezZL  = EzZL();
 
 //       System.out.println(dfm.getTransition().varParams.subMatrix(0,1,0,1));
         
-        // XS=B, where S is a symmetric positive definite matrix.
+     //Solves XS=B, where S is a symmetric positive definite matrix.
+     //*   X = B*inv(S)
+     //* @param S The Symmetric matrix
+     //* @param B In-out parameter. The right-hand side of the equation. 
+     //* It will contain the result at the end of the processing.
+     //* @param clone Indicates if the matrix S can be transformed (should be 
+     //* true if the matrix S can't be modified). If S is transformed, it will 
+     //* contain the lower Cholesky factor at the end of the processing.
+     //*/
+    // lsolve(Matrix S, SubMatrix B, boolean clone){
+   
+        
         A_ = ezZL.clone();     //  true stays,  always changes      
         SymmetricMatrix.lsolve(eZLZL, A_.subMatrix(), true);
 
@@ -458,7 +472,10 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         Q = new Matrix(c_ * nf_, c_ * nf_);
 
         // WHY IT IS NOT WORKING, Q_ = (ezz.minus(A_.times(ezZL.transpose() ))).mul(1.0/nobs);
-        double scale = 1.0/nobs;
+      
+        // CHECK WHETHER IT IS CORRECT: NOTICE I AM DISCARDING THE FIRST OBSERVATION BECAUSE STATE VECTOR DOES NOT CONTAIN INITIALIZATION
+
+        double scale = 1.0/(nobs-1);        
         Q_ = (ezz.minus(A_.times(ezZL.transpose()))).times(scale);
 
         for (int i = 0; i < temp2_.length; i++) {
@@ -547,8 +564,9 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
             Matrix nom = new Matrix(nMi, rsi);
             Matrix nom_interm = new Matrix(nMi, rsi);
 
-            for (int i = 0; i < nobs; i++) {
-
+            // ATTENTION I will be ignoring the first observation (because we do not include the initial state in the state vector)
+            for (int i = 1; i < nobs; i++) {  // we will be ignoring the first observation (because we do not include the initial state in the state vector)
+ //         for (int i = 0; i < nobs; i++) {  
                 boolean[] logic_i = new boolean[nobs];
                 logic_i[i] = true;
 
@@ -566,7 +584,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
                 Matrix nanYt = Matrix.diagonal(temp);
 
                 DataBlock bloque = DataBlock.select(srslts_.A(i).deepClone(), logic_idx_iM.get(type));
-                Matrix ztemp = new Matrix(bloque.getData(), sumAll(logic_idx_iM.get(type)), 1); //idx_iM.row(type).sum()   sumAll(logic_idx_iM.get(type))                   
+                Matrix ztemp = new Matrix(bloque.getData(), sum(logic_idx_iM.get(type)), 1); //idx_iM.row(type).sum()   sumAll(logic_idx_iM.get(type))                   
 
                 Matrix ezztemp = ztemp.times(ztemp.transpose()).plus(Matrix.select(srslts_.P(i), logic_idx_iM.get(type), logic_idx_iM.get(type)));
                 denom_interm.subMatrix().kronecker(ezztemp.subMatrix(), nanYt.subMatrix());
@@ -634,8 +652,8 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
                 nom_interm = new Matrix(1, rpsi);
 
                 // here the for loop
-                for (int t = 0; t < nobs; t++) {
-
+                for (int t = 1; t < nobs; t++) {
+       //       for (int t = 0; t < nobs; t++) {
                     boolean[] logic_t = new boolean[nobs];
                     logic_t[t] = true;
 
@@ -653,7 +671,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
                     nanYt.set(temp);
 
                     DataBlock bloque = DataBlock.select(srslts_.A(t).deepClone(), logic_idx_iQ.get(type));
-                    Matrix ztemp = new Matrix(bloque.getData(), sumAll(logic_idx_iQ.get(type)), 1); //idx_iM.row(type).sum()   sumAll(logic_idx_iM.get(type))                   
+                    Matrix ztemp = new Matrix(bloque.getData(), sum(logic_idx_iQ.get(type)), 1); //idx_iM.row(type).sum()   sumAll(logic_idx_iM.get(type))                   
 
                     Matrix ezztemp = ztemp.times(ztemp.transpose()).plus(Matrix.select(srslts_.P(t), logic_idx_iQ.get(type), logic_idx_iQ.get(type)));
                     denom_interm.subMatrix().kronecker(ezztemp.subMatrix(), nanYt.subMatrix());
@@ -733,7 +751,8 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
                 nom_interm = new Matrix(1, rpsi);
 
                 // here the for loop
-                for (int t = 0; t < nobs; t++) {
+                for (int t = 1; t < nobs; t++) {
+             // for (int t = 0; t < nobs; t++) {
 
                     boolean[] logic_t = new boolean[nobs];
                     logic_t[t] = true;
@@ -752,7 +771,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
                     nanYt.set(temp);
 
                     DataBlock bloque = DataBlock.select(srslts_.A(t).deepClone(), logic_idx_iY.get(type));
-                    Matrix ztemp = new Matrix(bloque.getData(), sumAll(logic_idx_iY.get(type)), 1); //idx_iM.row(type).sum()   sumAll(logic_idx_iM.get(type))                   
+                    Matrix ztemp = new Matrix(bloque.getData(), sum(logic_idx_iY.get(type)), 1); //idx_iM.row(type).sum()   sumAll(logic_idx_iM.get(type))                   
 
                     Matrix ezztemp = ztemp.times(ztemp.transpose()).plus(Matrix.select(srslts_.P(t), logic_idx_iY.get(type), logic_idx_iY.get(type)));
                     denom_interm.subMatrix().kronecker(ezztemp.subMatrix(), nanYt.subMatrix());
@@ -803,9 +822,21 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
 //------------------------------------*****************
 
       // NOW CALCULATE m step for IDIOSYNCRATIC COMPONENT
+        
+        Matrix R = new Matrix(N,N);  // replace by the R obtained in previous iteration
+        List<MeasurementDescriptor> measurements = dfm.getMeasurements();
+        int counting=0;
+        for (MeasurementDescriptor desc : measurements) {
+           R.set(counting, counting, desc.var);
+            counting++;
+        }
+        
+        
         Matrix R_new = new Matrix(N, N);
      //   Matrix RR_new = new Matrix(N, N);
-        for (int i = 0; i < nobs; i++) {
+    //    for (int i = 0; i < nobs; i++) {
+        for (int i = 1; i < nobs; i++) {
+
 
             boolean[] logic_i = new boolean[nobs];
             logic_i[i] = true;
@@ -826,19 +857,21 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
             Matrix ztemp = new Matrix(bloque.getData(), bloque.getLength(), 1); //idx_iM.row(type).sum()   sumAll(logic_idx_iM.get(type))                   
             Matrix V = new Matrix(srslts_.P(i));
 
-            Matrix R = Matrix.identity(N);  // replace by the R obtained in previous iteration
+         
+          // ========================= start
+            Matrix res1, res2, res3, res4;
+            res1=Matrix.selectRows(y.subMatrix(), logic_i).transpose().minus(nanYt.times(C_new).times(ztemp));
+            res2=res1.clone();
+            res3=nanYt.times(C_new).times(V).times(C_new.transpose()).times(nanYt);
+            res4= (Matrix.identity(N).minus(nanYt)).times(R).times(Matrix.identity(N).minus(nanYt));
 
-            Matrix whatsgoingon = Matrix.selectRows(y.subMatrix(), logic_i).transpose();
-            Matrix whatsgoingon2 = nanYt.times(C_new.times(ztemp));
-            Matrix tempres = whatsgoingon.minus(whatsgoingon2);
-            Matrix tempres2 = (Matrix.selectRows(y.subMatrix(), logic_i).transpose().minus(nanYt.times(C_new.times(ztemp)))).transpose();
-            Matrix tempres3 = (nanYt.times(C_new.times(V))).times(C_new.transpose()).times(nanYt);
-
-            Matrix tempres4 = ((Matrix.identity(N).minus(nanYt)).times(R)).times(Matrix.identity(N).minus(nanYt));
-
-            Matrix R_temp = tempres.times(tempres2).plus(tempres3).plus(tempres4);
- 
+            Matrix R_temp= res1.times(res2.transpose()).plus(res3).plus(res4);
+            // ========================= end
+            
+       
             R_new = R_new.plus(R_temp);
+            
+            
 //System.out.println(tempres);
 //System.out.println("______________________________________________");
 
@@ -866,16 +899,23 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
       //   dfmproc.process(dfm, data);
         
         
-        List<MeasurementDescriptor> measurements = dfm.getMeasurements();
-        int counting=0;
+       // List<MeasurementDescriptor> measurements = dfm.getMeasurements();
+        //int counting=0;
+        counting=0;
         for (MeasurementDescriptor desc : measurements) {
-   //--->         desc.var = R_new.get(counting, counting);
+   //--->     
+            desc.var = R_new.get(counting, counting);
             counting++;
         }
         
-  //--->  dfm.getTransition().covar.copy(Q_);
-  //--->  dfm.getTransition().varParams.copy(A_);
+  //--->  
+ //       
+   //    
+        dfm.getTransition().covar.copy(Q_);
+  //---> 
+        dfm.getTransition().varParams.copy(A_);
 
+ //        System.out.println(R_new);
    //     System.out.print(Q_);
         
     //    System.out.println(C_new);
@@ -886,7 +926,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
          dfmproc.process(dfm, data);
          frslts_=dfmproc.getFilteringResults();
 
-         frslts_.evaluate(L);
+        frslts_.evaluate(L);
 
          logLike = L.getLogLikelihood();
        // Ezz = null;
@@ -909,7 +949,6 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
      */
 
     Matrix allcomponents() {
-
 
         if (m_a == null) {
             return null;
@@ -935,9 +974,10 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
     MatrixStorage ms;
     DataBlockStorage ds;
 
-    private Matrix Ezz(DynamicFactorModel dfm, DfmInformationSet data) {
+    // notice that the initial state is not being taken into account
+    private Matrix Ezz() {
    
-        dfmproc.process(dfm, data);
+        //dfmproc.process(dfm, data);
         Matrix z0 = allcomponents();
         SubMatrix z1 = z0.subMatrix(0, z0.getRowsCount(), 1, z0.getColumnsCount());
         Matrix z = Matrix.selectRows(z1, logic_temp2_);
@@ -949,7 +989,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         for (int i = 0; i < temp2_.length; i++) {
             for (int j = 0; j < temp2_.length; j++) {
                 petittest = srslts_.componentCovar(temp2_[i], temp2_[j]);   // null, because m_P in srslts_ is null  
-                covij_sum = sum(srslts_.componentCovar(temp2_[i], temp2_[j]));
+                covij_sum = sum0(srslts_.componentCovar(temp2_[i], temp2_[j]));
                 eP.set(i, j, covij_sum);
             }
         }
@@ -958,8 +998,9 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         return ezz;
     }
 
-    private Matrix EZLZL(DynamicFactorModel dfm, DfmInformationSet data) {
-        dfmproc.process(dfm, data);
+// notice that the initial state is not being taken into account
+    private Matrix EZLZL() {
+      //  dfmproc.process(dfm, data);
         Matrix z0 = allcomponents();
         SubMatrix z1 = z0.subMatrix(0, z0.getRowsCount(), 0, z0.getColumnsCount() - 1);
         Matrix z = Matrix.selectRows(z1, logic_temp2);
@@ -969,7 +1010,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         double covij_sum;
         for (int i = 0; i < temp2.length; i++) {
             for (int j = 0; j < temp2.length; j++) {
-                covij_sum = sumL(srslts_.componentCovar(temp2[i], temp2[j]));
+                covij_sum = sumT(srslts_.componentCovar(temp2[i], temp2[j]));
                 eP.set(i, j, covij_sum);
             }
         }
@@ -977,9 +1018,13 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         return eZLZL;
     }
 
-    private Matrix EzZL(DynamicFactorModel dfm, DfmInformationSet data) {
+   // notice that the initial state is not being taken into account
+    private Matrix EzZL() {
         
-        dfmproc.process(dfm, data);
+        
+ //               Q_ = (ezz.minus(A_.times(ezZL.transpose()))).times(scale);
+                
+    //    dfmproc.process(dfm, data);
         Matrix z0 = allcomponents();
         SubMatrix z1 = z0.subMatrix(0, z0.getRowsCount(), 1, z0.getColumnsCount());
         SubMatrix z1L = z0.subMatrix(0, z0.getRowsCount(), 0, z0.getColumnsCount() - 1);
@@ -993,7 +1038,9 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         double covij_sum;
         for (int i = 0; i < temp2_.length; i++) {
             for (int j = 0; j < temp2.length; j++) {
-                covij_sum = sumAll(srslts_.componentCovar(temp2_[i], temp2[j]));
+                     covij_sum =sum0(srslts_.componentCovar(temp2_[i], temp2[j]+1));
+            //2//    covij_sum = sum(srslts_.componentCovar(temp2_[i], temp2[j]+1));
+            //1//    covij_sum = sum(srslts_.componentCovar(temp2_[i], temp2[j]));
                 eP.set(i, j, covij_sum);
             }
         }
@@ -1002,11 +1049,13 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         return ezZL;
     }
 
+     
+    
     @Override
     public boolean initialize(DynamicFactorModel dfm0, DfmInformationSet data) {
         initCalc(dfm0, data);
         calc(dfm0,data);
-       throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return true;
     }
 
     @Override
@@ -1069,7 +1118,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
     }
 
     // sum the elements of array "r";
-    double sum(double[] elements) {
+    double sum0(double[] elements) {
         double suma = 0.0;
         for (int i = 0; i < elements.length; i++) {
             suma += elements[i];
@@ -1078,7 +1127,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         return suma;
     }
 
-    double sumL(double[] elements) {
+    double sumT(double[] elements) {
         double suma = 0.0;
         for (int i = 0; i < elements.length; i++) {
             suma += elements[i];
@@ -1087,7 +1136,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         return suma;
     }
 
-    double sumAll(double[] elements) {
+    double sum(double[] elements) {
         double suma = 0.0;
         for (int i = 0; i < elements.length; i++) {
             suma += elements[i];
@@ -1095,7 +1144,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         return suma;
     }
 
-    int sumAll(boolean[] elements) {
+    int sum(boolean[] elements) {
         int suma = 0;
         for (int i = 0; i < elements.length; i++) {
             if (elements[i]) {

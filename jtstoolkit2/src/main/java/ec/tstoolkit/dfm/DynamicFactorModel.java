@@ -357,7 +357,16 @@ public class DynamicFactorModel implements Cloneable {
             return used;
         }
 
-        public MeasurementStructure getStructure() {
+       public int getUsedFactorsCount() {
+           int n=0;
+             for (int i = 0; i < coeff.length; ++i) {
+                if (!Double.isNaN(coeff[i]))
+                    ++n;
+            }
+            return n;
+        }
+
+       public MeasurementStructure getStructure() {
             return new MeasurementStructure(getMeasurementType(type), getUsedFactors());
         }
 

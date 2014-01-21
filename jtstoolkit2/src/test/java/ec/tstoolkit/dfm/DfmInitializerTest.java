@@ -138,7 +138,7 @@ public class DfmInitializerTest {
     public DfmInitializerTest() {
     }
 
-    @Test
+    //@Test
     public void testInitialize() {
         TsData[] s = new TsData[dd.getRowsCount()];
         TsPeriod start = new TsPeriod(TsFrequency.Monthly, 1980, 0);
@@ -184,4 +184,48 @@ public class DfmInitializerTest {
         }
 
     }
+
+    @Test
+    public void testEM() {
+        TsData[] s = new TsData[dd.getRowsCount()];
+        TsPeriod start = new TsPeriod(TsFrequency.Monthly, 1980, 0);
+        for (int i = 0; i < s.length; ++i) {
+            s[i] = new TsData(start, dd.row(i));
+        }
+        PcInitializer initializer = new PcInitializer();
+        initializer.setEstimationDomain(s[0].getDomain().drop(120, 12));
+        DynamicFactorModel model0 = dmodel.clone();
+        DfmInformationSet dfmInformationSet = new DfmInformationSet(s);
+        initializer.initialize(model0, dfmInformationSet);
+//        for (int i = 0; i < dmodel.getTransition().nbloks; ++i) {
+//            DataBlock factor=initializer.getPrincipalComponents(i).getFactor(0);
+//            factor.sub(factor.sum()/factor.getLength());
+//            factor.div(Math.sqrt(factor.ssq()/factor.getLength()));
+//            factor.chs();
+//            System.out.println(factor);
+//        }
+//        System.out.println(model0.getTransition().covar);
+//        System.out.println(model0.getTransition().varParams);
+//        for (DynamicFactorModel.MeasurementDescriptor desc : model0.getMeasurements()) {
+//            for (int i = 0; i < desc.coeff.length; ++i) {
+//                System.out.print(desc.coeff[i]);
+//                System.out.print('\t');
+//            }
+//            System.out.println(desc.var);
+//        }
+//
+        DfmEM2 em = new DfmEM2(null);
+        em.initialize(model0, dfmInformationSet);
+//        System.out.println(model0.getTransition().covar);
+//        System.out.println(model0.getTransition().varParams);
+//        for (DynamicFactorModel.MeasurementDescriptor desc : model0.getMeasurements()) {
+//            for (int i = 0; i < desc.coeff.length; ++i) {
+//                System.out.print(desc.coeff[i]);
+//                System.out.print('\t');
+//            }
+//            System.out.println(desc.var);
+//        }
+
+    }
+
 }

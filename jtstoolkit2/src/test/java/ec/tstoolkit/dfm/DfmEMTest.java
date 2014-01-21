@@ -169,14 +169,20 @@ public class DfmEMTest {
 
     @Test
    public void testinitCalc() {
-   em = new DfmEM();   
+        DynamicFactorModel dmodelc = dmodel.clone();
+        dmodelc.normalize();
+        PcInitializer initializer = new PcInitializer();
+        initializer.initialize(dmodelc, dfmdata);
+        
+   em = new DfmEM();  
+   
   // em.initCalc(dmodel, dfmdata);
      //em.emstep(dmodel, dfmdata);
   // em.allcomponents();
   // em.emstep(dmodel,dfmdata) ;   
   // em.initCalc(dmodel, dfmdata);  // private, cannot be tested
  //  em.calc(dmodel,dfmdata);       // private, cannot be tested 
-   em.initialize(dmodel,dfmdata);  // public, can be tested
+   em.initialize(dmodelc,dfmdata);  // public, can be tested
     }
     
        
