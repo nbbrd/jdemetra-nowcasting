@@ -192,7 +192,7 @@ public class DfmInitializerTest {
             s[i] = new TsData(start, dd.row(i));
         }
         PcInitializer initializer = new PcInitializer();
-        initializer.setEstimationDomain(s[0].getDomain().drop(120, 12));
+        //initializer.setEstimationDomain(s[0].getDomain().drop(120, 12));
         DynamicFactorModel model0 = dmodel.clone();
         model0.setInitialization(DynamicFactorModel.Initialization.SteadyState);
         DfmInformationSet dfmInformationSet = new DfmInformationSet(s);
@@ -243,7 +243,7 @@ public class DfmInitializerTest {
                 return true;
             }
         });
-        estimator.setMaxIter(1000);
+        estimator.setMaxIter(5000);
         estimator.setMaxInitialIter(0);
         estimator.setMaxNextIter(3);
         //monitor.setInitializer(initializer);

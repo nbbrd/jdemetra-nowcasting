@@ -43,7 +43,7 @@ public class DfmEM2 implements IDfmInitializer {
     private Matrix M;
     private final EnumMap<DynamicFactorModel.MeasurementType, Map<Integer, DataBlock>> G = new EnumMap<>(DynamicFactorModel.MeasurementType.class);
     private final EnumMap<DynamicFactorModel.MeasurementType, Map<Integer, DataBlock>> G2 = new EnumMap<>(DynamicFactorModel.MeasurementType.class);
-    private final Map<Integer, DataBlock> Efij = new HashMap<>();
+    private DataBlock Efij[];
     private int maxiter_ = 1000, iter_;
     private boolean all_ = true;
 
@@ -82,11 +82,11 @@ public class DfmEM2 implements IDfmInitializer {
 
     private DataBlock ef(int i, int j) {
         int idx = dfm.getBlockLength() * dfm.getFactorsCount() * j + i;
-        DataBlock cur = Efij.get(idx);
+        DataBlock cur = Efij[idx];
         if (cur == null) {
             cur = vf(i, j);
             cur.addAXY(1, ef(i), ef(j));
-            Efij.put(idx, cur);
+            Efij[idx]=cur;
         }
         return cur;
     }
@@ -94,7 +94,8 @@ public class DfmEM2 implements IDfmInitializer {
     private void calcG() {
         G.clear();
         G2.clear();
-        Efij.clear();
+        for (int i=0; i<Efij.length; ++i)
+        Efij[i]=null;
         int n = size();
         for (DynamicFactorModel.MeasurementDescriptor desc : dfm.getMeasurements()) {
             DynamicFactorModel.MeasurementType type = DynamicFactorModel.
@@ -134,17 +135,21 @@ public class DfmEM2 implements IDfmInitializer {
             }
         }
     }
+    
+    private long t0;
 
     @Override
-    public boolean initialize(DynamicFactorModel dfm, DfmInformationSet data
-    ) {
+    public boolean initialize(DynamicFactorModel dfm, DfmInformationSet data) {
         this.data = data;
         this.dfm = dfm;
+        int n=dfm.getBlockLength()*dfm.getFactorsCount();
+        Efij=new DataBlock[n*n];
         M = data.generateMatrix(null);
         if (initializer != null) {
             initializer.initialize(dfm, data);
         }
         iter_ = 0;
+        t0=System.currentTimeMillis();
         do {
             EStep();
             MStep();
@@ -158,7 +163,11 @@ public class DfmEM2 implements IDfmInitializer {
         }
         Likelihood ll = new Likelihood();
         evaluate(processor.getFilteringResults(), ll);
-        System.out.println(ll.getLogLikelihood());
+        System.out.print(iter_);
+        System.out.print('\t');
+        System.out.print(ll.getLogLikelihood());
+        System.out.print('\t');
+        System.out.println(.001*(System.currentTimeMillis()-t0));
 //        processor.getSmoothingResults().setStandardError(1);
         calcG();
     }

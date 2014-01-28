@@ -124,7 +124,7 @@ public class DfmMonitorTest {
         }
         ddrnd = dd.clone();
         ddrnd.randomize();
-        dmodel.setInitialization(DynamicFactorModel.Initialization.Zero);
+        dmodel.setInitialization(DynamicFactorModel.Initialization.SteadyState);
     }
 
     private static DynamicFactorModel.IMeasurement measurement(int i) {
@@ -190,9 +190,10 @@ public class DfmMonitorTest {
 //        dmodelc = dmodelc.compactFactors(0, 2);
         DfmMonitor monitor = new DfmMonitor();
         PcInitializer initializer = new PcInitializer();
-//        initializer.setEstimationDomain(s[0].getDomain().drop(120,12));
+//       initializer.setEstimationDomain(s[0].getDomain().drop(120,12));
         DfmEstimator estimator = new DfmEstimator(new IEstimationHook() {
             int i = 0;
+        long t0=System.currentTimeMillis();
 
             @Override
             public boolean next(DynamicFactorModel current, Likelihood ll) {
@@ -200,7 +201,7 @@ public class DfmMonitorTest {
                 System.out.print('\t');
                 System.out.print(ll.getLogLikelihood());
                 System.out.print('\t');
-                System.out.println(new DfmMapping(current).parameters());
+                System.out.println(.001*(System.currentTimeMillis()-t0));
                 return true;
             }
         });
