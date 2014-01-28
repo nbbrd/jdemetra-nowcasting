@@ -23,6 +23,7 @@ import ec.tstoolkit.maths.realfunctions.IFunctionInstance;
 import ec.tstoolkit.maths.realfunctions.IParametersDomain;
 import ec.tstoolkit.maths.realfunctions.NumericalDerivatives;
 import ec.tstoolkit.maths.realfunctions.bfgs.Bfgs;
+import ec.tstoolkit.maths.realfunctions.bfgs.SimpleLineSearch;
 import ec.tstoolkit.maths.realfunctions.riso.LbfgsMinimizer;
 import ec.tstoolkit.ssf2.ResidualsCumulator;
 import java.util.EnumMap;
@@ -158,7 +159,7 @@ public class DfmEM2 implements IDfmInitializer {
         Likelihood ll = new Likelihood();
         evaluate(processor.getFilteringResults(), ll);
         System.out.println(ll.getLogLikelihood());
-        processor.getSmoothingResults().setStandardError(1);
+//        processor.getSmoothingResults().setStandardError(1);
         calcG();
     }
 
@@ -174,6 +175,7 @@ public class DfmEM2 implements IDfmInitializer {
         if (all_) {
             mvar();
         }
+        //dfm.normalize();
     }
 
     private void mloadings() {
@@ -253,40 +255,74 @@ public class DfmEM2 implements IDfmInitializer {
     }
 
     private void mvar() {
-        Bfgs bfgs = new Bfgs();
-        bfgs.setMaxIter(10);
-        LL2 fn = new LL2();
-        bfgs.minimize(fn, fn.current());
-        LL2.Instance ofn = (LL2.Instance) bfgs.getResult();
-        if (ofn != null) {
-            dfm.getTransition().varParams.copy(ofn.V);
-            dfm.getTransition().covar.copy(SymmetricMatrix.XXt(ofn.lQ));
+        // analytical optimization 
+        int nl = dfm.getTransition().nlags;
+        int nf = dfm.getFactorsCount();
+        int blen = dfm.getBlockLength();
+        int n = nf * nl;
+        Matrix f = new Matrix(nf, n);
+        Matrix f2 = new Matrix(n, n);
+        // fill the matrices
+        for (int i = 0; i < nf; ++i) {
+            for (int j = 0; j < nl; ++j) {
+                for (int k = 0; k < nf; ++k) {
+                    f.set(i, j * nf + k, ef(i * blen, k * blen + j + 1).sum());
+                }
+            }
         }
-//        LL2 fn = new LL2();
-//        LL2.Instance ofn = fn.current();
-//        // search the descent direction
-//        IFunctionDerivatives derivatives = fn.getDerivatives(ofn);
-//        DataBlock gradient = new DataBlock(derivatives.getGradient());
-//        DataBlock parameters = new DataBlock(ofn.getParameters());
-//        double step =1 / gradient.nrm2();
-//        double f0 = ofn.getValue(), f1;
-//        int i = 0;
-//        do {
-//            step /= 2;
-//            DataBlock x = parameters.deepClone();
-//            x.addAY(-step, gradient);
-//            ofn = fn.evaluate(x);
-//            f1 = ofn.getValue();
-//        } while (i++ < 20 && f0 <= f1);
-//
-//        if (i < 20) {
-//            dfm.getTransition().varParams.copy(ofn.V);
-//            dfm.getTransition().covar.copy(SymmetricMatrix.XXt(ofn.lQ));
-//        }else
-//             System.out.println();
+        for (int i = 1, r = 0; i <= nl; ++i) {
+            for (int k = 0; k < nf; ++k, ++r) {
+                for (int j = 1, c = 0; j <= nl; ++j) {
+                    for (int l = 0; l < nf; ++l, ++c) {
+                        f2.set(r, c, ef(k * blen + i, l * blen + j).sum());
+                    }
+                }
+            }
+        }
+        Matrix A;
+        // A = f/f2 <-> Af2 = f
+        try {
+            A = f.clone();
+            SymmetricMatrix.lsolve(f2, A.subMatrix(), false);
+        } catch (MatrixException err) {
+            // should never happen
+            A = Matrix.lsolve(f2.subMatrix(), f.subMatrix());
+        }
+        // copy f in dfm...
+        Matrix tmp = dfm.getTransition().varParams;
+        for (int i = 0, k = 0; i < nl; ++i) {
+            for (int j = 0; j < nf; ++j) {
+                tmp.column(j * nl + i).copy(A.column(k++));
+            }
+        }
+        // Q = 1/T * (E(f0,f0) - A * f')
+        Matrix Q = dfm.getTransition().covar;
+        for (int i = 0; i < nf; ++i) {
+            for (int j = 0; j < nf; ++j) {
+                Q.set(i, j, ef(i * blen, j * blen).sum());
+            }
+        }
+        Matrix Y = new Matrix(nf, nf);
+        Y.subMatrix().product(A.subMatrix(), f.subMatrix().transpose());
+        Q.sub(Y);
+        Q.mul(1.0 / size());
+
+        if (dfm.getInitialization() != DynamicFactorModel.Initialization.Zero) {
+            LbfgsMinimizer bfgs = new LbfgsMinimizer();
+            //bfgs.setLineSearch(new SimpleLineSearch());
+            bfgs.setMaxIter(50);
+            LL2 fn = new LL2();
+            bfgs.minimize(fn, fn.current());
+            LL2.Instance ofn = (LL2.Instance) bfgs.getResult();
+            if (ofn != null) {
+                dfm.getTransition().varParams.copy(ofn.V);
+                dfm.getTransition().covar.copy(SymmetricMatrix.XXt(ofn.lQ));
+            }
+        }
+
     }
 
-    // Real function corresponding to the second part of the likelihood
+// Real function corresponding to the second part of the likelihood
     class LL2 implements IFunction {
 
         private final Table<Matrix> allK;
@@ -359,6 +395,7 @@ public class DfmEM2 implements IDfmInitializer {
             private final double val;
             private final Matrix lv0;
             private final Matrix[] LA;
+            private double v0, v1, v2, v3;
 
             public Instance(IReadDataBlock p) {
                 this.p = new DataBlock(p);
@@ -367,7 +404,7 @@ public class DfmEM2 implements IDfmInitializer {
                 V = new Matrix(nf, nf * nl);
                 int vlen = V.internalStorage().length;
                 this.p.range(0, vlen).copyTo(V.internalStorage(), 0);
-                this.lQ = new Matrix(nf, nf);
+                this.lQ = lQ0.clone();
                 for (int i = 0, j = vlen; i < nf; j += nf - i, i++) {
                     lQ.column(i).drop(i, 0).copy(this.p.range(j, j + nf - i));
                 }
@@ -392,15 +429,18 @@ public class DfmEM2 implements IDfmInitializer {
             }
 
             private double calc() {
-                double v0 = calcdetv0();
-                double v1 = calcssq0();
-                double v2 = calcdetq();
-                double v3 = calcssq();
-                //return (v0 + v1 + v2 + v3) / (data.getCurrentDomain()
-                //        .getLength() * dfm.getFactorsCount() * dfm.getTransition().nlags);
-                return (v2 + v3) / (data.getCurrentDomain().getLength() * 
-                        dfm.getFactorsCount() * dfm.getTransition().nlags);
-                // return v2;
+                double v = 0;
+                if (dfm.getInitialization() != DynamicFactorModel.Initialization.Zero) {
+                    v0 = calcdetv0();
+                    v1 = calcssq0();
+//                    v += v0;
+//                    v += v1;
+                }
+                v2 = calcdetq();
+                v3 = calcssq();
+                v += v2;
+                v += v3;
+                return v;
             }
 
             private Matrix A(int i) {
@@ -436,23 +476,23 @@ public class DfmEM2 implements IDfmInitializer {
             }
 
             private double calcssq0() {
-                if (lv0 == null) {
-                    return Double.MAX_VALUE / 4;
-                }
                 // computes f0*f0 x V^-1
-                Matrix lower = lv0.clone();
-                lower = LowerTriangularMatrix.inverse(lower);
+                Matrix lower = LowerTriangularMatrix.inverse(lv0);
                 Matrix iv0 = SymmetricMatrix.XtX(lower);
                 int nl = dfm.getTransition().nlags;
                 int nf = dfm.getFactorsCount();
                 int len = dfm.getBlockLength();
                 double ssq0 = 0;
                 SubMatrix P = processor.getSmoothingResults().P(0);
+                DataBlock a = processor.getSmoothingResults().A(0);
+                double sig = processor.getSmoothingResults().getStandardError();
+
                 for (int i = 0; i < nf; ++i) {
-                    for (int j = 1; j < nl; ++j) {
-                        for (int k = 1; k < nl; ++k) {
-                            double ejk = P.get(i * len + j, i * len + k);
-                            ssq0 += iv0.get(i * nl + j - 1, i * nl + k - 1) * ejk;
+                    for (int j = 0; j < nl; ++j) {
+                        for (int k = 0; k < nl; ++k) {
+                            double ejk = P.get(i * len + j + 1, i * len + k + 1) * sig * sig;
+                            ejk += a.get(i * len + j + 1) * a.get(i * len + k + 1);
+                            ssq0 += iv0.get(i * nl + j, i * nl + k) * ejk;
                         }
                     }
                 }
@@ -460,19 +500,19 @@ public class DfmEM2 implements IDfmInitializer {
             }
 
             private double calcdetv0() {
-                if (lv0 == null) {
-                    return Double.MAX_VALUE / 4;
-                }
                 LogSign sumLog = lv0.diagonal().sumLog();
+                if (!sumLog.pos) {
+                    throw new DfmException();
+                }
                 return 2 * sumLog.value;
             }
 
             private double calcdetq() {
-                if (lQ == null) {
-                    return Double.MAX_VALUE / 4;
-                }
                 LogSign sumLog = lQ.diagonal().sumLog();
-                return data.getCurrentDomain().getLength() * 2 * sumLog.value;
+                if (!sumLog.pos) {
+                    throw new DfmException();
+                }
+                return size() * 2 * sumLog.value;
             }
 
             private double calcssq() {
@@ -491,61 +531,26 @@ public class DfmEM2 implements IDfmInitializer {
             }
 
             private Matrix calclv0() {
-                // compute the initial covar. We could reuse the code of DynamicFactorModel
-                int nl = dfm.getTransition().nlags;
-                int nf = dfm.getFactorsCount();
-                // We have to solve the steady state equation:
-                // V = T V T' + Q
-                // We consider the nlag*nb, nlag*nb sub-system
-                Matrix q = SymmetricMatrix.XXt(lQ);
-                int n = nf * nl;
-                Matrix cov = new Matrix(n, n);
-                int np = (n * (n + 1)) / 2;
-                Matrix M = new Matrix(np, np);
-                double[] b = new double[np];
-                // fill the matrix
-                for (int c = 0, i = 0; c < n; ++c) {
-                    for (int r = c; r < n; ++r, ++i) {
-                        M.set(i, i, 1);
-                        if (r % nl == 0 && c % nl == 0) {
-                            b[i] = q.get(r / nl, c / nl);
-                        }
-                        for (int k = 0; k < n; ++k) {
-                            for (int l = 0; l < n; ++l) {
-                                double zr = 0, zc = 0;
-                                if (r % nl == 0) {
-                                    zr = V.get(r / nl, l);
-                                } else if (r == l + 1) {
-                                    zr = 1;
-                                }
-                                if (c % nl == 0) {
-                                    zc = V.get(c / nl, k);
-                                } else if (c == k + 1) {
-                                    zc = 1;
-                                }
-                                double z = zr * zc;
-                                if (z != 0) {
-                                    int p = l <= k ? pos(k, l, n) : pos(l, k, n);
-                                    M.add(i, p, -z);
-                                }
-                            }
-                        }
-                    }
+                if (dfm.getInitialization() == DynamicFactorModel.Initialization.Zero) {
+                    return null;
                 }
-                HouseholderR hous = new HouseholderR(false);
-                hous.decompose(M);
-                double[] solve = hous.solve(b);
-                for (int i = 0, j = 0; i < n; i++) {
-                    cov.column(i).drop(i, 0).copyFrom(solve, j);
-                    j += n - i;
-                }
-                SymmetricMatrix.fromLower(cov);
+                // compute the initial covar. We reuse the code of DynamicFactorModel
+                DynamicFactorModel tmp = dfm.clone();
+                tmp.clearMeasurements();
+
+                tmp.setBlockLength(dfm.getTransition().nlags);
+                tmp.getTransition().varParams.copy(V);
+                tmp.getTransition().covar.copy(SymmetricMatrix.XXt(lQ));
                 try {
+                    int n = tmp.getFactorsCount() * tmp.getBlockLength();
+                    Matrix cov = new Matrix(n, n);
+                    tmp.ssfRepresentation().Pf0(cov.subMatrix());
                     SymmetricMatrix.lcholesky(cov);
                     return cov;
                 } catch (MatrixException err) {
-                    return null;
+                    throw new DfmException();
                 }
+
             }
 
             private Matrix[] calcLA() {
@@ -561,7 +566,4 @@ public class DfmEM2 implements IDfmInitializer {
         }
     }
 
-    private static int pos(int r, int c, int n) {
-        return r + c * (2 * n - c - 1) / 2;
-    }
 }

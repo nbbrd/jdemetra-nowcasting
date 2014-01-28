@@ -390,6 +390,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         dfmproc.process(dfm, data);
         //  MSmoothingResults srslts_;
         srslts_ = dfmproc.getSmoothingResults();
+        srslts_.setStandardError(1);
         // MFilteringResults frslts_;
         frslts_ = dfmproc.getFilteringResults();
 

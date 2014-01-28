@@ -496,7 +496,7 @@ public class DynamicFactorModel implements Cloneable {
     private final int nf_;
     private TransitionDescriptor tdesc_;
     private List<MeasurementDescriptor> mdesc_ = new ArrayList<>();
-    private Initialization init_ = Initialization.Zero;
+    private Initialization init_ = Initialization.SteadyState;
     private Matrix V0_;
 
     /**
@@ -723,6 +723,10 @@ public class DynamicFactorModel implements Cloneable {
      */
     public void addMeasurement(MeasurementDescriptor desc) {
         mdesc_.add(desc);
+    }
+    
+    public void clearMeasurements(){
+        mdesc_.clear();
     }
 
     /**

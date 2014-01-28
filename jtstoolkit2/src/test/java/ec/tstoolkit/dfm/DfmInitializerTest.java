@@ -182,7 +182,6 @@ public class DfmInitializerTest {
             cmp.div(Math.sqrt(cmp.ssq() / cmp.getLength()));
             System.out.println(cmp);
         }
-
     }
 
     @Test
@@ -195,8 +194,11 @@ public class DfmInitializerTest {
         PcInitializer initializer = new PcInitializer();
         initializer.setEstimationDomain(s[0].getDomain().drop(120, 12));
         DynamicFactorModel model0 = dmodel.clone();
+        model0.setInitialization(DynamicFactorModel.Initialization.SteadyState);
         DfmInformationSet dfmInformationSet = new DfmInformationSet(s);
+//        DefaultInitializer initializer =new DefaultInitializer();
         initializer.initialize(model0, dfmInformationSet);
+//        initializer.initialize(model0, dfmInformationSet);
 //        for (int i = 0; i < dmodel.getTransition().nbloks; ++i) {
 //            DataBlock factor=initializer.getPrincipalComponents(i).getFactor(0);
 //            factor.sub(factor.sum()/factor.getLength());
@@ -214,7 +216,9 @@ public class DfmInitializerTest {
 //            System.out.println(desc.var);
 //        }
 //
+//        DfmEM em = new DfmEM();
         DfmEM2 em = new DfmEM2(null);
+        em.setMaxIter(2000);
         em.initialize(model0, dfmInformationSet);
 //        System.out.println(model0.getTransition().covar);
 //        System.out.println(model0.getTransition().varParams);
@@ -225,6 +229,27 @@ public class DfmInitializerTest {
 //            }
 //            System.out.println(desc.var);
 //        }
+        DfmMonitor monitor = new DfmMonitor();
+        DfmEstimator estimator = new DfmEstimator(new DfmEstimator.IEstimationHook() {
+            int i = 0;
+
+            @Override
+            public boolean next(DynamicFactorModel current, Likelihood ll) {
+                System.out.print(++i);
+                System.out.print('\t');
+                System.out.print(ll.getLogLikelihood());
+                System.out.print('\t');
+                System.out.println(new DfmMapping(current).parameters());
+                return true;
+            }
+        });
+        estimator.setMaxIter(1000);
+        estimator.setMaxInitialIter(0);
+        estimator.setMaxNextIter(3);
+        //monitor.setInitializer(initializer);
+        //        monitor.setInitializer(new DefaultInitializer());
+        monitor.setEstimator(estimator);
+        monitor.process(model0, s);
 
     }
 

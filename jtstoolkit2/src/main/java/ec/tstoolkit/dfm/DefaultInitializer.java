@@ -19,7 +19,7 @@ public class DefaultInitializer implements IDfmInitializer {
             m.var = 1;
             for (int i=0; i<m.coeff.length; ++i)
                 if (! Double.isNaN(m.coeff[i]))
-                    m.coeff[i]=0;
+                    m.coeff[i]=1;
         }
         int nf = dfm.getFactorsCount();
         DynamicFactorModel.TransitionDescriptor t = dfm.getTransition();
@@ -27,7 +27,7 @@ public class DefaultInitializer implements IDfmInitializer {
         t.covar.set(0);
         t.covar.diagonal().set(1);
         for (int i = 0; i < nf; ++i) {
-            t.varParams.set(0);
+            t.varParams.set(-.1);
             t.varParams.set(i, i * nl, .9);
         }
         return true;

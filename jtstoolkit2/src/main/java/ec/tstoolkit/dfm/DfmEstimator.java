@@ -58,10 +58,10 @@ public class DfmEstimator implements IDfmEstimator {
             return rslt;
         }
     }
-    private int maxiter_ = 500;
+    private int maxiter_ = 200;
     private boolean converged_;
     private final ISsqFunctionMinimizer min_;
-    private int nstart_ = 20, nnext_ = 5, maxem_ = 5;
+    private int nstart_ = 20, nnext_ = 3;
     private TsDomain idom_;
     private boolean useBlockIterations_ = true;
 
@@ -101,14 +101,6 @@ public class DfmEstimator implements IDfmEstimator {
         maxiter_ = iter;
     }
 
-    public int getMaxEm() {
-        return maxem_;
-    }
-
-    public void setMaxEm(int iter) {
-        maxem_ = iter;
-    }
-
     public void setMaxInitialIter(int n) {
         nstart_ = n;
     }
@@ -142,17 +134,19 @@ public class DfmEstimator implements IDfmEstimator {
             int niter = 0;
             DynamicFactorModel model = dfm.clone();
             model.normalize();
-            min_.setMaxIter(nstart_);
-            SimpleDfmMapping smapping = new SimpleDfmMapping(model);
-            smapping.validate(model);
-            fn = new MSsfFunction(mdata, smapping, algorithm);
-            min_.minimize(fn, fn.evaluate(smapping.map(model)));
-            pt = (MSsfFunctionInstance) min_.getResult();
-            model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
-            int em = 0;
+
+            if (nstart_ > 0) {
+                min_.setMaxIter(nstart_);
+                SimpleDfmMapping smapping = new SimpleDfmMapping(model);
+                smapping.validate(model);
+                fn = new MSsfFunction(mdata, smapping, algorithm);
+                min_.minimize(fn, fn.evaluate(smapping.map(model)));
+                pt = (MSsfFunctionInstance) min_.getResult();
+                model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
+            }
             if (useBlockIterations_) {
+                min_.setMaxIter(nnext_);
                 while (true) {
-                    min_.setMaxIter(nnext_);
                     model.normalize();
                     mapping = new DfmMapping(model, true, false);
                     fn = new MSsfFunction(mdata, mapping, algorithm);
@@ -161,22 +155,17 @@ public class DfmEstimator implements IDfmEstimator {
                     pt = (MSsfFunctionInstance) min_.getResult();
                     model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
                     model.normalize();
-                    if (em++ <= maxem_) {
-                        optimizeLoadings(model, input);
-                    } else {
-                        mapping = new DfmMapping(model, false, true);
-                        fn = new MSsfFunction(mdata, mapping, algorithm);
-                        min_.minimize(fn, fn.evaluate(mapping.map(model)));
-                        niter += min_.getIterCount();
-                        pt = (MSsfFunctionInstance) min_.getResult();
-                        model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
-                        model.normalize();
-                    }
+                    mapping = new DfmMapping(model, false, true);
+                    fn = new MSsfFunction(mdata, mapping, algorithm);
+                    min_.minimize(fn, fn.evaluate(mapping.map(model)));
+                    niter += min_.getIterCount();
+                    pt = (MSsfFunctionInstance) min_.getResult();
+                    model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
+                    model.normalize();
                     mapping = new DfmMapping(model, false, false);
                     fn = new MSsfFunction(mdata, mapping, algorithm);
-//                    min_.setMaxIter(1);
                     converged_ = min_.minimize(fn, fn.evaluate(mapping.map(model)))
-                            && min_.getIterCount() < min_.getMaxIter();
+                            && min_.getIterCount() < nnext_;
                     niter += min_.getIterCount();
                     pt = (MSsfFunctionInstance) min_.getResult();
                     model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
@@ -185,7 +174,6 @@ public class DfmEstimator implements IDfmEstimator {
                     }
                 }
             } else {
-                min_.setMaxIter(nnext_);
                 model.normalize();
                 mapping = new DfmMapping(model, false, false);
                 fn = new MSsfFunction(mdata, mapping, algorithm);
@@ -199,14 +187,6 @@ public class DfmEstimator implements IDfmEstimator {
         } catch (Exception err) {
             return false;
         }
-    }
-
-    private void optimizeLoadings(final DynamicFactorModel dfm, DfmInformationSet input) {
-        DfmEM2 em = new DfmEM2(null);
-        em.setEstimateVar(false);
-        em.setMaxIter(10);
-        em.initialize(dfm, input);
-        dfm.normalize();
     }
 
     @Override

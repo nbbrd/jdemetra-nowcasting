@@ -246,7 +246,7 @@ public class PcInitializer implements IDfmInitializer {
         }
         return true;
     }
-    private double ns = .75;
+    private double ns = .80;
 
     private TsDomain searchDomain(DfmInformationSet input) {
         int n = input.getSeriesCount();
@@ -260,7 +260,6 @@ public class PcInitializer implements IDfmInitializer {
         Arrays.sort(start);
         Arrays.sort(end);
         TsPeriodSelector sel = new TsPeriodSelector();
-        Day s = null, e = null;
         int t = (int) ((n - 1) * ns);
         sel.between(start[t], end[n - 1 - t]);
         return input.getCurrentDomain().select(sel);

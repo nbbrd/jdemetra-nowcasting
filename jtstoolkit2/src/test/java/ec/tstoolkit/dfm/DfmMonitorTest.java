@@ -124,7 +124,7 @@ public class DfmMonitorTest {
         }
         ddrnd = dd.clone();
         ddrnd.randomize();
-        dmodel.setInitialization(DynamicFactorModel.Initialization.SteadyState);
+        dmodel.setInitialization(DynamicFactorModel.Initialization.Zero);
     }
 
     private static DynamicFactorModel.IMeasurement measurement(int i) {
