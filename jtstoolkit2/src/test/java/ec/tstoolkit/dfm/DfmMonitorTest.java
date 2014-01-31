@@ -185,11 +185,16 @@ public class DfmMonitorTest {
         }
         DynamicFactorModel dmodelc = dmodel.clone();
         dmodelc.normalize();
-        System.out.println(new DfmMapping(dmodelc).parameters());
 //        dmodelc.setTransition(new TransitionDescriptor(3, 2));
 //        dmodelc = dmodelc.compactFactors(0, 2);
         DfmMonitor monitor = new DfmMonitor();
         PcInitializer initializer = new PcInitializer();
+        DfmInformationSet info = new DfmInformationSet(s);
+        initializer.initialize(dmodelc, info);
+        System.out.println(new DfmMapping(dmodelc).parameters());
+        dmodelc = dmodel.clone();
+        initializer.initialize(dmodelc, info);
+        System.out.println(new DfmMapping(dmodelc).parameters());
 //       initializer.setEstimationDomain(s[0].getDomain().drop(120,12));
         DfmEstimator estimator = new DfmEstimator(new IEstimationHook() {
             int i = 0;

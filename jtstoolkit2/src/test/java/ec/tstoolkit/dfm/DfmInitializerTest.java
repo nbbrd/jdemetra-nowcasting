@@ -184,7 +184,7 @@ public class DfmInitializerTest {
         }
     }
 
-    @Test
+    //@Test
     public void testEM() {
         TsData[] s = new TsData[dd.getRowsCount()];
         TsPeriod start = new TsPeriod(TsFrequency.Monthly, 1980, 0);
@@ -192,9 +192,11 @@ public class DfmInitializerTest {
             s[i] = new TsData(start, dd.row(i));
         }
         PcInitializer initializer = new PcInitializer();
-        //initializer.setEstimationDomain(s[0].getDomain().drop(120, 12));
+//       initializer.setEstimationDomain(s[0].getDomain().drop(120, 12));
         DynamicFactorModel model0 = dmodel.clone();
-        model0.setInitialization(DynamicFactorModel.Initialization.SteadyState);
+        model0.normalize();
+//        model0.setInitialization(DynamicFactorModel.Initialization.Zero);
+//        DynamicFactorModel model1=model0.clone();
         DfmInformationSet dfmInformationSet = new DfmInformationSet(s);
 //        DefaultInitializer initializer =new DefaultInitializer();
         initializer.initialize(model0, dfmInformationSet);
@@ -218,8 +220,8 @@ public class DfmInitializerTest {
 //
 //        DfmEM em = new DfmEM();
         DfmEM2 em = new DfmEM2(null);
-        em.setMaxIter(2000);
-        em.initialize(model0, dfmInformationSet);
+        em.setMaxIter(10000);
+//        em.initialize(model0, dfmInformationSet);
 //        System.out.println(model0.getTransition().covar);
 //        System.out.println(model0.getTransition().varParams);
 //        for (DynamicFactorModel.MeasurementDescriptor desc : model0.getMeasurements()) {
@@ -232,6 +234,7 @@ public class DfmInitializerTest {
         DfmMonitor monitor = new DfmMonitor();
         DfmEstimator estimator = new DfmEstimator(new DfmEstimator.IEstimationHook() {
             int i = 0;
+            long t0 = System.currentTimeMillis();
 
             @Override
             public boolean next(DynamicFactorModel current, Likelihood ll) {
@@ -239,18 +242,59 @@ public class DfmInitializerTest {
                 System.out.print('\t');
                 System.out.print(ll.getLogLikelihood());
                 System.out.print('\t');
-                System.out.println(new DfmMapping(current).parameters());
+                System.out.println(.001 * (System.currentTimeMillis() - t0));
                 return true;
             }
         });
-        estimator.setMaxIter(5000);
-        estimator.setMaxInitialIter(0);
-        estimator.setMaxNextIter(3);
+
+        estimator.setMaxIter(500);
+//        estimator.setMaxInitialIter(0);
+//        estimator.setMaxNextIter(3);
         //monitor.setInitializer(initializer);
         //        monitor.setInitializer(new DefaultInitializer());
         monitor.setEstimator(estimator);
         monitor.process(model0, s);
+        em.setMaxIter(1000);
+        em.initialize(model0, dfmInformationSet);
 
     }
 
+    @Test
+    public void testEM2() {
+        TsData[] s = new TsData[dd.getRowsCount()];
+        TsPeriod start = new TsPeriod(TsFrequency.Monthly, 1980, 0);
+        for (int i = 0; i < s.length; ++i) {
+            s[i] = new TsData(start, dd.row(i));
+        }
+        DynamicFactorModel model0 = dmodel.clone();
+        model0.normalize();
+        model0.setInitialization(DynamicFactorModel.Initialization.Zero);
+        
+        DfmInformationSet dfmInformationSet = new DfmInformationSet(s);
+        DynamicFactorModel model1 = model0.clone();
+        DfmMonitor monitor = new DfmMonitor();
+        DfmEstimator estimator = new DfmEstimator(new DfmEstimator.IEstimationHook() {
+            int i = 0;
+            long t0 = System.currentTimeMillis();
+
+            @Override
+            public boolean next(DynamicFactorModel current, Likelihood ll) {
+                System.out.print(++i);
+                System.out.print('\t');
+                System.out.print(ll.getLogLikelihood());
+                System.out.print('\t');
+                System.out.println(.001 * (System.currentTimeMillis() - t0));
+                return true;
+            }
+        });
+        estimator.setMaxIter(100);
+        estimator.setMaxInitialIter(0);
+        monitor.setEstimator(estimator);
+        monitor.process(model0, s);
+
+        DfmEM2 em = new DfmEM2(null);
+        em.setMaxIter(10000);
+        em.initialize(model0, dfmInformationSet);
+
+    }
 }

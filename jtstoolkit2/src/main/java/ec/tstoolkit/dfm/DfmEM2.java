@@ -41,11 +41,13 @@ public class DfmEM2 implements IDfmInitializer {
     private DynamicFactorModel dfm;
     private DfmInformationSet data;
     private Matrix M;
-    private final EnumMap<DynamicFactorModel.MeasurementType, Map<Integer, DataBlock>> G = new EnumMap<>(DynamicFactorModel.MeasurementType.class);
-    private final EnumMap<DynamicFactorModel.MeasurementType, Map<Integer, DataBlock>> G2 = new EnumMap<>(DynamicFactorModel.MeasurementType.class);
+    private final EnumMap<DynamicFactorModel.MeasurementType, DataBlock[]> G = new EnumMap<>(DynamicFactorModel.MeasurementType.class);
+    private final EnumMap<DynamicFactorModel.MeasurementType, Table<DataBlock>> G2 = new EnumMap<>(DynamicFactorModel.MeasurementType.class);
     private DataBlock Efij[];
     private int maxiter_ = 1000, iter_;
     private boolean all_ = true;
+    private int modelSize;
+    private int dataSize;
 
     public DfmEM2(IDfmInitializer initializer) {
         this.initializer = initializer;
@@ -68,10 +70,6 @@ public class DfmEM2 implements IDfmInitializer {
         maxiter_ = i;
     }
 
-    int size() {
-        return data.getCurrentDomain().getLength();
-    }
-
     private DataBlock ef(int i) {
         return processor.getSmoothingResults().getSmoothedStates().item(i);
     }
@@ -81,12 +79,15 @@ public class DfmEM2 implements IDfmInitializer {
     }
 
     private DataBlock ef(int i, int j) {
-        int idx = dfm.getBlockLength() * dfm.getFactorsCount() * j + i;
+        if (i > j) {
+            return ef(j, i);
+        }
+        int idx = i + modelSize * j;
         DataBlock cur = Efij[idx];
         if (cur == null) {
             cur = vf(i, j);
             cur.addAXY(1, ef(i), ef(j));
-            Efij[idx]=cur;
+            Efij[idx] = cur;
         }
         return cur;
     }
@@ -94,9 +95,9 @@ public class DfmEM2 implements IDfmInitializer {
     private void calcG() {
         G.clear();
         G2.clear();
-        for (int i=0; i<Efij.length; ++i)
-        Efij[i]=null;
-        int n = size();
+        for (int i = 0; i < Efij.length; ++i) {
+            Efij[i] = null;
+        }
         for (DynamicFactorModel.MeasurementDescriptor desc : dfm.getMeasurements()) {
             DynamicFactorModel.MeasurementType type = DynamicFactorModel.
                     getMeasurementType(desc.type);
@@ -104,18 +105,19 @@ public class DfmEM2 implements IDfmInitializer {
                 int len = desc.type.getLength();
                 DataBlock z = new DataBlock(len);
                 desc.type.fill(z);
-                HashMap<Integer, DataBlock> g = new HashMap<Integer, DataBlock>();
-                HashMap<Integer, DataBlock> g2 = new HashMap<Integer, DataBlock>();
-                for (int i = 0, j = 0; i < dfm.getFactorsCount(); ++i, j
+                int nf = dfm.getFactorsCount();
+                DataBlock[] g = new DataBlock[nf];
+                Table<DataBlock> g2 = new Table<>(nf, nf);
+                for (int i = 0, j = 0; i < nf; ++i, j
                         += dfm.getBlockLength()) {
-                    DataBlock column = new DataBlock(n);
+                    DataBlock column = new DataBlock(dataSize);
                     for (int k = 0; k < len; ++k) {
                         column.addAY(z.get(k), ef(j + k));
                     }
-                    g.put(i, column);
-                    for (int k = 0, l = 0; k < dfm.getFactorsCount(); ++k, l
+                    g[i] = column;
+                    for (int k = 0, l = 0; k < nf; ++k, l
                             += dfm.getBlockLength()) {
-                        DataBlock column2 = new DataBlock(n);
+                        DataBlock column2 = new DataBlock(dataSize);
                         for (int pr = 0; pr < len; ++pr) {
                             double zr = z.get(pr);
                             if (zr != 0) {
@@ -127,29 +129,30 @@ public class DfmEM2 implements IDfmInitializer {
                                 }
                             }
                         }
-                        g2.put(i + k * dfm.getFactorsCount(), column2);
+                        g2.set(i, k, column2);
                     }
-                    G.put(type, g);
-                    G2.put(type, g2);
                 }
+                G.put(type, g);
+                G2.put(type, g2);
             }
         }
     }
-    
+
     private long t0;
 
     @Override
     public boolean initialize(DynamicFactorModel dfm, DfmInformationSet data) {
         this.data = data;
         this.dfm = dfm;
-        int n=dfm.getBlockLength()*dfm.getFactorsCount();
-        Efij=new DataBlock[n*n];
+        modelSize = dfm.getBlockLength() * dfm.getFactorsCount();
+        dataSize = data.getCurrentDomain().getLength();
+        Efij = new DataBlock[modelSize * modelSize];
         M = data.generateMatrix(null);
         if (initializer != null) {
             initializer.initialize(dfm, data);
         }
         iter_ = 0;
-        t0=System.currentTimeMillis();
+        t0 = System.currentTimeMillis();
         do {
             EStep();
             MStep();
@@ -167,7 +170,8 @@ public class DfmEM2 implements IDfmInitializer {
         System.out.print('\t');
         System.out.print(ll.getLogLikelihood());
         System.out.print('\t');
-        System.out.println(.001*(System.currentTimeMillis()-t0));
+        System.out.println(.001 * (System.currentTimeMillis() - t0));
+//        updateModel();
 //        processor.getSmoothingResults().setStandardError(1);
         calcG();
     }
@@ -184,7 +188,7 @@ public class DfmEM2 implements IDfmInitializer {
         if (all_) {
             mvar();
         }
-        //dfm.normalize();
+        dfm.normalize();
     }
 
     private void mloadings() {
@@ -192,14 +196,13 @@ public class DfmEM2 implements IDfmInitializer {
         int i = 0;
         for (DynamicFactorModel.MeasurementDescriptor mdesc
                 : dfm.getMeasurements()) {
-            int n = size();
             DynamicFactorModel.MeasurementType type = DynamicFactorModel.
                     getMeasurementType(mdesc.type);
-            Map<Integer, DataBlock> g = G.get(type);
-            Map<Integer, DataBlock> g2 = G2.get(type);
+            DataBlock[] g = G.get(type);
+            Table<DataBlock> g2 = G2.get(type);
             DataBlock y = M.column(i++);
             int nobs = 0;
-            for (int k = 0; k < n; ++k) {
+            for (int k = 0; k < dataSize; ++k) {
                 if (!Double.isNaN(y.get(k))) {
                     ++nobs;
                 }
@@ -208,8 +211,8 @@ public class DfmEM2 implements IDfmInitializer {
             Matrix G2 = new Matrix(gy.length, gy.length);
             for (int j = 0, u = 0; j < mdesc.coeff.length; ++j) {
                 if (!Double.isNaN(mdesc.coeff[j])) {
-                    DataBlock gj = g.get(j);
-                    for (int z = 0; z < n; ++z) {
+                    DataBlock gj = g[j];
+                    for (int z = 0; z < dataSize; ++z) {
                         double yz = y.get(z);
                         if (!Double.isNaN(yz)) {
                             gy[u] += gj.get(z) * yz;
@@ -217,8 +220,8 @@ public class DfmEM2 implements IDfmInitializer {
                     }
                     for (int k = 0, v = 0; k <= j; ++k) {
                         if (!Double.isNaN(mdesc.coeff[k])) {
-                            DataBlock g2jk = g2.get(j + k * dfm.getFactorsCount());
-                            for (int z = 0; z < n; ++z) {
+                            DataBlock g2jk = g2.get(j, k);
+                            for (int z = 0; z < dataSize; ++z) {
                                 double yz = y.get(z);
                                 if (!Double.isNaN(yz)) {
                                     G2.add(u, v, g2jk.get(z));
@@ -239,20 +242,19 @@ public class DfmEM2 implements IDfmInitializer {
                 }
             }
             double ee = 0;
-            for (int z = 0; z < n; ++z) {
+            for (int z = 0; z < dataSize; ++z) {
                 double yz = y.get(z);
                 if (!Double.isNaN(yz)) {
                     ee += yz * yz;
                     for (int j = 0; j < mdesc.coeff.length; ++j) {
                         double cj = mdesc.coeff[j];
                         if (!Double.isNaN(cj)) {
-                            double gj = g.get(j).get(z);
+                            double gj = g[j].get(z);
                             ee -= 2 * cj * gj * yz;
                             for (int k = 0; k < mdesc.coeff.length; ++k) {
                                 double ck = mdesc.coeff[k];
                                 if (!Double.isNaN(ck)) {
-                                    ee += g2.get(j + k * dfm.getFactorsCount())
-                                            .get(z) * cj * ck;
+                                    ee += g2.get(j, k).get(z) * cj * ck;
                                 }
                             }
                         }
@@ -307,28 +309,46 @@ public class DfmEM2 implements IDfmInitializer {
         // Q = 1/T * (E(f0,f0) - A * f')
         Matrix Q = dfm.getTransition().covar;
         for (int i = 0; i < nf; ++i) {
-            for (int j = 0; j < nf; ++j) {
+            for (int j = 0; j <= i; ++j) {
                 Q.set(i, j, ef(i * blen, j * blen).sum());
             }
         }
+        SymmetricMatrix.fromLower(Q);
         Matrix Y = new Matrix(nf, nf);
         Y.subMatrix().product(A.subMatrix(), f.subMatrix().transpose());
         Q.sub(Y);
-        Q.mul(1.0 / size());
+        Q.mul(1.0 / dataSize);
 
         if (dfm.getInitialization() != DynamicFactorModel.Initialization.Zero) {
             LbfgsMinimizer bfgs = new LbfgsMinimizer();
             //bfgs.setLineSearch(new SimpleLineSearch());
-            bfgs.setMaxIter(50);
+            bfgs.setMaxIter(30);
             LL2 fn = new LL2();
-            bfgs.minimize(fn, fn.current());
+            LL2.Instance cur=fn.current();
+            bfgs.minimize(fn, cur);
             LL2.Instance ofn = (LL2.Instance) bfgs.getResult();
-            if (ofn != null) {
+            if (ofn != null && cur.getValue() > ofn.getValue()) {
                 dfm.getTransition().varParams.copy(ofn.V);
                 dfm.getTransition().covar.copy(SymmetricMatrix.XXt(ofn.lQ));
+            }else{
+                System.out.print(cur.getValue());
+                System.out.print('\t');
+                System.out.print(ofn.getValue());
             }
         }
 
+    }
+
+    /**
+     * Update the matrices with the scaling factor
+     */
+    private void updateModel() {
+        double sig = processor.getSmoothingResults().getStandardError();
+        double sig2 = sig * sig;
+        for (DynamicFactorModel.MeasurementDescriptor m : dfm.getMeasurements()) {
+            m.var *= sig2;
+        }
+        dfm.getTransition().covar.mul(sig2);
     }
 
 // Real function corresponding to the second part of the likelihood
@@ -442,8 +462,8 @@ public class DfmEM2 implements IDfmInitializer {
                 if (dfm.getInitialization() != DynamicFactorModel.Initialization.Zero) {
                     v0 = calcdetv0();
                     v1 = calcssq0();
-//                    v += v0;
-//                    v += v1;
+                    v += v0;
+                    v += v1;
                 }
                 v2 = calcdetq();
                 v3 = calcssq();
@@ -485,23 +505,21 @@ public class DfmEM2 implements IDfmInitializer {
             }
 
             private double calcssq0() {
-                // computes f0*f0 x V^-1
+                // computes f0*f0 x V^-1 
+                // V^-1 = (LL')^-1 = L'^-1*L^-1
                 Matrix lower = LowerTriangularMatrix.inverse(lv0);
                 Matrix iv0 = SymmetricMatrix.XtX(lower);
                 int nl = dfm.getTransition().nlags;
                 int nf = dfm.getFactorsCount();
                 int len = dfm.getBlockLength();
                 double ssq0 = 0;
-                SubMatrix P = processor.getSmoothingResults().P(0);
-                DataBlock a = processor.getSmoothingResults().A(0);
-                double sig = processor.getSmoothingResults().getStandardError();
-
                 for (int i = 0; i < nf; ++i) {
-                    for (int j = 0; j < nl; ++j) {
-                        for (int k = 0; k < nl; ++k) {
-                            double ejk = P.get(i * len + j + 1, i * len + k + 1) * sig * sig;
-                            ejk += a.get(i * len + j + 1) * a.get(i * len + k + 1);
-                            ssq0 += iv0.get(i * nl + j, i * nl + k) * ejk;
+                    for (int k = 0; k < nl; ++k) {
+                        for (int j = 0; j < nf; ++j) {
+                            for (int l = 0; l < nl; ++l) {
+                                double ejk = ef(i * len + k + 1, j * len + l + 1).get(0);
+                                ssq0 += iv0.get(i * nl + k, j * nl + l) * ejk;
+                            }
                         }
                     }
                 }
@@ -521,7 +539,7 @@ public class DfmEM2 implements IDfmInitializer {
                 if (!sumLog.pos) {
                     throw new DfmException();
                 }
-                return size() * 2 * sumLog.value;
+                return dataSize * 2 * sumLog.value;
             }
 
             private double calcssq() {

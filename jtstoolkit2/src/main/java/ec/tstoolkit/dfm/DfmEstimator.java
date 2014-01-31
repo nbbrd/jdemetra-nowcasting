@@ -19,7 +19,9 @@ package ec.tstoolkit.dfm;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.eco.Likelihood;
 import ec.tstoolkit.maths.matrices.Matrix;
+import ec.tstoolkit.maths.realfunctions.IFunctionMinimizer;
 import ec.tstoolkit.maths.realfunctions.ISsqFunctionMinimizer;
+import ec.tstoolkit.maths.realfunctions.ProxyMinimizer;
 import ec.tstoolkit.maths.realfunctions.levmar.LevenbergMarquardtMethod;
 import ec.tstoolkit.mssf2.IMSsfData;
 import ec.tstoolkit.mssf2.MSsfAlgorithm;
@@ -60,20 +62,20 @@ public class DfmEstimator implements IDfmEstimator {
     }
     private int maxiter_ = 200;
     private boolean converged_;
-    private final ISsqFunctionMinimizer min_;
+    private final IFunctionMinimizer min_;
     private int nstart_ = 15, nnext_ = 5;
     private TsDomain idom_;
     private boolean useBlockIterations_ = true;
 
     public DfmEstimator() {
-        min_ = new LevenbergMarquardtMethod();
+        min_ = new ProxyMinimizer(new LevenbergMarquardtMethod());
     }
 
     public DfmEstimator(IEstimationHook hook) {
-        min_ = new Minimizer(hook);
+        min_ = new ProxyMinimizer(new Minimizer(hook));
     }
 
-    public DfmEstimator(ISsqFunctionMinimizer min) {
+    public DfmEstimator(IFunctionMinimizer min) {
         min_ = min.exemplar();
     }
 
