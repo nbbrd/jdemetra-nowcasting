@@ -13,11 +13,17 @@ import ec.tstoolkit.dfm.DynamicFactorModel.MeasurementLoads;
 import ec.tstoolkit.dfm.DfmProcessor;
 import ec.tstoolkit.dfm.DynamicFactorModel.MeasurementType;
 import ec.tstoolkit.eco.Likelihood;
+import ec.tstoolkit.maths.Complex;
+import ec.tstoolkit.maths.matrices.EigenSystem;
+import ec.tstoolkit.maths.matrices.IEigenSystem;
 import ec.tstoolkit.maths.matrices.Matrix;
+import ec.tstoolkit.maths.matrices.MatrixException;
 import ec.tstoolkit.maths.matrices.MatrixStorage;
 import ec.tstoolkit.maths.matrices.SubMatrix;
 import ec.tstoolkit.maths.matrices.SymmetricMatrix;
 import static ec.tstoolkit.maths.matrices.SymmetricMatrix.lsolve;
+import ec.tstoolkit.mssf2.DefaultTimeInvariantMultivariateSsf;
+import ec.tstoolkit.mssf2.IMSsf;
 import ec.tstoolkit.mssf2.MFilteringResults;
 import ec.tstoolkit.mssf2.MSmoothingResults;
 import ec.tstoolkit.ssf2.FilteringResults;
@@ -34,214 +40,154 @@ import java.util.List;
  */
 public class DfmEM implements IDfmInitializer, IDfmEstimator {
 
-    private int maxiter; // = 10000;number of iterations
-    private double eps;     // = 1e-6; we assume EM algorithm converges if 
-    // the percentage increase in log 
-    // likelihood is smaller than eps
-    private boolean conv;  // TRUE if convergence has been achieved 
+    /**
+     * The DfmEM class implements the EM algorithm as described for instance in
+     * Banbura M and Modugno M, "Maximum likelihood estimation of factor models
+     * on data sets with arbitrary pattern of missing data" (ECB, Working paper
+     * series N° 1189, May 2010).
+     *
+     * The DfmEM class implements both the IDfmInitializer and IDfmEstimator
+     * interfaces. By setting a large number of required iterations and a strict
+     * convergence criterion (e.g. maxiter>100 and 0.000001>eps), the resulting
+     * parameters can be interpreted as maximum likelihood estimates.
+     * Conversely, a small number of iterations can be used when the resulting
+     * parameters are meant to be used as starting values in a subsequent
+     * optimisation procedure.
+     */
+    private int maxiter; //number of iterations
+    private double eps;  //threshold for convergence in terms of 
+    //loglikelihood increase
+    private boolean conv;// TRUE if convergence has been achieved (in terms of
+    // either "maxiter" or "eps"
 
-    private DynamicFactorModel dfm;    // 
+    private DynamicFactorModel dfm;
     private DfmProcessor dfmproc;
     private DataBlockStorage m_a;
 
     private int m_used, m_dim;
-    // private MSmoothingResults ms;    // ?
-    // private MFilteringResults fs;    // ?
+
     private HashSet<MeasurementLoads> unique_logic;
     private Matrix unique_types;
 
-    // private    Matrix             unique_typesQ, unique_typesY, unique_typesM;
     private DfmInformationSet data;
     private int iter;
-    //private double loglik, oldloglik;
     private Likelihood L, oldL;
+
     // references to model parameterization
-    private int nf_; // sum(r)? I will assume this is the total number of factors (ignore here the possible blocks structure)
+    private int nf_; // total number of factors (=sum(r))
+    private int nb_; // number of blocks
+    private int[] r; // vector of dimension nb_ specifying the number of factors 
+    // in each block
+    private int c_;  // max(nlags,12) in models with at least a variable 
+    // representing year-on-year growth rates
+    // or max(nlags,5) in models with quarter-on-quarter growth
+    private int nlags; // number of lags in the VAR
 
-    private int nb_; // assume 3 blocks
-    private int[] r;
-    private int c_;
-    private int nlags;
+    // Matrices needed to implement restrictions in loadings
+    private Matrix R_c, R_con_c, q_con_c;    // restrictions for variables 
+    // representing  YoY growth rates
+    private Matrix R_cd, R_con_cd, q_con_cd; // restrictions variables
+    // representing growth rates over 
+    // the quarter (Mariano-Murasawa)
 
-    // matrices needed to implement restrictions in loadings
-    private Matrix R_c, R_con_c, q_con_c;
-    private Matrix R_cd, R_con_cd, q_con_cd;
-    private Matrix idx_iY, idx_iM, idx_iQ;
+    private Matrix idx_iY, idx_iM, idx_iQ;  // Matrices of integers selecting
+    // factprs for the three CLASSES of 
+    // variables (YoY, QoQ, MoM)
+    // 
+    // Each matrix selects the factors
+    // that are relevant for each "type"
+    // of loading structure. Note that
+    // the "type" of loading structure 
+    // of each variable is independent 
+    // of its CLASS
 
-    // unique types of loading structure  
-    // selection of factors
-    private int[] temp2;
-    private int[] temp2_;
+    // arrays needed to select the factors
+    // [example for the case with three blocks of one factor each and a join VAR(4) representation]
+    private int[] temp2;  // selects from the state vector the factors "F(t)" needed for the VAR representation
+    // [0 1 2 3      12 13 14 15       24 25 26 27]
+    private int[] temp2_; // selects from the state vector the factors "f(t)" corresponding to each block
+    // [0            12                24         ]
+
     private boolean[] logic_temp2;
     private boolean[] logic_temp2_;
 
     private MSmoothingResults srslts_;
     private MFilteringResults frslts_;
 
-    private Matrix ezz;
-    private Matrix eZLZL;
-    private Matrix ezZL;
+    private Matrix ezz;   // E[f(t)f(t)']
+    private Matrix eZLZL; // E[F(t-1)F(t-1)']
+    private Matrix ezZL;  // E[f(t)F(t-1)']
 
     // M-step
     private Matrix A_, A, A_new;
     private Matrix Q, Q_;
     // data
     int nobs; // number of observations
-    int N;// number of time series
-    Matrix data_m; // transformed data in matrix form nobs x N
-    Matrix y; //      transformed data matrix form nobs x N (with zeros instead of nan)
+    int N;    // number of time series
+    Matrix data_m; // transformed data in matrix form nobs x N (NaN when values are missing)
+    Matrix y;      // transformed data in matrix form nobs x N (with zeros instead of NaN)
 
+    // Arrays needed to selects variables with the unique "types" of loading structure 
+    // The selection is done separately for each CLASS of variables (i.e. YoY, QoQ, MoM)
     int[] idx_M, idx_Q, idx_Y;
     List<Integer> Lidx_M, Lidx_Q, Lidx_Y;
 
+    /**
+     * Initialization of variables needed to execute the EM algorithm
+     *
+     * @param dfm0
+     * @param data
+     */
     void initCalc(DynamicFactorModel dfm0, DfmInformationSet data) {
         this.dfm = dfm0;
         this.data = data;
 
+        
+       // dfm.getInitialization();
+                 
+                 
         nobs = data.getCurrentDomain().getLength();
         L = new Likelihood();
         oldL = null;
         conv = false;
-      
-        maxiter = 3000;
+
+        maxiter = 100000;
+
         
         eps = 1e-6;
         nf_ = dfm.getFactorsCount(); // nf_=sum(r);
-        nb_ = 3; // assume three blocks
+
+        // this code is redundant, but let's keep it for the moment in case we
+        // want to increase the complexity of the model
+        //  nb_ = 3  ; // assume three blocks
+        nb_ = nf_; // number of blocks (we assume each block has only one factor)
+
         r = new int[nb_];
-        r[0] = 1;
-        r[1] = 1;
-        r[2] = 1;
+        // because we assume each block has only one factor:
+        for (int i = 0;
+                i < nb_;
+                i++) {
+            r[i] = 1;
+        }
 
         c_ = dfm.getBlockLength();
         nlags = dfm.getTransition().nlags;
 
-        // reads better if I use a method
-        // Measurements of type C 
-        R_con_c = new Matrix(11 * (nf_), c_ * nf_);
-        q_con_c = new Matrix(11 * (nf_), 1);
-        R_c = new Matrix(11, c_);
-        R_c.subMatrix(0, 11, 0, 11).diagonal().set(1);
-        R_c.subMatrix(0, 11, 1, 12).diagonal().set(-1);
-        // Selection matrices temp2 and temp2_
-        temp2 = new int[nb_ * nlags];
-        temp2_ = new int[nb_];
+        LoadingsMarianoMurasawa();
+        LoadingsCumSum();
 
-        int contador = 0;
-        // Taking block structure into account
-        for (int count = 0, count2 = 0, count3 = 0;
-                count < nb_;
-                count2 += 11 * r[count], count3 += c_ * r[count], count++) {
-
-            temp2_[count] = count3;
-
-            for (int nl = 0;
-                    nl < nlags;
-                    nl += 1) {
-                temp2[contador] = count3 + nl;
-                contador++;
-            }
-
-            R_con_c.subMatrix(count2, count2 + 11, count3, count3 + c_).kronecker(R_c.subMatrix(), Matrix.identity(r[count]).subMatrix());
-        }
-        // Measurements of type CD
-        R_con_cd = new Matrix(4 * (nf_), c_ * nf_);
-        q_con_cd = new Matrix(4 * (nf_), 1);
-        R_cd = new Matrix(4, c_);
-        R_cd.set(0, 0, 2);
-        R_cd.set(1, 0, 3);
-        R_cd.set(2, 0, 2);
-        R_cd.set(3, 0, 1);
-        R_cd.subMatrix(0, 4, 1, 5).diagonal().set(-1);
-        // Taking block structure into account
-        for (int count = 0, count2 = 0, count3 = 0;
-                count < nb_;
-                count2 += 4 * r[count], count3 += c_ * r[count], count++) {
-
-            R_con_cd.subMatrix(count2, count2 + 4, count3, count3 + c_).kronecker(R_cd.subMatrix(), Matrix.identity(r[count]).subMatrix());
-
-        }
-
-        logic_temp2 = logic(temp2);
-        logic_temp2_ = logic(temp2_);
-
-// I NEED THE UNIQUE TYPES! and also I need to how many variable we have of each type
-        unique_logic = new HashSet<>();
-
-        for (MeasurementDescriptor mdesc : dfm.getMeasurements()) {
-            unique_logic.add(mdesc.getLoads());
-        }
-
-      // all that is probably useless     
-        // sum the elements of array "r";
-        int sum = 0;
-        for (int i : r) {
-            sum += i;
-        }
-        unique_types = new Matrix(unique_logic.size(), sum);
-
-        Iterator<MeasurementLoads> itr = unique_logic.iterator();
-        int i = 0;
-        while (itr.hasNext()) {
-            boolean[] current = itr.next().used;
-            for (int j = 0; j < current.length; j++) {
-                if (current[j] == true) {
-                    unique_types.set(i, j, 1);
-                } else {
-                    unique_types.set(i, j, 0);
-                }
-            }
-            i++;
-        }
-
-        // unique_logic is the set of  unique types of loading structure     
-        int ntypes = unique_logic.size();
-        idx_iQ = new Matrix(ntypes, nf_ * c_);
-        idx_iY = new Matrix(ntypes, nf_ * c_);
-        idx_iM = new Matrix(ntypes, nf_ * c_);
-
-        for (int block_i = 0, counter = 0;//,  counter=0, countQ=0, countY=0, countM=0;  
-                block_i < nb_;
-                counter += r[block_i] * c_, block_i++) {
-            // countQ+=4*r[i],
-            // countY+=c_*r[i],
-            // countM+=c_*r[i],
-            for (int iQ = 0; iQ < 5 * r[block_i]; iQ++) {
-                idx_iQ.subMatrix(0, ntypes, counter + iQ, counter + iQ + 1).copy(unique_types.subMatrix(0, ntypes, block_i, block_i + 1));
-            }
-            for (int iY = 0; iY < 12 * r[block_i]; iY++) {
-                idx_iY.subMatrix(0, ntypes, counter + iY, counter + iY + 1).copy(unique_types.subMatrix(0, ntypes, block_i, block_i + 1));
-            }
-
-            for (int iM = 0; iM < 1 * r[block_i]; iM++) {
-                idx_iM.subMatrix(0, ntypes, counter + iM, counter + iM + 1).copy(unique_types.subMatrix(0, ntypes, block_i, block_i + 1));
-
-            }
-        }
+        UniqueTypes();
 
         dfmproc = new DfmProcessor();
         dfmproc.setCalcVariance(true);
 
-
-        // put the data in matrix form and index by type
-        //->   ArrayList<TsData> ts = new ArrayList<TsData>();
-        // A FOR LOOP
-        double[] buffer = new double[nobs];
         N = data.getSeriesCount();
-       // data_m = new Matrix(nobs, N);
-        // for (int idx = 0; idx < N; idx++) {
-        //      TsData ts = data.series(idx);
-        //     ts.copyTo(buffer, 0);
-        //    for (int t = 0; t < nobs; t++) {
-        //       data_m.subMatrix(t, t + 1, idx, idx + 1).set(buffer[t]);
-        //   }
-        //}
 
-        // generateMatrix FUNCTION
         y = data.generateMatrix(data.getCurrentDomain());
         data_m = y.clone();
 
         // delicate!!! I am changing data_ inside a matrix
+        // now the matrix of data y has zeroes instead of NaN
         double[] data_ = y.internalStorage();
         for (int ii = 0; ii < data_.length; ii++) {
             if (Double.isNaN(data_[ii])) {
@@ -251,9 +197,15 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
 
     }
 
+    /**
+     * Converts a Matrix m of zeroes and ones into a List of booleans[]
+     *
+     * @param m
+     * @return
+     */
     private List<boolean[]> logic(Matrix m) {
     // It has to be a matrix of ones and zeros. 
-        //Incorporate an error expection if this is not the case
+        // Incorporate an error expection if this is not the case
         ArrayList<boolean[]> list = new ArrayList<>();
         DataBlockIterator rows = m.rows();
         do {
@@ -267,9 +219,17 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         return list;
     }
 
+    /**
+     * Converts an "selection" array of integers, which can be used to indicate
+     * positions into a boolean array indicating true in the positions to be
+     * selected
+     *
+     * @param index
+     * @return
+     */
     private boolean[] logic(int[] index) {
 
-            // index contains positions of an array
+        // index contains positions of an array
         int maxi = index[0];// selects the largest element of the array
 
         for (int i = 1;
@@ -289,9 +249,18 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         return logicSelect;
     }
 
+    /**
+     * Converts an "selection" array of integers, which can be used to indicate
+     * positions into a boolean array indicating true in the positions to be
+     * selected. The size of the returned boolean array is given by "fixedsize"
+     *
+     * @param index
+     * @param fixedsize
+     * @return
+     */
     private boolean[] logic(int[] index, int fixedsize) {
 
-            // select the largest element of the array
+        // select the largest element of the array
         boolean[] logicSelect = new boolean[fixedsize]; //?
 
         for (int i = 0; i < index.length; i++) {
@@ -301,9 +270,18 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         return logicSelect;
     }
 
+    /**
+     * Converts an integer, which is used as an index to select a given
+     * position, into a boolean array indicating true in the position to be
+     * selected. The size of the returned boolean array is given by "fixedsize"
+     *
+     * @param index
+     * @param fixedsize
+     * @return
+     */
     private boolean[] logic(int index, int fixedsize) {
 
-            // select the largest element of the array
+        // select the largest element of the array
         boolean[] logicSelect = new boolean[fixedsize]; //?
 
         logicSelect[index] = true;
@@ -311,124 +289,118 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         return logicSelect;
     }
 
-   private   void calc(DynamicFactorModel dfm0,  DfmInformationSet data) { // private  modifier has been eliminated
+    /**
+     * Execute the Expectation-Maximization iterations. The algorithm stops only
+     * after the maximum number of iterations has been reached
+     *
+     * @param dfm0
+     * @param data
+     */
+    private void calc(DynamicFactorModel dfm0, DfmInformationSet data) { // private  modifier has been eliminated
 
         iter = 0;
-        double[] LnStore = new  double[maxiter];        
-
-        dfm=dfm0.clone();
+        dfm = dfm0.clone();
         dfmproc.process(dfm, data);
-      // dfmproc.getFilteringResults().evaluate(L);
-      //   double Ln    = L.getLogLikelihood();
-      //   double oldLn = Ln;
-      //  double Ln   = 0;
-      //  double oldLn= 0;
-        System.out.print(dfm.getTransition().covar);
-       
         dfmproc.getFilteringResults().evaluate(L);
-        double Ln  = L.getLogLikelihood();
-       
-        double oldLn=0;
-         while ( iter < maxiter) {
-     //     while ( iter < maxiter && !convergence(Ln, oldLn,iter)) {    
-//        while ( iter < maxiter && !convergence(Ln, oldLn)) {
+        double Ln = L.getLogLikelihood();
+ 
+        double oldLn = 0;
 
-//            System.out.println("Iter=" + iter + ", Ln=" + Ln + " ("+oldLn  +")");
+        while (iter < maxiter) {
             System.out.println(Ln);
-              
             iter++;
-      //       System.out.println(iter);
             oldLn = Ln;
-         
-            Ln = emstep(dfm,data); // Given the parameters of dfm, get moments
-            LnStore[iter]=Ln;
-// Given moments of dfm, recompute parameters and plugged them
-            //                                               into dfmclone
-//         System.out.println(iter);
-         
+            Ln = emstep(dfm, data); // Given the parameters of dfm, get moments
+            convergence(Ln, oldLn, iter, false);
         }
-
     }
-  
-    private boolean convergence(double Ln, double oldLn, int iter) {
-        
+
+    /**
+     * Assessment of convergence at iteration "iter" and print diagnosis if
+     * print is true; It also tries to print largest eigen value in the absence
+     * of convergence
+     *
+     * @param Ln
+     * @param oldLn
+     * @param iter
+     * @param print
+     * @return
+     */
+    private boolean convergence(double Ln, double oldLn, int iter, boolean print) {
+
         double epsi = (Ln - oldLn);// / Math.abs(oldLn);
         if (epsi > eps) {  // instead of getEps?
-        //     System.out.print(iter);
-            System.out.print("   The likelihood is increasing very fast ");
-        //    System.out.print(oldLn);
-        //    System.out.println(Ln);
-          
+            //         System.out.print("   The likelihood is increasing very fast ");
+
             return false;
         } else if (epsi <= eps && epsi > 0) {
-       //      System.out.print(iter);
-            System.out.print("   The likelihood is increasing very slow! ");
-       //     System.out.print(oldLn);
-        //    System.out.println(Ln);
+            if (print) {
+                System.out.print("   The likelihood is increasing very slow! ");
+            }
             return true;
         } else {
-          //  System.out.print(iter);
-            System.out.print("   The likelihood is decreasing! ");
-        //    System.out.print(oldLn);
-        //    System.out.println(Ln);
-
+            if (print) {
+                System.out.print("   The likelihood is decreasing! ");
+            }
+            try {
+                IEigenSystem es = EigenSystem.create(A, false);
+                Complex[] ev = es.getEigenValues(1);
+                System.out.println(ev[0].abs());
+                //     System.out.println(ev[1].abs());
+                //     System.out.println(ev[2].abs());
+            } catch (MatrixException err) {
+                System.out.println(A);
+            }
             return false;
         }
     }
+/**
+ * Expectation and maximisation steps for a given iteration
+ * @param dfm
+ * @param data
+ * @return 
+ */
+    private double emstep(DynamicFactorModel dfm, DfmInformationSet data) {
 
- private   double emstep(DynamicFactorModel dfm, DfmInformationSet data) {
-        //    dfmproc = new DfmProcessor();
-        //     dfmproc.process(dfm, data);
-        //     MSmoothingResults srslts_;
-        //     srslts_ = dfmproc.getSmoothingResults();
-        //     MFilteringResults frslts_;
-        //     frslts_ = dfmproc.getFilteringResults();
-
-      
         double logLike;
- 
+        E_S();
+        M_S();
+
         dfmproc.process(dfm, data);
-        //  MSmoothingResults srslts_;
-        srslts_ = dfmproc.getSmoothingResults();
-        srslts_.setStandardError(1);
-        // MFilteringResults frslts_;
         frslts_ = dfmproc.getFilteringResults();
 
-        m_a = srslts_.getSmoothedStates();
+        frslts_.evaluate(L);
 
-        m_used = m_a.getCurrentSize();
-        m_dim = m_a.getDim();
+        logLike = L.getLogLikelihood();
+        return logLike;
         
-        ezz   = Ezz();
-        eZLZL = EZLZL();
-        ezZL  = EzZL();
 
-//       System.out.println(dfm.getTransition().varParams.subMatrix(0,1,0,1));
-        
-     //Solves XS=B, where S is a symmetric positive definite matrix.
-     //*   X = B*inv(S)
-     //* @param S The Symmetric matrix
-     //* @param B In-out parameter. The right-hand side of the equation. 
-     //* It will contain the result at the end of the processing.
-     //* @param clone Indicates if the matrix S can be transformed (should be 
-     //* true if the matrix S can't be modified). If S is transformed, it will 
-     //* contain the lower Cholesky factor at the end of the processing.
-     //*/
-    // lsolve(Matrix S, SubMatrix B, boolean clone){
+    }
    
-        
-        A_ = ezZL.clone();     //  true stays,  always changes      
-        SymmetricMatrix.lsolve(eZLZL, A_.subMatrix(), true);
-
-//        System.out.println(A_.subMatrix(0, 1, 0, 1));
-//        System.out.println(iter);
-//        System.out.println("comparing.......................");
  
-             
+ void M_S(){
+        
+     varmax();
+     loadingsMax();
+   //  loadingsYmax();
+   //  loadingsMmax();
+    // resmax(C_new);
+     
+     
+                 
+
+ 
+ }
+ 
+ void varmax(){
+       double scale = 1.0/(nobs); 
+       A_ = ezZL.clone();     //  true stays,  always changes      
+        SymmetricMatrix.lsolve(eZLZL, A_.subMatrix(), true);
          // VAR form in my state space representation
         // here i have to define inde3 and indicator2 and convert them to logical
         A = new Matrix(c_ * nf_, c_ * nf_);
-        int[] ind3 = new int[r.length];
+        
+            int[] ind3 = new int[r.length];
         int[] indicador2 = new int[r.length];
         int[] indicador = new int[r.length];
 
@@ -442,12 +414,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         }
 
         
-        
-          // converting to logic, maybe not needed
-        //      boolean[] logic_ind3, logic_indicador2,logic_indicador  ;
-        //       logic_ind3= logic(ind3);
-        //      logic_indicador2 = logic(indicador2);
-        //      logic_indicador = logic(indicador);
+       
         for (int i = 0; i < nb_; i++) {
             int ri = r[i];
 
@@ -466,17 +433,13 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
 
         }
 
-        
-        
           // SHOCKS
         Q_= new Matrix(nf_, nf_);
         Q = new Matrix(c_ * nf_, c_ * nf_);
 
-        // WHY IT IS NOT WORKING, Q_ = (ezz.minus(A_.times(ezZL.transpose() ))).mul(1.0/nobs);
-      
         // CHECK WHETHER IT IS CORRECT: NOTICE I AM DISCARDING THE FIRST OBSERVATION BECAUSE STATE VECTOR DOES NOT CONTAIN INITIALIZATION
 
-        double scale = 1.0/(nobs-1);        
+              
         Q_ = (ezz.minus(A_.times(ezZL.transpose()))).times(scale);
 
         for (int i = 0; i < temp2_.length; i++) {
@@ -485,13 +448,12 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
             }
         }
 
-// THE MOST TRICKY PART OF THE EM        
-        //-> for (int i = 0; i < unique_logic.size() ; i++) {
- //->    int[] bli = new int[nf_];
-        // doesnt work because copyTo is for Matrix and not subMatrix
-        //->    unique_types.subMatrix(i, i+1, 0, nf_).copyTo(bli, 0);
-// LOADINGS MONTHLY VARIABLES
-//------------------------------------*****************
+   
+ }
+ 
+ 
+ void loadingsMax(){
+     
         int type = 0;
         Matrix C_new = new Matrix(N, c_ * nf_); // the Matrix of factor loadings
         Matrix C_index = new Matrix(N, c_ * nf_); // position of non zero loadings
@@ -565,9 +527,9 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
             Matrix nom = new Matrix(nMi, rsi);
             Matrix nom_interm = new Matrix(nMi, rsi);
 
-            // ATTENTION I will be ignoring the first observation (because we do not include the initial state in the state vector)
-            for (int i = 1; i < nobs; i++) {  // we will be ignoring the first observation (because we do not include the initial state in the state vector)
- //         for (int i = 0; i < nobs; i++) {  
+            // ATTENTION if i=1; I will be ignoring the first observation (because we do not include the initial state in the state vector)
+ //           for (int i = 1; i < nobs; i++) {  // we will be ignoring the first observation (because we do not include the initial state in the state vector)
+             for (int i = 0; i < nobs; i++) {  
                 boolean[] logic_i = new boolean[nobs];
                 logic_i[i] = true;
 
@@ -653,8 +615,8 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
                 nom_interm = new Matrix(1, rpsi);
 
                 // here the for loop
-                for (int t = 1; t < nobs; t++) {
-       //       for (int t = 0; t < nobs; t++) {
+       //       for (int t = 1; t < nobs; t++) {
+                for (int t = 0; t < nobs; t++) {
                     boolean[] logic_t = new boolean[nobs];
                     logic_t[t] = true;
 
@@ -740,8 +702,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
 
             R_con_c_i = Matrix.selectRows(R_con_c_i.subMatrix(), select);
             q_con_c_i = Matrix.selectRows(q_con_c_i.subMatrix(), select);
-
-            // for quarterly variables let's do it one by one
+ 
             for (int i = 0; i < idx_Y.length; i++) {
 
                 boolean[] logic_idx_Y_i = logic(idx_Y[i], N);          // integer[] with positions for variables of the given type
@@ -751,9 +712,9 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
                 nom = new Matrix(1, rpsi);
                 nom_interm = new Matrix(1, rpsi);
 
-                // here the for loop
-                for (int t = 1; t < nobs; t++) {
-             // for (int t = 0; t < nobs; t++) {
+                // here the for loop taking into account FULL SAMPLE
+             //   for (int t = 1; t < nobs; t++) {
+                  for (int t = 0; t < nobs; t++) {
 
                     boolean[] logic_t = new boolean[nobs];
                     logic_t[t] = true;
@@ -797,8 +758,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
                 Matrix Ctype_i = new Matrix(nom.getColumnsCount() * nom.getRowsCount(), 1);
                 Ctype_i = vec_C.minus(Matrix.lsolve(temp2.subMatrix(), temp3.subMatrix()).times((R_con_c_i.times(vec_C)).minus(q_con_c_i)));
 
-                // upload Jean's new function 
-                C_new.subMatrix().copy(Ctype_i.subMatrix().transpose(), logic_idx_Y_i, logic_idx_iY.get(type));
+                 C_new.subMatrix().copy(Ctype_i.subMatrix().transpose(), logic_idx_Y_i, logic_idx_iY.get(type));
 
                 
               
@@ -808,44 +768,40 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
             for (int j = 0; j < idx_Y.length; j++) {
                 MeasurementDescriptor desc = dfm.getMeasurements().get(idx_Y[j]);
                 for (int k = 0; k < dfm.getFactorsCount(); ++k) {
-                    if (!Double.isNaN(desc.coeff[k])) {
-      // --->             
+                    if (!Double.isNaN(desc.coeff[k])) {    
                         desc.coeff[k] = C_new.get(idx_Y[j], c_ * k);
                     }
                 }
   
             }
-            
-            
             type++;
-
         }
 //------------------------------------*****************
 
-      // NOW CALCULATE m step for IDIOSYNCRATIC COMPONENT
+ 
+
+        dfm.getTransition().covar.copy(Q_);
+        dfm.getTransition().varParams.copy(A_);
         
-        Matrix R = new Matrix(N,N);  // replace by the R obtained in previous iteration
+        
+              // NOW CALCULATE m step for IDIOSYNCRATIC COMPONENT
+
+        Matrix R = new Matrix(N, N);  // replace by the R obtained in previous iteration
         List<MeasurementDescriptor> measurements = dfm.getMeasurements();
-        int counting=0;
+        int counting = 0;
         for (MeasurementDescriptor desc : measurements) {
-           R.set(counting, counting, desc.var);
+            R.set(counting, counting, desc.var);
             counting++;
         }
-        
-        
+
         Matrix R_new = new Matrix(N, N);
-     //   Matrix RR_new = new Matrix(N, N);
-    //    for (int i = 0; i < nobs; i++) {
-        for (int i = 1; i < nobs; i++) {
-
-
+        //for (int i = 1; i < nobs; i++) { 
+        for   (int i = 0; i < nobs; i++) {  // take into  account  FULL SAMPLE
+        
             boolean[] logic_i = new boolean[nobs];
             logic_i[i] = true;
-
-            // this is messy
             double[] buffer = new double[N];
             data_m.row(i).copyTo(buffer, 0); //subMatrix(i, i+1, 0, N)
-
             double[] temp = new double[N];
             for (int j = 0; j < N; j++) {
                 if (!Double.isNaN(buffer[j])) {
@@ -858,96 +814,51 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
             Matrix ztemp = new Matrix(bloque.getData(), bloque.getLength(), 1); //idx_iM.row(type).sum()   sumAll(logic_idx_iM.get(type))                   
             Matrix V = new Matrix(srslts_.P(i));
 
-         
-          // ========================= start
             Matrix res1, res2, res3, res4;
-            res1=Matrix.selectRows(y.subMatrix(), logic_i).transpose().minus(nanYt.times(C_new).times(ztemp));
-            res2=res1.clone();
-            res3=nanYt.times(C_new).times(V).times(C_new.transpose()).times(nanYt);
-            res4= (Matrix.identity(N).minus(nanYt)).times(R).times(Matrix.identity(N).minus(nanYt));
+            res1 = Matrix.selectRows(y.subMatrix(), logic_i).transpose().minus(nanYt.times(C_new).times(ztemp));
+            res2 = res1.clone();
+            res3 = nanYt.times(C_new).times(V).times(C_new.transpose()).times(nanYt);
+            res4 = (Matrix.identity(N).minus(nanYt)).times(R).times(Matrix.identity(N).minus(nanYt));
 
-            Matrix R_temp= res1.times(res2.transpose()).plus(res3).plus(res4);
-            // ========================= end
-            
-       
+            Matrix R_temp = res1.times(res2.transpose()).plus(res3).plus(res4);
+
             R_new = R_new.plus(R_temp);
-            
-            
-//System.out.println(tempres);
-//System.out.println("______________________________________________");
-
-//System.out.println(tempres2.transpose());
-//System.out.println("check it");
 
         }
 
-        //System.out.println("check it");
-        //System.out.println(R_new);
-         
-      //   scale = 1.0/nobs;
-      
-        
+        double scale = 1.0 / (nobs);
         R_new.mul(scale);
-        
-       // System.out.println("check it again .....");
-       // System.out.println(R_new);
-//            R_new= Matrix.diagonal(R_temp.internalStorage());
-//        System.out.println(C_new);
 
-        // EM UPDATE
-
-           // will it work here???
-      //   dfmproc.process(dfm, data);
-        
-        
-       // List<MeasurementDescriptor> measurements = dfm.getMeasurements();
-        //int counting=0;
-        counting=0;
+        counting = 0;
         for (MeasurementDescriptor desc : measurements) {
-   //--->     
             desc.var = R_new.get(counting, counting);
             counting++;
-        }
-        
-  //--->  
- //       
-   //    
-        dfm.getTransition().covar.copy(Q_);
-  //---> 
-        dfm.getTransition().varParams.copy(A_);
-
- //        System.out.println(R_new);
-   //     System.out.print(Q_);
-        
-    //    System.out.println(C_new);
-//         dfmproc = new DfmProcessor();
-//        dfmproc.setCalcVariance(true);
-//        dfmproc.process(dfm, data);
-//         DfmProcessor dfmproc_update = new DfmProcessor();
-         dfmproc.process(dfm, data);
-         frslts_=dfmproc.getFilteringResults();
-
-        frslts_.evaluate(L);
-
-         logLike = L.getLogLikelihood();
-       // Ezz = null;
-        //  EZLZL = null;
-        //  EzZL = null;
-        return logLike;
-    }
-    /*
-     DataBlockStorage smoothedStates = sr.getSmoothedStates();
-     SubMatrix subMatrix = smoothedStates.subMatrix();
-     boolean[] csel=null;
-     Matrix m=Matrix.selectColumns(subMatrix, csel);
-
-     new DynamicFactorModel. dfmx;  
+        }        
+      
+ }
  
-     // E-STEP, uses functions that compute moments from the model
-     // M-STEP, uses functions that generate the matrices  needed
-     throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-     }
-     */
+ 
+ void E_S(){
+ 
+       // no neet to repeat!
+       // dfmproc.process(dfm, data);
+        
+       //  MSmoothingResults srslts_;      
+        srslts_ = dfmproc.getSmoothingResults();
+        srslts_.setStandardError(1);
+        // MFilteringResults frslts_;
+        frslts_ = dfmproc.getFilteringResults();
+
+        m_a = srslts_.getSmoothedStates();
+
+        m_used = m_a.getCurrentSize();
+        m_dim = m_a.getDim();
+        
+        Matrix z0 = allcomponents();
+        ezz   = Ezz(z0);
+        eZLZL = EZLZL(z0);
+        ezZL  = EzZL(z0); 
+ }
 
     Matrix allcomponents() {
 
@@ -962,12 +873,8 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         Matrix c = new Matrix(m_dim, m_used);
 
         for (int i = 0; i < m_dim; i++) {
-         //   ci = new Matrix(srslts_.component(i),1,m_used);
-            //    c.row(i).copyFrom(srslts_.component(i), 0);
             c.row(i).copy(m_a.item(i));
-            //                 c.subMatrix(i, i+1, 0, m_used).copy(ci.subMatrix());
-//                c.subMatrix(i, i+1, 0, m_used).copy(Matrix(m_a.item(i),1,m_used).subMatrix());
-        }
+         }
 
         return c;
     }
@@ -976,11 +883,20 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
     DataBlockStorage ds;
 
     // notice that the initial state is not being taken into account
-    private Matrix Ezz() {
-   
+    private Matrix Ezz(Matrix z0) {
+        // how to get the initial states???
+        IMSsf ssf = dfm.ssfRepresentation();   
+        Matrix P0=new Matrix(ssf.getStateDim(), ssf.getStateDim());
+        ssf.Pf0(P0.subMatrix());
+        
+        //getInitialVariance()
+                
         //dfmproc.process(dfm, data);
-        Matrix z0 = allcomponents();
-        SubMatrix z1 = z0.subMatrix(0, z0.getRowsCount(), 1, z0.getColumnsCount());
+  //      Matrix z0 = allcomponents();
+        
+ //     Ssf.getInitialVariance() 
+//      SubMatrix z1 = z0.subMatrix(0, z0.getRowsCount(), 1, z0.getColumnsCount());
+        SubMatrix z1 = z0.subMatrix(0, z0.getRowsCount(), 0, z0.getColumnsCount());
         Matrix z = Matrix.selectRows(z1, logic_temp2_);
         Matrix zz = z.times(z.transpose());
 
@@ -989,8 +905,9 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         double[] petittest;
         for (int i = 0; i < temp2_.length; i++) {
             for (int j = 0; j < temp2_.length; j++) {
-                petittest = srslts_.componentCovar(temp2_[i], temp2_[j]);   // null, because m_P in srslts_ is null  
-                covij_sum = sum0(srslts_.componentCovar(temp2_[i], temp2_[j]));
+         //     covij_sum = sum0(srslts_.componentCovar(temp2_[i], temp2_[j]));
+                covij_sum =  sum(srslts_.componentCovar(temp2_[i], temp2_[j]));
+
                 eP.set(i, j, covij_sum);
             }
         }
@@ -1000,49 +917,87 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
     }
 
 // notice that the initial state is not being taken into account
-    private Matrix EZLZL() {
+    private Matrix EZLZL(Matrix z0) {
       //  dfmproc.process(dfm, data);
-        Matrix z0 = allcomponents();
-        SubMatrix z1 = z0.subMatrix(0, z0.getRowsCount(), 0, z0.getColumnsCount() - 1);
-        Matrix z = Matrix.selectRows(z1, logic_temp2);
-        Matrix zz = z.times(z.transpose());
+       // Matrix z0 = allcomponents();
+        
+        int[] temp2shift           = new int[temp2.length];
+        boolean[] logic_temp2shift = new boolean[nf_];  
+        for (int i=0;i<temp2.length;i++){temp2shift[i]=temp2[i]+1;
+        }
+        logic_temp2shift = logic(temp2shift);
+        
+      //SubMatrix z1 = z0.subMatrix(0, z0.getRowsCount(), 0, z0.getColumnsCount() - 1);
+        SubMatrix z1 = z0.subMatrix(0, z0.getRowsCount(), 0, z0.getColumnsCount());
+        Matrix z = Matrix.selectRows(z1, logic_temp2shift);
+        Matrix zz = z.times(z.transpose()); 
 
+       
+       // Matrix eP0 = new Matrix(temp2.length, temp2.length);
         Matrix eP = new Matrix(temp2.length, temp2.length);
-        double covij_sum;
+       // Matrix eP_ = new Matrix(temp2.length, temp2.length);
+         
+        double covij_sum;  // SIMPLIFY IT
         for (int i = 0; i < temp2.length; i++) {
             for (int j = 0; j < temp2.length; j++) {
-                covij_sum = sumT(srslts_.componentCovar(temp2[i], temp2[j]));
-                eP.set(i, j, covij_sum);
+                //-->NOT NEEDED covij_sum = sumT(srslts_.componentCovar(temp2[i], temp2[j]));
+                                covij_sum =  sum(srslts_.componentCovar(temp2[i]+1, temp2[j]+1));
+
+                // incorporate smoothed initial variance 
+              //-->NOT NEEDED   covij_0 =srslts_.P(0).get(temp2[i]+1, temp2[j]+1);
+              //-->NOT NEEDED   eP.set(i, j, covij_sum+covij_0);
+                                eP.set(i, j, covij_sum);
+                                
             }
         }
+        
+        
         Matrix eZLZL = zz.plus(eP);
         return eZLZL;
     }
 
    // notice that the initial state is not being taken into account
-    private Matrix EzZL() {
+    private Matrix EzZL(Matrix z0) {
         
         
  //               Q_ = (ezz.minus(A_.times(ezZL.transpose()))).times(scale);
                 
     //    dfmproc.process(dfm, data);
-        Matrix z0 = allcomponents();
-        SubMatrix z1 = z0.subMatrix(0, z0.getRowsCount(), 1, z0.getColumnsCount());
-        SubMatrix z1L = z0.subMatrix(0, z0.getRowsCount(), 0, z0.getColumnsCount() - 1);
+    //    Matrix z0 = allcomponents();
+        
+        
+    //  SubMatrix z1  = z0.subMatrix(0, z0.getRowsCount(), 1, z0.getColumnsCount());
 
+        SubMatrix z1  = z0.subMatrix(0, z0.getRowsCount(), 0, z0.getColumnsCount());     
+//***   SubMatrix z1L = z0.subMatrix(0, z0.getRowsCount(), 0, z0.getColumnsCount() - 1);  
+        SubMatrix z1L = z0.subMatrix(0, z0.getRowsCount(), 0, z0.getColumnsCount() ); // the initial state should be added, but it is zero
+ 
         Matrix z = Matrix.selectRows(z1, logic_temp2_);
-        Matrix zL = Matrix.selectRows(z1L, logic_temp2);
-
+        
+        int[] temp2shift           = new int[temp2.length];
+        boolean[] logic_temp2shift = new boolean[nf_];  
+        for (int i=0;i<temp2.length;i++){temp2shift[i]=temp2[i]+1;
+        }
+        logic_temp2shift = logic(temp2shift);
+        
+        Matrix zL = Matrix.selectRows(z1L, logic_temp2shift);
+ //***  Matrix zL = Matrix.selectRows(z1L, logic_temp2);
+      
         Matrix zz = z.times(zL.transpose());
 
         Matrix eP = new Matrix(temp2_.length, temp2.length);
-        double covij_sum;
+        double covij_sum, covij_0;    // SIMPLIFY IT
         for (int i = 0; i < temp2_.length; i++) {
             for (int j = 0; j < temp2.length; j++) {
-                     covij_sum =sum0(srslts_.componentCovar(temp2_[i], temp2[j]+1));
-            //2//    covij_sum = sum(srslts_.componentCovar(temp2_[i], temp2[j]+1));
-            //1//    covij_sum = sum(srslts_.componentCovar(temp2_[i], temp2[j]));
-                eP.set(i, j, covij_sum);
+                     covij_sum =sum(srslts_.componentCovar(temp2_[i], temp2[j]+1));
+//***                covij_sum =sum0(srslts_.componentCovar(temp2_[i], temp2[j]+1));
+                  // just set eP
+                    
+                     eP.set(i, j, covij_sum);
+                     // ->not needed  covij_0 =srslts_.P(0).get(temp2_[i]+1, temp2[j]+1+1);
+                   // -> not needed   eP.set(i, j, covij_sum+covij_0);
+ 
+                    
             }
         }
 
@@ -1051,7 +1006,6 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
     }
 
      
-    
     @Override
     public boolean initialize(DynamicFactorModel dfm0, DfmInformationSet data) {
         initCalc(dfm0, data);
@@ -1060,7 +1014,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
     }
 
     @Override
-    public boolean estimate(DynamicFactorModel dfm0, DfmInformationSet input) {
+    public boolean estimate(DynamicFactorModel dfm0, DfmInformationSet data) {
         initCalc(dfm0, data);
         calc(dfm0,data);
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
@@ -1156,4 +1110,146 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         return suma;
     }
 
+   /** Builds Matrix "R_con_cd", which allows us to impose restrictions on the 
+   * loadings of series that represent QoQ growth rates. 
+   * It also builds the arrays needed to select the factors: for example,
+   * in a model with 3 factors and 4 lags, temp2=[0 1 2 3 12 13 14 15 24 25 26 27] 
+   * selects from the state vector the factors "F(t)" needed for the VAR 
+   * representation and temp2_=[0  12  24] selects from the state vector the 
+   * factors "f(t)" corresponding to each block
+   */
+    private void LoadingsMarianoMurasawa() {
+           // Measurements of type CD
+        R_con_cd = new Matrix(4 * (nf_), c_ * nf_);
+        q_con_cd = new Matrix(4 * (nf_), 1);
+        R_cd = new Matrix(4, c_);
+        R_cd.set(0, 0, 2);
+        R_cd.set(1, 0, 3);
+        R_cd.set(2, 0, 2);
+        R_cd.set(3, 0, 1);
+        R_cd.subMatrix(0, 4, 1, 5).diagonal().set(-1);
+        // Taking block structure into account
+        for (int count = 0, count2 = 0, count3 = 0;
+                count < nb_;
+                count2 += 4 * r[count], count3 += c_ * r[count], count++) {
+
+            R_con_cd.subMatrix(count2, count2 + 4, count3, count3 + c_).kronecker(R_cd.subMatrix(), Matrix.identity(r[count]).subMatrix());
+
+        }
+
+    }
+
+    
+  /** Builds Matrix "R_con_c", which allows us to impose restrictions on the 
+   * loadings of monthly series that represent YoY growth rates. 
+   */
+    private  void LoadingsCumSum() {
+            R_con_c = new Matrix(11 * (nf_), c_ * nf_);
+            q_con_c = new Matrix(11 * (nf_), 1);
+            R_c = new Matrix(11, c_);
+            R_c.subMatrix(0, 11, 0, 11).diagonal().set(1);
+            R_c.subMatrix(0, 11, 1, 12).diagonal().set(-1);
+            // Selection matrices temp2 and temp2_
+            temp2 = new int[nb_ * nlags];
+            temp2_ = new int[nb_];
+
+            int contador = 0;
+            // Taking block structure into account
+            for (int count = 0, count2 = 0, count3 = 0;
+                    count < nb_;
+                    count2 += 11 * r[count], count3 += c_ * r[count], count++) {
+
+                temp2_[count] = count3;
+
+                for (int nl = 0;
+                        nl < nlags;
+                        nl += 1) {
+                    temp2[contador] = count3 + nl;
+                    contador++;
+                }
+
+                R_con_c.subMatrix(count2, count2 + 11, count3, count3 + c_).kronecker(R_c.subMatrix(), Matrix.identity(r[count]).subMatrix());
+            }
+    
+        logic_temp2 = logic(temp2);
+        logic_temp2_ = logic(temp2_);
+        }
+
+      
+  /** Matrices of integers selecting factors for the three CLASSES of 
+      variables (YoY, QoQ, MoM) Each matrix selects the factors
+      that are relevant for each "type" of loading structure. Note that
+      the "type" of loading structure of each variable is independent 
+      of its CLASS
+   */    
+    private void UniqueTypes() {
+      
+        unique_logic = new HashSet<>();
+
+        for (MeasurementDescriptor mdesc : dfm.getMeasurements()) {
+            unique_logic.add(mdesc.getLoads());
+        }
+
+      // all that is probably useless     
+        // sum the elements of array "r";
+        int sum = 0;
+        for (int i : r) {
+            sum += i;
+        }
+        unique_types = new Matrix(unique_logic.size(), sum);
+
+        Iterator<MeasurementLoads> itr = unique_logic.iterator();
+        int i = 0;
+        while (itr.hasNext()) {
+            boolean[] current = itr.next().used;
+            for (int j = 0; j < current.length; j++) {
+                if (current[j] == true) {
+                    unique_types.set(i, j, 1);
+                } else {
+                    unique_types.set(i, j, 0);
+                }
+            }
+            i++;
+        }
+
+        // unique_logic is the set of  unique types of loading structure     
+        int ntypes = unique_logic.size();
+        idx_iQ = new Matrix(ntypes, nf_ * c_);
+        idx_iY = new Matrix(ntypes, nf_ * c_);
+        idx_iM = new Matrix(ntypes, nf_ * c_);
+
+        for (int block_i = 0, counter = 0;
+                block_i < nb_;
+                counter += r[block_i] * c_, block_i++) {
+           
+            for (int iQ = 0; iQ < 5 * r[block_i]; iQ++) {
+                idx_iQ.subMatrix(0, ntypes, counter + iQ, counter + iQ + 1).copy(unique_types.subMatrix(0, ntypes, block_i, block_i + 1));
+            }
+            for (int iY = 0; iY < 12 * r[block_i]; iY++) {
+                idx_iY.subMatrix(0, ntypes, counter + iY, counter + iY + 1).copy(unique_types.subMatrix(0, ntypes, block_i, block_i + 1));
+            }
+
+            for (int iM = 0; iM < 1 * r[block_i]; iM++) {
+                idx_iM.subMatrix(0, ntypes, counter + iM, counter + iM + 1).copy(unique_types.subMatrix(0, ntypes, block_i, block_i + 1));
+
+            }
+        }
+    }
+
 }
+
+
+
+          
+
+
+      
+        
+          
+
+         
+      
+         
+
+                  
+        
