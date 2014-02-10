@@ -325,10 +325,22 @@ public class DynamicFactorModel implements Cloneable {
             }
             this.var = 1;   // DAVID: why is equal to 1?  I think it must be initialized
         }
-        
-        
-    
-        
+
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+            for (int i = 0; i < coeff.length; ++i) {
+                if (Double.isNaN(coeff[i])) {
+                    builder.append('.');
+                } else {
+                    builder.append(coeff[i]);
+                }
+                builder.append('\t');
+            }
+            builder.append(var);
+            return builder.toString();
+        }
+
         /**
          * Type of the measurement equation
          */
@@ -343,8 +355,6 @@ public class DynamicFactorModel implements Cloneable {
          */
         public double var; // DAVID: why not final?
 
-   
-                
         public boolean isUsed(int fac) {
             return !Double.isNaN(coeff[fac]);
         }
@@ -357,16 +367,17 @@ public class DynamicFactorModel implements Cloneable {
             return used;
         }
 
-       public int getUsedFactorsCount() {
-           int n=0;
-             for (int i = 0; i < coeff.length; ++i) {
-                if (!Double.isNaN(coeff[i]))
+        public int getUsedFactorsCount() {
+            int n = 0;
+            for (int i = 0; i < coeff.length; ++i) {
+                if (!Double.isNaN(coeff[i])) {
                     ++n;
+                }
             }
             return n;
         }
 
-       public MeasurementStructure getStructure() {
+        public MeasurementStructure getStructure() {
             return new MeasurementStructure(getMeasurementType(type), getUsedFactors());
         }
 
@@ -724,8 +735,8 @@ public class DynamicFactorModel implements Cloneable {
     public void addMeasurement(MeasurementDescriptor desc) {
         mdesc_.add(desc);
     }
-    
-    public void clearMeasurements(){
+
+    public void clearMeasurements() {
         mdesc_.clear();
     }
 
@@ -771,6 +782,19 @@ public class DynamicFactorModel implements Cloneable {
     public void setInitialCovariance(Matrix v0) {
         V0_ = v0.clone();
         init_ = Initialization.UserDefined;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Loadings").append("\r\n");
+        for (MeasurementDescriptor m : mdesc_) {
+            builder.append(m).append("\r\n");
+        }
+        builder.append("VAR").append("\r\n");
+        builder.append(tdesc_.varParams);
+        builder.append(tdesc_.covar);
+        return builder.toString();
     }
 
     class Ssf extends DefaultTimeInvariantMultivariateSsf {

@@ -20,15 +20,12 @@ import data.Data;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DescriptiveStatistics;
 import ec.tstoolkit.eco.Likelihood;
-import ec.tstoolkit.maths.Complex;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.ssf2.ResidualsCumulator;
 import ec.tstoolkit.timeseries.simplets.TsData;
-import ec.tstoolkit.timeseries.simplets.TsDomain;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 /**
  *
@@ -221,7 +218,7 @@ public class DfmInitializerTest {
 //        DfmEM em = new DfmEM();
         DfmEM2 em = new DfmEM2(null);
         em.setMaxIter(10000);
-//        em.initialize(model0, dfmInformationSet);
+        em.initialize(model0, dfmInformationSet);
 //        System.out.println(model0.getTransition().covar);
 //        System.out.println(model0.getTransition().varParams);
 //        for (DynamicFactorModel.MeasurementDescriptor desc : model0.getMeasurements()) {
@@ -247,7 +244,7 @@ public class DfmInitializerTest {
             }
         });
 
-        estimator.setMaxIter(500);
+        estimator.setMaxIter(1000);
 //        estimator.setMaxInitialIter(0);
 //        estimator.setMaxNextIter(3);
         //monitor.setInitializer(initializer);
@@ -268,9 +265,12 @@ public class DfmInitializerTest {
         }
         DynamicFactorModel model0 = dmodel.clone();
         model0.normalize();
-        model0.setInitialization(DynamicFactorModel.Initialization.Zero);
-        
         DfmInformationSet dfmInformationSet = new DfmInformationSet(s);
+
+        //DefaultInitializer initializer = new DefaultInitializer();
+        PcInitializer initializer = new PcInitializer();
+        //initializer.initialize(model0, dfmInformationSet);
+
         DynamicFactorModel model1 = model0.clone();
         DfmMonitor monitor = new DfmMonitor();
         DfmEstimator estimator = new DfmEstimator(new DfmEstimator.IEstimationHook() {
@@ -287,13 +287,21 @@ public class DfmInitializerTest {
                 return true;
             }
         });
-        estimator.setMaxIter(100);
-        estimator.setMaxInitialIter(0);
+        model0.setInitialization(DynamicFactorModel.Initialization.Zero);
+//        DfmEM2 em = new DfmEM2(null);
+//        em.setMaxIter(500);
+//        em.initialize(model0, dfmInformationSet);
+//
+//        model0.setInitialization(DynamicFactorModel.Initialization.Zero);
+//        estimator.setMaxInitialIter(0);
+//        estimator.setMaxNextIter(10);
         monitor.setEstimator(estimator);
-        monitor.process(model0, s);
-
+        estimator.setMaxIter(10000);
+        //monitor.process(model0, s);
+        //DfmEM em = new DfmEM();
         DfmEM2 em = new DfmEM2(null);
-        em.setMaxIter(10000);
+        //em.setCorrectingInitialVariance(false);
+        em.setMaxIter(30000);
         em.initialize(model0, dfmInformationSet);
 
     }

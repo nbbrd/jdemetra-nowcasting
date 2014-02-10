@@ -16,24 +16,26 @@
  */
 package ec.tss.Dfm;
 
-import ec.tstoolkit.dfm.DfmSpecification;
+import ec.tstoolkit.dfm.DfmModelSpec;
 import ec.tstoolkit.algorithm.AlgorithmDescriptor;
+import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.algorithm.IProcSpecification;
 import ec.tstoolkit.algorithm.IProcessing;
 import ec.tstoolkit.algorithm.IProcessingFactory;
 import ec.tstoolkit.algorithm.ProcessingContext;
+import ec.tstoolkit.dfm.DfmSpec;
 import ec.tstoolkit.timeseries.regression.TsVariables;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
  *
  * @author Jean Palate
  */
-public class DfmProcessor implements IProcessingFactory<DfmSpecification, TsVariables, DfmResults> {
+public class DfmProcessor implements IProcessingFactory<DfmSpec, TsVariables, CompositeResults> {
 
-    public static final AlgorithmDescriptor DESCRIPTOR=new AlgorithmDescriptor
-            ("Nowcasting", "DynamicFactorModel", "1.0");
-    
+    public static final AlgorithmDescriptor DESCRIPTOR = new AlgorithmDescriptor("Nowcasting", "DynamicFactorModel", "1.0");
+
     @Override
     public void dispose() {
     }
@@ -45,22 +47,24 @@ public class DfmProcessor implements IProcessingFactory<DfmSpecification, TsVari
 
     @Override
     public boolean canHandle(IProcSpecification spec) {
-        return spec instanceof DfmSpecification;
+        return spec instanceof DfmModelSpec;
     }
 
     @Override
-    public IProcessing<TsVariables, DfmResults> generateProcessing(DfmSpecification specification, ProcessingContext context) {
+    public IProcessing<TsVariables, CompositeResults> generateProcessing(DfmSpec specification, ProcessingContext context) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-    public Map<String, Class> getSpecificationDictionary(Class<DfmSpecification> specClass) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public Map<String, Class> getSpecificationDictionary(Class<DfmSpec> specClass) {
+        HashMap<String, Class> dic = new HashMap<>();
+        DfmSpec.fillDictionary(null, dic);
+        return dic;
     }
 
     @Override
     public Map<String, Class> getOutputDictionary() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
-    
+
 }

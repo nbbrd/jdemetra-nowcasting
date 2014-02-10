@@ -1,0 +1,107 @@
+/*
+ * Copyright 2013 National Bank of Belgium
+ * 
+ * Licensed under the EUPL, Version 1.1 or – as soon they will be approved 
+ * by the European Commission - subsequent versions of the EUPL (the "Licence");
+ * You may not use this work except in compliance with the Licence.
+ * You may obtain a copy of the Licence at:
+ * 
+ * http://ec.europa.eu/idabc/eupl
+ * 
+ * Unless required by applicable law or agreed to in writing, software 
+ * distributed under the Licence is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the Licence for the specific language governing permissions and 
+ * limitations under the Licence.
+ */
+package ec.tstoolkit.dfm;
+
+import ec.tstoolkit.var.VarSpec;
+import ec.tstoolkit.algorithm.IProcSpecification;
+import ec.tstoolkit.information.InformationSet;
+import java.util.Map;
+import java.util.Objects;
+
+/**
+ *
+ * @author Jean Palate
+ */
+public class DfmSpec implements IProcSpecification, Cloneable {
+
+    public static final String MSPEC = "model", ESPEC = "estimation";
+    private DfmModelSpec model_;
+    private DfmEstimationSpec estimation_;
+
+    public DfmModelSpec getModelSpec() {
+        return model_;
+    }
+
+    public void setModelSpec(DfmModelSpec spec) {
+        model_ = spec;
+    }
+
+    public DfmEstimationSpec getEstimationSpec() {
+        return estimation_;
+    }
+
+    public void setEstimationSpec(DfmEstimationSpec spec) {
+        estimation_ = spec;
+    }
+
+    @Override
+    public DfmSpec clone() {
+        try {
+            DfmSpec spec = (DfmSpec) super.clone();
+            spec.model_ = model_.clone();
+            spec.estimation_ = estimation_.clone();
+            return spec;
+        } catch (CloneNotSupportedException ex) {
+            throw new AssertionError();
+        }
+    }
+
+    @Override
+    public InformationSet write(boolean verbose) {
+        InformationSet info = new InformationSet();
+        info.add(MSPEC, model_.write(verbose));
+        info.add(ESPEC, estimation_.write(verbose));
+        return info;
+    }
+
+    @Override
+    public boolean read(InformationSet info) {
+        if (info == null) {
+            return false;
+        }
+        if (model_.read(info.getSubSet(MSPEC))) {
+            return false;
+        }
+        if (estimation_.read(info.getSubSet(ESPEC))) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return this == obj || (obj instanceof DfmSpec && equals((DfmSpec) obj));
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 29 * hash + Objects.hashCode(this.model_);
+        hash = 29 * hash + Objects.hashCode(this.estimation_);
+        return hash;
+    }
+
+    public boolean equals(DfmSpec spec) {
+        return model_.equals(spec.model_) && estimation_.equals(spec.estimation_);
+    }
+
+    public static void fillDictionary(String prefix, Map<String, Class> dic) {
+        VarSpec.fillDictionary(InformationSet.item(prefix, MSPEC), dic);
+        MeasurementSpec.fillDictionary(InformationSet.item(prefix, ESPEC), dic);
+    }
+
+}

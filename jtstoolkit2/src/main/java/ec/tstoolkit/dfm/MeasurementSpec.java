@@ -18,16 +18,16 @@ package ec.tstoolkit.dfm;
 
 import ec.tstoolkit.Parameter;
 import ec.tstoolkit.algorithm.IProcSpecification;
-import ec.tstoolkit.dfm.DynamicFactorModel;
 import ec.tstoolkit.information.InformationSet;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  *
  * @author Jean Palate
  */
-public class MeasurementSpecification implements IProcSpecification {
+public class MeasurementSpec implements IProcSpecification {
 
     public static final String NAME = "name", COEFF = "coeff", VAR = "var", TYPE = "type";
     private String name;
@@ -36,9 +36,9 @@ public class MeasurementSpecification implements IProcSpecification {
     private DynamicFactorModel.MeasurementType type;
 
     @Override
-    public MeasurementSpecification clone() {
+    public MeasurementSpec clone() {
         try {
-            MeasurementSpecification m = (MeasurementSpecification) super.clone();
+            MeasurementSpec m = (MeasurementSpec) super.clone();
             if (coeff != null) {
                 m.coeff = coeff.clone();
             }
@@ -122,4 +122,29 @@ public class MeasurementSpecification implements IProcSpecification {
     public void setType(DynamicFactorModel.MeasurementType type) {
         this.type = type;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        return this == obj || (obj instanceof MeasurementSpec && equals((MeasurementSpec) obj));
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 17 * hash + Objects.hashCode(this.var);
+        hash = 17 * hash + Objects.hashCode(this.type);
+        return hash;
+    }
+
+    public boolean equals(MeasurementSpec spec) {
+        return type == spec.type && var.equals(spec.var) && Arrays.deepEquals(coeff, spec.coeff);
+    }
+
+    public static void fillDictionary(String prefix, Map<String, Class> dic) {
+        dic.put(InformationSet.item(prefix, NAME), String.class);
+        dic.put(InformationSet.item(prefix, TYPE), String.class);
+        dic.put(InformationSet.item(prefix, VAR), Parameter.class);
+        dic.put(InformationSet.item(prefix, COEFF), Parameter[].class);
+    }
+
 }

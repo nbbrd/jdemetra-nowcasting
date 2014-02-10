@@ -20,18 +20,20 @@ import ec.tstoolkit.Parameter;
 import ec.tstoolkit.algorithm.IProcSpecification;
 import ec.tstoolkit.data.Table;
 import ec.tstoolkit.information.InformationSet;
+import java.util.Arrays;
+import java.util.Map;
 
 /**
  * Specification for a VAR model
  *
  * @author Jean Palate
  */
-public class VarSpecification implements IProcSpecification, Cloneable {
+public class VarSpec implements IProcSpecification, Cloneable {
 
     public static final String NVARS = "nvars", NLAGS = "nlags", VPARAMS = "vparams",
             NPARAMS = "nparams";
 
-    public VarSpecification() {
+    public VarSpec() {
     }
 
     public void setSize(final int nvars, final int nlags) {
@@ -40,13 +42,13 @@ public class VarSpecification implements IProcSpecification, Cloneable {
         vparams = new Table<>(nvars, nvars * nlags);
         nparams = new Table<>(nvars, nvars);
     }
-    
-    public int getEquationsCount(){
+
+    public int getEquationsCount() {
         return nparams.getRowsCount();
     }
-    
-    public int getLagsCount(){
-        return vparams.getColumnsCount()/vparams.getRowsCount();
+
+    public int getLagsCount() {
+        return vparams.getColumnsCount() / vparams.getRowsCount();
     }
 
     public Table<Parameter> getVarParams() {
@@ -78,9 +80,9 @@ public class VarSpecification implements IProcSpecification, Cloneable {
     private Table<Parameter> nparams;
 
     @Override
-    public VarSpecification clone() {
+    public VarSpec clone() {
         try {
-            VarSpecification spec = (VarSpecification) super.clone();
+            VarSpec spec = (VarSpec) super.clone();
             spec.nparams = new Table<>(nparams);
             spec.vparams = new Table<>(vparams);
             return spec;
@@ -143,6 +145,33 @@ public class VarSpecification implements IProcSpecification, Cloneable {
             }
         }
         return true;
-
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        return this == obj || (obj instanceof VarSpec && equals((VarSpec) obj));
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 5;
+        hash = 41 * hash + this.nvars;
+        hash = 41 * hash + this.nlags;
+        return hash;
+    }
+
+    public boolean equals(VarSpec spec) {
+        if (spec.nlags != nlags || spec.nvars != nvars) {
+            return false;
+        }
+        return Arrays.deepEquals(spec.nparams.storage(), nparams.storage())
+                && Arrays.deepEquals(spec.vparams.storage(), vparams.storage());
+    }
+    
+     public static void fillDictionary(String prefix, Map<String, Class> dic) {
+        dic.put(InformationSet.item(prefix, NVARS), Integer.class);
+        dic.put(InformationSet.item(prefix, NLAGS), Integer.class);
+        dic.put(InformationSet.item(prefix, VPARAMS), Parameter[].class);
+        dic.put(InformationSet.item(prefix, NPARAMS), Parameter[].class);
+     }
 }

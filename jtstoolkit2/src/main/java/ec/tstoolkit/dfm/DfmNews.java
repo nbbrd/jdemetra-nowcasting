@@ -151,7 +151,6 @@ public class DfmNews {
         MSmoothingResults srslts = new MSmoothingResults();
         srslts.setSavingStart(last);
         smoother.process(ssf, ssfData, frslts, srslts);
-        srslts.setStandardError(1);
         mcov_ = new Matrix(srslts.P(last));
         return true;
     }

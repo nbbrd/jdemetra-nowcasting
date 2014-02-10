@@ -36,10 +36,13 @@ import java.util.Arrays;
  * @author Jean Palate
  */
 public class PcInitializer implements IDfmInitializer {
+    
+    public static final double DEF_NS=.80;
 
     private Matrix data_, datac_;
     private ec.tstoolkit.pca.PrincipalComponents[] pc_;
     private TsDomain idom_;
+   private double ns_ = DEF_NS;
 
     public TsDomain getEstimationDomain() {
         return idom_;
@@ -47,6 +50,19 @@ public class PcInitializer implements IDfmInitializer {
 
     public void setEstimationDomain(TsDomain dom) {
         idom_ = dom;
+    }
+    
+    /**
+     * Gets the minimal percentage of non missing values for determining the time span of
+     * the principal components estimation.
+     * @return A value in ]0,1]
+     */
+    public double getNonMissingThreshold(){
+        return ns_;
+    }
+    
+    public void setNonMissingThreshold(double val){
+        ns_=val;
     }
 
     @Override
@@ -246,8 +262,7 @@ public class PcInitializer implements IDfmInitializer {
         }
         return true;
     }
-    private double ns = .80;
-
+  
     private TsDomain searchDomain(DfmInformationSet input) {
         int n = input.getSeriesCount();
         Day[] start = new Day[n];
@@ -260,7 +275,7 @@ public class PcInitializer implements IDfmInitializer {
         Arrays.sort(start);
         Arrays.sort(end);
         TsPeriodSelector sel = new TsPeriodSelector();
-        int t = (int) ((n - 1) * ns);
+        int t = (int) ((n - 1) * ns_);
         sel.between(start[t], end[n - 1 - t]);
         return input.getCurrentDomain().select(sel);
     }

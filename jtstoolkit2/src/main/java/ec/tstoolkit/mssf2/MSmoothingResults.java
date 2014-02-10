@@ -35,7 +35,6 @@ public class MSmoothingResults {
     private MatrixStorage m_P, m_N;
     private boolean m_bP, m_bA = true, m_bR, m_bN;
     private int m_start;
-    private double m_ser = 1;
 
     /**
      *
@@ -50,22 +49,6 @@ public class MSmoothingResults {
      */
     public DataBlock A(int idx) {
         return (m_a == null || idx < m_start) ? null : m_a.block(idx - m_start);
-    }
-
-    /**
-     *
-     * @return
-     */
-    public double getStandardError() {
-        return m_ser;
-    }
-
-    /**
-     *
-     * @param value
-     */
-    public void setStandardError(double value) {
-        m_ser = value;
     }
 
     private int check(DataBlock z) {
@@ -110,16 +93,9 @@ public class MSmoothingResults {
      * @param j
      * @return
      */
-    public double[] componentCovar(int i, int j) {
-        if (m_P == null) {
-            return null;
-        }
-        double[] c = new double[m_n - m_start];
-        double ser2 = m_ser * m_ser;
-        for (int z = 0; z < m_n - m_start; ++z) {
-            c[z] = m_P.matrix(z- m_start).get(i, j) * ser2;
-        }
-        return c;
+    public DataBlock componentCovar(int i, int j) {
+        int len = m_n - m_start;
+        return m_P.item(i, j);
     }
 
     /**
@@ -132,8 +108,9 @@ public class MSmoothingResults {
             return null;
         }
         double[] c = new double[m_n - m_start];
-        for (int i = 0; i < m_n - m_start; ++i) {
-            c[i] = Math.sqrt(m_P.matrix(i- m_start).get(idx, idx)) * m_ser;
+        DataBlock var = componentCovar(idx, idx);
+        for (int i = 0; i < c.length; ++i) {
+            c[i] = Math.sqrt(var.get(i));
         }
         return c;
     }
@@ -143,16 +120,11 @@ public class MSmoothingResults {
      * @param idx
      * @return
      */
-    public double[] componentVar(int idx) {
+    public DataBlock componentVar(int idx) {
         if (m_P == null) {
             return null;
         }
-        double[] c = new double[m_n - m_start];
-        double ser2 = m_ser * m_ser;
-        for (int i = 0; i < m_n - m_start; ++i) {
-            c[i] = m_P.matrix(i- m_start).get(idx, idx) * ser2;
-        }
-        return c;
+        return componentCovar(idx, idx);
     }
 
     /**
@@ -178,6 +150,7 @@ public class MSmoothingResults {
     public MatrixStorage getSmoothedStatesVariance() {
         return m_P;
     }
+
     /**
      *
      * @return
@@ -218,19 +191,19 @@ public class MSmoothingResults {
      * @return
      */
     public SubMatrix P(int idx) {
-        return (m_P == null || idx < m_start) ? null : m_P.matrix(idx-m_start);
+        return (m_P == null || idx < m_start) ? null : m_P.matrix(idx - m_start);
     }
 
     /**
      *
      * @param n
-     * @param d 
-     * @param v  
+     * @param d
+     * @param v
      */
     public void prepare(int n, int d, int v) {
-        int nz=n-m_start;
+        int nz = n - m_start;
         m_n = n;
-        m_d=d;
+        m_d = d;
         m_v = v;
         clear();
         if (m_bA) {
@@ -248,9 +221,10 @@ public class MSmoothingResults {
      * @param p
      */
     public void save(final int pos, DataBlock a, Matrix p) {
-        int np=pos-m_start;
-        if (np<0)
+        int np = pos - m_start;
+        if (np < 0) {
             return;
+        }
         if (m_bA) {
             m_a.save(np, a);
         }
@@ -303,20 +277,17 @@ public class MSmoothingResults {
      * @return
      */
     public double[] zvariance(DataBlock z) {
-        if (m_P == null)
+        if (m_P == null) {
             return null;
+        }
         int iz = check(z);
-        if (iz >= 0) {
-            return componentVar(iz);
-        }
-
-        if (m_d != z.getLength()) {
-            return null;
-        }
         double[] var = new double[m_n - m_start];
-        double ser2 = m_ser * m_ser;
-        for (int i = 0; i < m_n - m_start; ++i) {
-            var[i] = SymmetricMatrix.quadraticForm(m_P.matrix(i), z) * ser2;
+        if (iz >= 0) {
+            componentVar(iz).copyTo(var, 0);
+        } else if (m_d == z.getLength()) {
+            for (int i = 0; i < m_n - m_start; ++i) {
+                var[i] = SymmetricMatrix.quadraticForm(m_P.matrix(i), z);
+            }
         }
         return var;
     }
@@ -328,6 +299,6 @@ public class MSmoothingResults {
      * @return
      */
     public double zvariance(int idx, DataBlock z) {
-        return m_P == null || idx < m_start ? Double.NaN : SymmetricMatrix.quadraticForm(m_P.matrix(idx), z) * m_ser * m_ser;
+        return m_P == null || idx < m_start ? Double.NaN : SymmetricMatrix.quadraticForm(m_P.matrix(idx), z);
     }
 }

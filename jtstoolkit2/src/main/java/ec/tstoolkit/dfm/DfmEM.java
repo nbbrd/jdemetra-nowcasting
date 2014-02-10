@@ -365,7 +365,10 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         double logLike;
         E_S();
         M_S();
-
+//        DynamicFactorModel tmp = dfm.clone();
+//        tmp.normalize();
+//        System.out.println(tmp);
+//
         dfmproc.process(dfm, data);
         frslts_ = dfmproc.getFilteringResults();
 
@@ -845,7 +848,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         
        //  MSmoothingResults srslts_;      
         srslts_ = dfmproc.getSmoothingResults();
-        srslts_.setStandardError(1);
+        //srslts_.setStandardError(1);
         // MFilteringResults frslts_;
         frslts_ = dfmproc.getFilteringResults();
 
@@ -906,7 +909,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         for (int i = 0; i < temp2_.length; i++) {
             for (int j = 0; j < temp2_.length; j++) {
          //     covij_sum = sum0(srslts_.componentCovar(temp2_[i], temp2_[j]));
-                covij_sum =  sum(srslts_.componentCovar(temp2_[i], temp2_[j]));
+                covij_sum =  srslts_.componentCovar(temp2_[i], temp2_[j]).sum();
 
                 eP.set(i, j, covij_sum);
             }
@@ -941,7 +944,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         for (int i = 0; i < temp2.length; i++) {
             for (int j = 0; j < temp2.length; j++) {
                 //-->NOT NEEDED covij_sum = sumT(srslts_.componentCovar(temp2[i], temp2[j]));
-                                covij_sum =  sum(srslts_.componentCovar(temp2[i]+1, temp2[j]+1));
+                                covij_sum =  srslts_.componentCovar(temp2[i]+1, temp2[j]+1).sum();
 
                 // incorporate smoothed initial variance 
               //-->NOT NEEDED   covij_0 =srslts_.P(0).get(temp2[i]+1, temp2[j]+1);
@@ -989,7 +992,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         double covij_sum, covij_0;    // SIMPLIFY IT
         for (int i = 0; i < temp2_.length; i++) {
             for (int j = 0; j < temp2.length; j++) {
-                     covij_sum =sum(srslts_.componentCovar(temp2_[i], temp2[j]+1));
+                     covij_sum =srslts_.componentCovar(temp2_[i], temp2[j]+1).sum();
 //***                covij_sum =sum0(srslts_.componentCovar(temp2_[i], temp2[j]+1));
                   // just set eP
                     

@@ -60,7 +60,7 @@ public class DfmEstimator implements IDfmEstimator {
             return rslt;
         }
     }
-    private int maxiter_ = 200;
+    private int maxiter_ = 500;
     private boolean converged_;
     private final IFunctionMinimizer min_;
     private int nstart_ = 15, nnext_ = 5;
@@ -94,6 +94,10 @@ public class DfmEstimator implements IDfmEstimator {
     public int getMaxInitialIter() {
         return nstart_;
     }
+    
+    public void setMaxInitialIter(int n) {
+        nstart_ = n;
+    }
 
     public int getMaxNextIter() {
         return nnext_;
@@ -101,10 +105,6 @@ public class DfmEstimator implements IDfmEstimator {
 
     public void setMaxIter(int iter) {
         maxiter_ = iter;
-    }
-
-    public void setMaxInitialIter(int n) {
-        nstart_ = n;
     }
 
     public void setMaxNextIter(int n) {

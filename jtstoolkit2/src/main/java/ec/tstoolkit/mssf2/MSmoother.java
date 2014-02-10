@@ -237,12 +237,6 @@ public class MSmoother {
             m_srslts.save(m_pos, m_a, m_V);
             --m_pos;
         }
-        if (m_bvar) {
-            Likelihood ll = new Likelihood();
-            frslts.evaluate(ll);
-            double ser = ll.getSer();
-            m_srslts.setStandardError(ser);
-        }
 
         return true;
     }
