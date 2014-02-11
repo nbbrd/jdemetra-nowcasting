@@ -16,6 +16,8 @@
  */
 package ec.tstoolkit.dfm;
 
+import ec.satoolkit.ISaSpecification;
+import ec.satoolkit.tramoseats.TramoSeatsSpecification;
 import ec.tstoolkit.var.VarSpec;
 import ec.tstoolkit.algorithm.IProcSpecification;
 import ec.tstoolkit.information.InformationSet;
@@ -28,9 +30,10 @@ import java.util.Objects;
  */
 public class DfmSpec implements IProcSpecification, Cloneable {
 
-    public static final String MSPEC = "model", ESPEC = "estimation";
+    public static final String MSPEC = "model", ESPEC = "estimation", SASPEC = "sa";
     private DfmModelSpec model_;
     private DfmEstimationSpec estimation_;
+    private ISaSpecification sa_ = TramoSeatsSpecification.RSA4;
 
     public DfmModelSpec getModelSpec() {
         return model_;
@@ -48,12 +51,21 @@ public class DfmSpec implements IProcSpecification, Cloneable {
         estimation_ = spec;
     }
 
+    public ISaSpecification getSaSpec() {
+        return sa_;
+    }
+
+    public void setSaSpecification(ISaSpecification sa) {
+        sa_ = sa;
+    }
+
     @Override
     public DfmSpec clone() {
         try {
             DfmSpec spec = (DfmSpec) super.clone();
             spec.model_ = model_.clone();
             spec.estimation_ = estimation_.clone();
+            spec.sa_ = sa_.clone();
             return spec;
         } catch (CloneNotSupportedException ex) {
             throw new AssertionError();
@@ -65,6 +77,7 @@ public class DfmSpec implements IProcSpecification, Cloneable {
         InformationSet info = new InformationSet();
         info.add(MSPEC, model_.write(verbose));
         info.add(ESPEC, estimation_.write(verbose));
+        info.add(SASPEC, sa_.write(verbose));
         return info;
     }
 
@@ -77,6 +90,9 @@ public class DfmSpec implements IProcSpecification, Cloneable {
             return false;
         }
         if (estimation_.read(info.getSubSet(ESPEC))) {
+            return false;
+        }
+        if (!sa_.read(info.getSubSet(SASPEC))) {
             return false;
         }
         return true;
@@ -96,7 +112,7 @@ public class DfmSpec implements IProcSpecification, Cloneable {
     }
 
     public boolean equals(DfmSpec spec) {
-        return model_.equals(spec.model_) && estimation_.equals(spec.estimation_);
+        return model_.equals(spec.model_) && estimation_.equals(spec.estimation_) && sa_.equals(spec.sa_);
     }
 
     public static void fillDictionary(String prefix, Map<String, Class> dic) {

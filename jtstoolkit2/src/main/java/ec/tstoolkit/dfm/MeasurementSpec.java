@@ -29,8 +29,16 @@ import java.util.Objects;
  */
 public class MeasurementSpec implements IProcSpecification {
 
-    public static final String NAME = "name", COEFF = "coeff", VAR = "var", TYPE = "type";
+    public static enum Transformation {
+
+        Log,
+        Sa,
+        Diff
+    }
+
+    public static final String NAME = "name", SERIESTRANSFORMATIONS = "stransformations", COEFF = "coeff", VAR = "var", FACTORTRANSFORMATION = "ftransformation";
     private String name;
+    private Transformation[] transformations;
     private Parameter[] coeff;
     private Parameter var;
     private DynamicFactorModel.MeasurementType type;
@@ -45,6 +53,9 @@ public class MeasurementSpec implements IProcSpecification {
             if (var != null) {
                 m.var = var.clone();
             }
+            if (transformations != null) {
+                m.transformations = transformations.clone();
+            }
             return m;
         } catch (CloneNotSupportedException ex) {
             throw new AssertionError();
@@ -54,14 +65,21 @@ public class MeasurementSpec implements IProcSpecification {
     @Override
     public InformationSet write(boolean verbose) {
         InformationSet info = new InformationSet();
-        info.add(NAME, name);
+        info.set(NAME, name);
         if (Parameter.isDefined(coeff)) {
-            info.add(COEFF, coeff);
+            info.set(COEFF, coeff);
         }
         if (Parameter.isDefined(var)) {
-            info.add(VAR, var);
+            info.set(VAR, var);
         }
-        info.add(TYPE, type.name());
+        if (transformations != null) {
+            String[] t = new String[transformations.length];
+            for (int i = 0; i < t.length; ++i) {
+                t[i] = transformations[i].name();
+            }
+            info.set(SERIESTRANSFORMATIONS, t);
+        }
+        info.set(FACTORTRANSFORMATION, type.name());
         return info;
     }
 
@@ -73,11 +91,19 @@ public class MeasurementSpec implements IProcSpecification {
         name = info.get(NAME, String.class);
         coeff = info.get(COEFF, Parameter[].class);
         var = info.get(VAR, Parameter.class);
-        String t = info.get(TYPE, String.class);
+        String[] tr = info.get(SERIESTRANSFORMATIONS, String[].class);
+        if (tr != null) {
+            transformations = new Transformation[tr.length];
+            for (int i = 0; i < tr.length; ++i) {
+                transformations[i] = Transformation.valueOf(tr[i]);
+            }
+        }
+        String t = info.get(FACTORTRANSFORMATION, String.class);
         if (t == null) {
             return false;
         }
         type = DynamicFactorModel.MeasurementType.valueOf(t);
+
         return type != null;
     }
 
@@ -93,6 +119,14 @@ public class MeasurementSpec implements IProcSpecification {
      */
     public void setCoefficient(Parameter[] coeff) {
         this.coeff = coeff;
+    }
+
+    public Transformation[] getSeriesTransformations() {
+        return transformations;
+    }
+
+    public void setSeriesTransformations(Transformation[] tr) {
+        this.transformations = tr;
     }
 
     /**
@@ -112,15 +146,23 @@ public class MeasurementSpec implements IProcSpecification {
     /**
      * @return the type
      */
-    public DynamicFactorModel.MeasurementType getType() {
+    public DynamicFactorModel.MeasurementType getFactorsTransformation() {
         return type;
     }
 
     /**
-     * @param type the type to set
+     * @param type the transformation of the factors to set
      */
-    public void setType(DynamicFactorModel.MeasurementType type) {
+    public void setFactorsTransformation(DynamicFactorModel.MeasurementType type) {
         this.type = type;
+    }
+    
+    public String getName(){
+        return name;
+    }
+    
+    public void setName(String name){
+        this.name=name;
     }
 
     @Override
@@ -142,7 +184,8 @@ public class MeasurementSpec implements IProcSpecification {
 
     public static void fillDictionary(String prefix, Map<String, Class> dic) {
         dic.put(InformationSet.item(prefix, NAME), String.class);
-        dic.put(InformationSet.item(prefix, TYPE), String.class);
+        dic.put(InformationSet.item(prefix, SERIESTRANSFORMATIONS), String[].class);
+        dic.put(InformationSet.item(prefix, FACTORTRANSFORMATION), String.class);
         dic.put(InformationSet.item(prefix, VAR), Parameter.class);
         dic.put(InformationSet.item(prefix, COEFF), Parameter[].class);
     }

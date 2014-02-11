@@ -30,7 +30,7 @@ import java.util.Map;
  */
 public class DfmResults implements IProcResults{
     
-    private DynamicFactorModel model;
+    DynamicFactorModel model;
     // optimization (if any)
     Likelihood likelihood;
     Matrix hessian;

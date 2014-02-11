@@ -13,6 +13,7 @@ import ec.tstoolkit.maths.matrices.SubMatrix;
 import ec.tstoolkit.maths.matrices.SymmetricMatrix;
 import ec.tstoolkit.mssf2.DefaultTimeInvariantMultivariateSsf;
 import ec.tstoolkit.mssf2.IMSsf;
+import ec.tstoolkit.var.VarSpec;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -481,33 +482,11 @@ public class DynamicFactorModel implements Cloneable {
         }
     }
 
-    /**
-     * Initialisation of the model. Only the covariance of the state array is
-     * considered in the model (the initial prediction errors are defined with
-     * the data).
-     */
-    public static enum Initialization {
-
-        /**
-         * Zero initialisation. [A(-1)=0,] P(-1)=0 -> [A(0|-1)=0,] P(0|-1)=Q
-         * (transition innovations)
-         */
-        Zero,
-        /**
-         * Steady state (or unconditional) initialisation, defined by V=TVT'+Q
-         * [A(0|-1)=0,] V
-         */
-        SteadyState,
-        /**
-         * [A(0) and] P(0) are pre-specified
-         */
-        UserDefined
-    }
     private int c_;
     private final int nf_;
     private TransitionDescriptor tdesc_;
     private List<MeasurementDescriptor> mdesc_ = new ArrayList<>();
-    private Initialization init_ = Initialization.SteadyState;
+    private VarSpec.Initialization init_ = VarSpec.Initialization.SteadyState;
     private Matrix V0_;
 
     /**
@@ -760,9 +739,9 @@ public class DynamicFactorModel implements Cloneable {
      *
      * @param init
      */
-    public void setInitialization(Initialization init) {
+    public void setInitialization(VarSpec.Initialization init) {
         init_ = init;
-        if (init_ != Initialization.UserDefined) {
+        if (init_ != VarSpec.Initialization.UserDefined) {
             V0_ = null;
         }
     }
@@ -771,7 +750,7 @@ public class DynamicFactorModel implements Cloneable {
      *
      * @return
      */
-    public Initialization getInitialization() {
+    public VarSpec.Initialization getInitialization() {
         return init_;
     }
 
@@ -781,7 +760,7 @@ public class DynamicFactorModel implements Cloneable {
      */
     public void setInitialCovariance(Matrix v0) {
         V0_ = v0.clone();
-        init_ = Initialization.UserDefined;
+        init_ = VarSpec.Initialization.UserDefined;
     }
 
     @Override
@@ -809,7 +788,7 @@ public class DynamicFactorModel implements Cloneable {
         }
         private final DataBlock ttmp, xtmp;
 
-        private Ssf(Initialization init, Matrix V0) {
+        private Ssf(VarSpec.Initialization init, Matrix V0) {
             int nl = tdesc_.nlags;
             int mdim = nf_ * c_, vdim = mdesc_.size();
             this.initialize(mdim, vdim, nf_, true);

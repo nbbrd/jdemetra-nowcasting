@@ -153,7 +153,7 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
     public DynamicFactorModel build() {
         int blocksize = 0;
         for (MeasurementSpec m : mspecs) {
-            IMeasurement type = DynamicFactorModel.measurement(m.getType());
+            IMeasurement type = DynamicFactorModel.measurement(m.getFactorsTransformation());
             int len = type.getLength();
             if (len > blocksize) {
                 blocksize = len;
@@ -187,7 +187,7 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
         dfm.setTransition(tdesc);
         // measurements
         for (MeasurementSpec m : mspecs) {
-            IMeasurement type = DynamicFactorModel.measurement(m.getType());
+            IMeasurement type = DynamicFactorModel.measurement(m.getFactorsTransformation());
             double[] coeff = new double[nb];
             Parameter p[] = m.getCoefficients();
             for (int i = 0; i < nb; ++i) {

@@ -19,9 +19,11 @@ package ec.tstoolkit.var;
 import ec.tstoolkit.Parameter;
 import ec.tstoolkit.algorithm.IProcSpecification;
 import ec.tstoolkit.data.Table;
+import ec.tstoolkit.dfm.DynamicFactorModel;
 import ec.tstoolkit.information.InformationSet;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Specification for a VAR model
@@ -30,8 +32,54 @@ import java.util.Map;
  */
 public class VarSpec implements IProcSpecification, Cloneable {
 
+    /**
+     * Initialisation of the model. Only the covariance of the state array is
+     * considered in the model (the initial prediction errors are defined with
+     * the data).
+     */
+    public static enum Initialization {
+
+        /**
+         * Zero initialisation. [A(-1)=0,] P(-1)=0 -> [A(0|-1)=0,] P(0|-1)=Q
+         * (transition innovations)
+         */
+        Zero,
+        /**
+         * Steady state (or unconditional) initialisation, defined by V=TVT'+Q
+         * [A(0|-1)=0,] V
+         */
+        SteadyState,
+        /**
+         * [A(0) and] P(0) are pre-specified
+         */
+        UserDefined
+    }
+
     public static final String NVARS = "nvars", NLAGS = "nlags", VPARAMS = "vparams",
-            NPARAMS = "nparams";
+            NPARAMS = "nparams", INIT="initialization";
+
+    /**
+     * Number of variables
+     */
+    private int nvars;
+    /**
+     * Number of lags in the auto-regressive polynomial
+     */
+    private int nlags;
+    /**
+     * Parameters of the auto-regressive polynomial P(B)v(t) = P1*v(t-1) +
+     * P2*v(t-2)...+ Pnlags*v(t-nlags) The parameters are arranged as follows: -
+     * columns [0, nvars[ contain P1 - ... - columns [(nlags-1)*nvars,
+     * nlags*nvars[ contain Pnlags
+     */
+    private Table<Parameter> vparams;
+    /**
+     * Parameters of the noise disturbances. Only the lower triangular part of
+     * the matrix should be used.
+     */
+    private Table<Parameter> nparams;
+    
+    private Initialization init_=Initialization.SteadyState;
 
     public VarSpec() {
     }
@@ -58,27 +106,15 @@ public class VarSpec implements IProcSpecification, Cloneable {
     public Table<Parameter> getNoiseParams() {
         return nparams;
     }
-    /**
-     * Number of variables
-     */
-    private int nvars;
-    /**
-     * Number of lags in the auto-regressive polynomial
-     */
-    private int nlags;
-    /**
-     * Parameters of the auto-regressive polynomial P(B)v(t) = P1*v(t-1) +
-     * P2*v(t-2)...+ Pnlags*v(t-nlags) The parameters are arranged as follows: -
-     * columns [0, nvars[ contain P1 - ... - columns [(nlags-1)*nvars,
-     * nlags*nvars[ contain Pnlags
-     */
-    private Table<Parameter> vparams;
-    /**
-     * Parameters of the noise disturbances. Only the lower triangular part of
-     * the matrix should be used.
-     */
-    private Table<Parameter> nparams;
-
+    
+    public Initialization getInitialization(){
+        return init_;
+    }
+    
+    public void setInitialization(Initialization init){
+        init_=init;
+    }
+    
     @Override
     public VarSpec clone() {
         try {
@@ -96,6 +132,7 @@ public class VarSpec implements IProcSpecification, Cloneable {
         InformationSet info = new InformationSet();
         info.add(NVARS, nvars);
         info.add(NLAGS, nlags);
+        info.add(INIT, init_.name());
         Parameter[] p = vparams.storage();
         if (!Parameter.isDefault(p)) {
             info.add(VPARAMS, p);
@@ -123,6 +160,9 @@ public class VarSpec implements IProcSpecification, Cloneable {
             return false;
         }
         setSize(nv, nl);
+        String init=info.get(INIT, String.class);
+        if (init != null)
+            init_=Initialization.valueOf(init);
         Parameter[] s = info.get(VPARAMS, Parameter[].class);
         if (s != null) {
             Parameter[] t = vparams.storage();
@@ -154,14 +194,15 @@ public class VarSpec implements IProcSpecification, Cloneable {
 
     @Override
     public int hashCode() {
-        int hash = 5;
-        hash = 41 * hash + this.nvars;
-        hash = 41 * hash + this.nlags;
+        int hash = 3;
+        hash = 79 * hash + this.nvars;
+        hash = 79 * hash + this.nlags;
+        hash = 79 * hash + Objects.hashCode(this.init_);
         return hash;
     }
 
     public boolean equals(VarSpec spec) {
-        if (spec.nlags != nlags || spec.nvars != nvars) {
+        if (spec.nlags != nlags || spec.nvars != nvars || init_ != spec.init_) {
             return false;
         }
         return Arrays.deepEquals(spec.nparams.storage(), nparams.storage())
@@ -171,6 +212,7 @@ public class VarSpec implements IProcSpecification, Cloneable {
      public static void fillDictionary(String prefix, Map<String, Class> dic) {
         dic.put(InformationSet.item(prefix, NVARS), Integer.class);
         dic.put(InformationSet.item(prefix, NLAGS), Integer.class);
+       dic.put(InformationSet.item(prefix, INIT), String.class);
         dic.put(InformationSet.item(prefix, VPARAMS), Parameter[].class);
         dic.put(InformationSet.item(prefix, NPARAMS), Parameter[].class);
      }

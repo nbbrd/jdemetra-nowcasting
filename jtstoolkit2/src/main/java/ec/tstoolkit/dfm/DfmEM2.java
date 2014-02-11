@@ -29,6 +29,7 @@ import ec.tstoolkit.mssf2.MFilter;
 import ec.tstoolkit.mssf2.MPredictionErrorDecomposition;
 import ec.tstoolkit.mssf2.MultivariateSsfData;
 import ec.tstoolkit.ssf2.ResidualsCumulator;
+import ec.tstoolkit.var.VarSpec;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
@@ -353,7 +354,7 @@ public class DfmEM2 implements IDfmInitializer {
         Q.sub(Y);
         Q.mul(1.0 / dataSize);
 
-        if (correctStart_ && dfm.getInitialization() != DynamicFactorModel.Initialization.Zero) {
+        if (correctStart_ && dfm.getInitialization() != VarSpec.Initialization.Zero) {
             LbfgsMinimizer bfgs = new LbfgsMinimizer();
             //bfgs.setLineSearch(new SimpleLineSearch());
             bfgs.setMaxIter(30);
@@ -480,7 +481,7 @@ public class DfmEM2 implements IDfmInitializer {
 
             private double calc() {
                 double v = 0;
-                if (dfm.getInitialization() != DynamicFactorModel.Initialization.Zero) {
+                if (dfm.getInitialization() != VarSpec.Initialization.Zero) {
                     v0 = calcdetv0();
                     v1 = calcssq0();
                     v += v0;
@@ -579,7 +580,7 @@ public class DfmEM2 implements IDfmInitializer {
             }
 
             private Matrix calclv0() {
-                if (dfm.getInitialization() == DynamicFactorModel.Initialization.Zero) {
+                if (dfm.getInitialization() == VarSpec.Initialization.Zero) {
                     return null;
                 }
                 // compute the initial covar. We reuse the code of DynamicFactorModel

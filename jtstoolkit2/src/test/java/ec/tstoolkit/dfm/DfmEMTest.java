@@ -14,6 +14,7 @@ import ec.tstoolkit.ssf2.ResidualsCumulator;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
+import ec.tstoolkit.var.VarSpec;
 import org.junit.Test;
 
 /**
@@ -146,7 +147,7 @@ public class DfmEMTest {
         }
         ddrnd = dd.clone();
         ddrnd.randomize();
-        dmodel.setInitialization(DynamicFactorModel.Initialization.SteadyState);
+        dmodel.setInitialization(VarSpec.Initialization.SteadyState);
     }
 
     private static DynamicFactorModel.IMeasurement measurement(int i) {

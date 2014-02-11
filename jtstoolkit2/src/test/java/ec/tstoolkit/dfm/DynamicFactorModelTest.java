@@ -38,6 +38,7 @@ import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDomain;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
+import ec.tstoolkit.var.VarSpec;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -157,7 +158,7 @@ public class DynamicFactorModelTest {
         }
         ddrnd = dd.clone();
         ddrnd.randomize();
-        dmodel.setInitialization(DynamicFactorModel.Initialization.SteadyState);
+        dmodel.setInitialization(VarSpec.Initialization.SteadyState);
     }
 
     private static DynamicFactorModel.IMeasurement measurement(int i) {
