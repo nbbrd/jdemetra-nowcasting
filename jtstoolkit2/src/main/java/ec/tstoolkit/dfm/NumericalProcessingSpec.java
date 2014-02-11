@@ -15,7 +15,7 @@ import java.util.Map;
  */
 public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
 
-    public static final int DEF_VERSION = 2, DEF_MAXITER = 100, DEF_MAXSITER = 15,
+    public static final int DEF_VERSION = 2, DEF_MAXITER = 1000, DEF_MAXSITER = 15,
             DEF_NITER = 5;
     public static final Boolean DEF_BLOCK = true;
     public static final String ENABLED = "enabled", MAXITER = "maxiter", MAXSITER = "maxsiter", NITER = "niter", BLOCKITER = "blockiter", EPS = "eps";
@@ -39,6 +39,30 @@ public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
 
     public int getMaxIter() {
         return maxiter_;
+    }
+
+    public void setMaxInitialIter(int iter) {
+        maxsiter_ = iter;
+    }
+
+    public int getMaxInitialIter() {
+        return maxsiter_;
+    }
+
+    public void setMaxIntermediateIter(int iter) {
+        niter_ = iter;
+    }
+
+    public int getMaxIntermediateIter() {
+        return niter_;
+    }
+    
+    public boolean isBlockIterations(){
+        return block_;
+    }
+    
+    public void setBlockIterations(boolean b){
+        block_=b;
     }
 
     @Override

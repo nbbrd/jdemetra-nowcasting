@@ -17,6 +17,7 @@
 package ec.tss.Dfm;
 
 import ec.tstoolkit.algorithm.IProcResults;
+import ec.tstoolkit.dfm.DfmInformationSet;
 import ec.tstoolkit.dfm.DynamicFactorModel;
 import ec.tstoolkit.eco.Likelihood;
 import ec.tstoolkit.maths.matrices.Matrix;
@@ -30,14 +31,28 @@ import java.util.Map;
  */
 public class DfmResults implements IProcResults{
     
-    DynamicFactorModel model;
+    private final DynamicFactorModel model;
+    private final DfmInformationSet input;
     // optimization (if any)
-    Likelihood likelihood;
-    Matrix hessian;
-    double[] gradient;
+    private Likelihood likelihood;
+    private Matrix hessian;
+    private double[] gradient;
     // smoothing/filtering
-    MSmoothingResults smoothing;
-    MFilteringResults filtering;
+    private MSmoothingResults smoothing;
+    private MFilteringResults filtering;
+    
+    public DfmResults(DynamicFactorModel model, DfmInformationSet input){
+        this.model=model;
+        this.input=input;
+    }
+    
+    public DynamicFactorModel getModel(){
+        return model;
+    }
+    
+    public DfmInformationSet getInput(){
+        return input;
+    }
 
     @Override
     public boolean contains(String id) {

@@ -18,6 +18,7 @@ package ec.tss.Dfm;
 
 import ec.tstoolkit.dfm.DfmModelSpec;
 import ec.tss.documents.ActiveDocument;
+import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.algorithm.ProcessingContext;
 import ec.tstoolkit.dfm.DfmSpec;
 import ec.tstoolkit.timeseries.regression.TsVariables;
@@ -26,7 +27,7 @@ import ec.tstoolkit.timeseries.regression.TsVariables;
  *
  * @author Jean Palate
  */
-public class DfmDocument extends ActiveDocument<DfmSpec, TsVariables, DfmResults> implements Cloneable{
+public class DfmDocument extends ActiveDocument<DfmSpec, TsVariables, CompositeResults> implements Cloneable{
 
    public DfmDocument(String desc){
         super(desc);
@@ -46,9 +47,8 @@ public class DfmDocument extends ActiveDocument<DfmSpec, TsVariables, DfmResults
     }
     
     @Override
-    protected DfmResults recalc(DfmSpec spec, TsVariables input) {
-        
-        return null;
+    protected CompositeResults recalc(DfmSpec spec, TsVariables input) {
+        return DfmProcessor.instance.generateProcessing(spec, null).process(input);
     }
 }  
 

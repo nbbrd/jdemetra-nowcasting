@@ -811,7 +811,9 @@ public class DynamicFactorModel implements Cloneable {
             // Transition
             // T, S
             for (int i = 0, r = 0; i < nf_; ++i, r += c_) {
-                m_S.set(r, i, 1);
+                if (m_S != null) {
+                    m_S.set(r, i, 1);
+                }
                 for (int j = 0, c = 0; j < nf_; ++j, c += c_) {
                     SubMatrix B = m_T.subMatrix(r, r + c_, c, c + c_);
                     if (i == j) {

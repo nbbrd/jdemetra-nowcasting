@@ -182,7 +182,7 @@ public class DfmEM2 implements IDfmInitializer {
             EStep();
             MStep();
 //            System.out.println(dfm);
-        } while (iter_++ < maxiter_);
+        } while (++iter_ < maxiter_);
         
         // finishing
         dfm.normalize();

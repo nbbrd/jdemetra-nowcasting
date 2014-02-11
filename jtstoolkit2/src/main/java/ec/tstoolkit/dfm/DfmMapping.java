@@ -297,7 +297,7 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
         }
         Q.subDiagonal(-nb).set(1);
         IEigenSystem es=EigenSystem.create(Q, false);
-        return es.getEigenValues(1)[0].abs() < 1;
+        return es.getEigenValues(1)[0].abs() < .9999;
         }
         catch (MatrixException err){
             return false;
@@ -307,7 +307,7 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
 
     @Override
     public double epsilon(IReadDataBlock inparams, int idx) {
-        return EPS;
+        return inparams.get(idx)>0 ? -EPS : EPS;
     }
 
     @Override

@@ -44,16 +44,16 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
     public static final String VSPEC = "var", MSPEC = "measurement", MSPECS = "measurement*";
     private VarSpec vspec;
     private final List<MeasurementSpec> mspecs = new ArrayList<>();
-    
-    public VarSpec getVarSpec(){
+
+    public VarSpec getVarSpec() {
         return vspec;
     }
-    
-    public void setVarSpec(VarSpec spec){
-        vspec=spec;
+
+    public void setVarSpec(VarSpec spec) {
+        vspec = spec;
     }
-    
-    public List<MeasurementSpec> getMeasurements(){
+
+    public List<MeasurementSpec> getMeasurements() {
         return mspecs;
     }
 
@@ -113,15 +113,18 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
         hash = 89 * hash + Objects.hashCode(this.vspec);
         return hash;
     }
-    
-    public boolean equals(DfmModelSpec spec){
-        if (!vspec.equals(spec.vspec))
+
+    public boolean equals(DfmModelSpec spec) {
+        if (!vspec.equals(spec.vspec)) {
             return false;
-        if (mspecs.size() != spec.mspecs.size())
+        }
+        if (mspecs.size() != spec.mspecs.size()) {
             return false;
-        for (int i=0; i<mspecs.size(); ++i){
-            if (! mspecs.get(i).equals(spec.mspecs.get(i)))
+        }
+        for (int i = 0; i < mspecs.size(); ++i) {
+            if (!mspecs.get(i).equals(spec.mspecs.get(i))) {
                 return false;
+            }
         }
         return true;
     }
@@ -151,6 +154,7 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
     }
 
     public DynamicFactorModel build() {
+        int nb = vspec.getEquationsCount(), nl = vspec.getLagsCount();
         int blocksize = 0;
         for (MeasurementSpec m : mspecs) {
             IMeasurement type = DynamicFactorModel.measurement(m.getFactorsTransformation());
@@ -159,7 +163,9 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
                 blocksize = len;
             }
         }
-        int nb = vspec.getEquationsCount(), nl = vspec.getLagsCount();
+        if (blocksize < nl) {
+            blocksize = nl;
+        }
         DynamicFactorModel dfm = new DynamicFactorModel(blocksize, nb);
         DynamicFactorModel.TransitionDescriptor tdesc
                 = new DynamicFactorModel.TransitionDescriptor(nb, nl);
@@ -198,16 +204,17 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
                         coeff[i] = p[i].getValue();
                     }
                 }
-                double var = 1;
-                if (Parameter.isDefault(m.getVariance())) {
-                    var = m.getVariance().getValue();
-                }
-                dfm.addMeasurement(new MeasurementDescriptor(type, coeff, var));
             }
+            double var = 1;
+            if (!Parameter.isDefault(m.getVariance())) {
+                var = m.getVariance().getValue();
+            }
+            dfm.addMeasurement(new MeasurementDescriptor(type, coeff, var));
         }
+        dfm.setInitialization(vspec.getInitialization());
         return dfm;
     }
-    
+
     public static void fillDictionary(String prefix, Map<String, Class> dic) {
         VarSpec.fillDictionary(InformationSet.item(prefix, VSPEC), dic);
         MeasurementSpec.fillDictionary(InformationSet.item(prefix, MSPECS), dic);

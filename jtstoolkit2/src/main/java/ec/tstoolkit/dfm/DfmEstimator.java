@@ -94,12 +94,12 @@ public class DfmEstimator implements IDfmEstimator {
     public int getMaxInitialIter() {
         return nstart_;
     }
-    
+
     public void setMaxInitialIter(int n) {
         nstart_ = n;
     }
 
-    public int getMaxNextIter() {
+    public int getMaxIntermediateIter() {
         return nnext_;
     }
 
@@ -107,7 +107,7 @@ public class DfmEstimator implements IDfmEstimator {
         maxiter_ = iter;
     }
 
-    public void setMaxNextIter(int n) {
+    public void setMaxIntermediateIter(int n) {
         nnext_ = n;
     }
 
@@ -171,8 +171,10 @@ public class DfmEstimator implements IDfmEstimator {
                     niter += min_.getIterCount();
                     pt = (MSsfFunctionInstance) min_.getResult();
                     model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
+                    System.out.println(pt.getLikelihood().getLogLikelihood());
                     if (converged_ || niter >= maxiter_) {
-                        break;
+                         model.normalize();
+                         break;
                     }
                 }
             } else {

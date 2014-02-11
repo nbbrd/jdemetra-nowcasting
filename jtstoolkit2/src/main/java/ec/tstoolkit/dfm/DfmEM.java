@@ -1043,7 +1043,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
     /**
      * @param maxiter the maxiter to set
      */
-    public void setMaxiter(int maxiter) {
+    public void setMaxIter(int maxiter) {
         this.maxiter = maxiter;
     }
 
