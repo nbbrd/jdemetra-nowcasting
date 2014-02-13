@@ -56,7 +56,7 @@ public class VarSpec implements IProcSpecification, Cloneable {
     }
 
     public static final String NVARS = "nvars", NLAGS = "nlags", VPARAMS = "vparams",
-            NPARAMS = "nparams", INIT="initialization";
+            NPARAMS = "nparams", INIT = "initialization";
 
     /**
      * Number of variables
@@ -78,8 +78,8 @@ public class VarSpec implements IProcSpecification, Cloneable {
      * the matrix should be used.
      */
     private Table<Parameter> nparams;
-    
-    private Initialization init_=Initialization.SteadyState;
+
+    private Initialization init_ = Initialization.SteadyState;
 
     public VarSpec() {
     }
@@ -106,15 +106,15 @@ public class VarSpec implements IProcSpecification, Cloneable {
     public Table<Parameter> getNoiseParams() {
         return nparams;
     }
-    
-    public Initialization getInitialization(){
+
+    public Initialization getInitialization() {
         return init_;
     }
-    
-    public void setInitialization(Initialization init){
-        init_=init;
+
+    public void setInitialization(Initialization init) {
+        init_ = init;
     }
-    
+
     @Override
     public VarSpec clone() {
         try {
@@ -160,9 +160,10 @@ public class VarSpec implements IProcSpecification, Cloneable {
             return false;
         }
         setSize(nv, nl);
-        String init=info.get(INIT, String.class);
-        if (init != null)
-            init_=Initialization.valueOf(init);
+        String init = info.get(INIT, String.class);
+        if (init != null) {
+            init_ = Initialization.valueOf(init);
+        }
         Parameter[] s = info.get(VPARAMS, Parameter[].class);
         if (s != null) {
             Parameter[] t = vparams.storage();
@@ -208,12 +209,12 @@ public class VarSpec implements IProcSpecification, Cloneable {
         return Arrays.deepEquals(spec.nparams.storage(), nparams.storage())
                 && Arrays.deepEquals(spec.vparams.storage(), vparams.storage());
     }
-    
-     public static void fillDictionary(String prefix, Map<String, Class> dic) {
+
+    public static void fillDictionary(String prefix, Map<String, Class> dic) {
         dic.put(InformationSet.item(prefix, NVARS), Integer.class);
         dic.put(InformationSet.item(prefix, NLAGS), Integer.class);
-       dic.put(InformationSet.item(prefix, INIT), String.class);
+        dic.put(InformationSet.item(prefix, INIT), String.class);
         dic.put(InformationSet.item(prefix, VPARAMS), Parameter[].class);
         dic.put(InformationSet.item(prefix, NPARAMS), Parameter[].class);
-     }
+    }
 }

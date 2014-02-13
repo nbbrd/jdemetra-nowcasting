@@ -5,16 +5,16 @@
  */
 package ec.tstoolkit.dfm;
 
+import ec.tstoolkit.algorithm.IProcessingHook;
+import ec.tstoolkit.algorithm.ProcessingHookProvider;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.IReadDataBlock;
 import ec.tstoolkit.data.LogSign;
 import ec.tstoolkit.data.Table;
 import ec.tstoolkit.eco.Likelihood;
-import ec.tstoolkit.maths.matrices.HouseholderR;
 import ec.tstoolkit.maths.matrices.LowerTriangularMatrix;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.maths.matrices.MatrixException;
-import ec.tstoolkit.maths.matrices.SubMatrix;
 import ec.tstoolkit.maths.matrices.SymmetricMatrix;
 import ec.tstoolkit.maths.realfunctions.DefaultDomain;
 import ec.tstoolkit.maths.realfunctions.IFunction;
@@ -22,8 +22,6 @@ import ec.tstoolkit.maths.realfunctions.IFunctionDerivatives;
 import ec.tstoolkit.maths.realfunctions.IFunctionInstance;
 import ec.tstoolkit.maths.realfunctions.IParametersDomain;
 import ec.tstoolkit.maths.realfunctions.NumericalDerivatives;
-import ec.tstoolkit.maths.realfunctions.bfgs.Bfgs;
-import ec.tstoolkit.maths.realfunctions.bfgs.SimpleLineSearch;
 import ec.tstoolkit.maths.realfunctions.riso.LbfgsMinimizer;
 import ec.tstoolkit.mssf2.MFilter;
 import ec.tstoolkit.mssf2.MPredictionErrorDecomposition;
@@ -31,14 +29,12 @@ import ec.tstoolkit.mssf2.MultivariateSsfData;
 import ec.tstoolkit.ssf2.ResidualsCumulator;
 import ec.tstoolkit.var.VarSpec;
 import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  *
  * @author Jean
  */
-public class DfmEM2 implements IDfmInitializer {
+public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> implements IDfmInitializer {
 
     private IDfmInitializer initializer;
     private DfmProcessor processor = new DfmProcessor();
@@ -49,7 +45,7 @@ public class DfmEM2 implements IDfmInitializer {
     private final EnumMap<DynamicFactorModel.MeasurementType, Table<DataBlock>> G2 = new EnumMap<>(DynamicFactorModel.MeasurementType.class);
     private DataBlock Efij[];
     private int maxiter_ = 1000, iter_;
-    private boolean all_ = true, correctStart_=true;
+    private boolean all_ = true, correctStart_ = true;
     private int modelSize;
     private int dataSize;
     private double ll_;
@@ -70,13 +66,13 @@ public class DfmEM2 implements IDfmInitializer {
     public void setEstimateVar(boolean var) {
         all_ = var;
     }
-    
-    public boolean isCorrectingInitialVariance(){
+
+    public boolean isCorrectingInitialVariance() {
         return correctStart_;
     }
 
-    public void setCorrectingInitialVariance(boolean correct){
-        correctStart_=correct;
+    public void setCorrectingInitialVariance(boolean correct) {
+        correctStart_ = correct;
     }
 
     public int GetMaxIter() {
@@ -178,12 +174,14 @@ public class DfmEM2 implements IDfmInitializer {
         iter_ = 0;
         ll_ = 0;
         t0 = System.currentTimeMillis();
-        do {
-            EStep();
+        while (iter_++ < maxiter_) {
+            if (!EStep()) {
+                break;
+            }
             MStep();
 //            System.out.println(dfm);
-        } while (++iter_ < maxiter_);
-        
+        }
+
         // finishing
         dfm.normalize();
         MFilter filter = new MFilter();
@@ -196,18 +194,21 @@ public class DfmEM2 implements IDfmInitializer {
         return true;
     }
 
-    private void EStep() {
+    private boolean EStep() {
         if (!processor.process(dfm, data)) {
-            return;
+            return false;
         }
         Likelihood ll = new Likelihood();
         evaluate(processor.getFilteringResults(), ll);
-        System.out.print(iter_);
-        System.out.print('\t');
-        System.out.print(ll.getLogLikelihood());
-        System.out.print('\t');
-        System.out.println(.001 * (System.currentTimeMillis() - t0));
+        ll_ = ll.getLogLikelihood();
+        IProcessingHook.HookInformation<DfmEM2, DynamicFactorModel> hinfo
+                = new IProcessingHook.HookInformation<>(this, dfm);
+        this.processHooks(hinfo, all_);
+        if (hinfo.cancel) {
+            return false;
+        }
         calcG();
+        return true;
     }
 
     public static void evaluate(final ResidualsCumulator rslts,
@@ -373,7 +374,7 @@ public class DfmEM2 implements IDfmInitializer {
         }
     }
 
- // Real function corresponding to the second part of the likelihood
+    // Real function corresponding to the second part of the likelihood
     class LL2 implements IFunction {
 
         private final Table<Matrix> allK;

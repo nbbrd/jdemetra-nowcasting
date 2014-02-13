@@ -20,7 +20,6 @@ import data.Data;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DescriptiveStatistics;
 import ec.tstoolkit.data.IReadDataBlock;
-import ec.tstoolkit.dfm.DfmEstimator.IEstimationHook;
 import ec.tstoolkit.dfm.DynamicFactorModel.TransitionDescriptor;
 import ec.tstoolkit.eco.Likelihood;
 import ec.tstoolkit.maths.matrices.Matrix;
@@ -197,20 +196,7 @@ public class DfmMonitorTest {
         initializer.initialize(dmodelc, info);
         System.out.println(new DfmMapping(dmodelc).parameters());
 //       initializer.setEstimationDomain(s[0].getDomain().drop(120,12));
-        DfmEstimator estimator = new DfmEstimator(new IEstimationHook() {
-            int i = 0;
-        long t0=System.currentTimeMillis();
-
-            @Override
-            public boolean next(DynamicFactorModel current, Likelihood ll) {
-                System.out.print(++i);
-                System.out.print('\t');
-                System.out.print(ll.getLogLikelihood());
-                System.out.print('\t');
-                System.out.println(.001*(System.currentTimeMillis()-t0));
-                return true;
-            }
-        });
+        DfmEstimator estimator = new DfmEstimator();
  //       estimator.setMaxIter(100);
  //       estimator.setMaxInitialIter(2);
         monitor.setInitializer(initializer);

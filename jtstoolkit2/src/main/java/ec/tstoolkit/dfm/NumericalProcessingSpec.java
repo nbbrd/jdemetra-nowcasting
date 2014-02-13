@@ -14,16 +14,23 @@ import java.util.Map;
  * @author palatej
  */
 public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
+    
+    public static enum Method{
+        Lbfgs,
+        LevenbergMarquardt
+    }
 
     public static final int DEF_VERSION = 2, DEF_MAXITER = 1000, DEF_MAXSITER = 15,
             DEF_NITER = 5;
     public static final Boolean DEF_BLOCK = true;
-    public static final String ENABLED = "enabled", MAXITER = "maxiter", MAXSITER = "maxsiter", NITER = "niter", BLOCKITER = "blockiter", EPS = "eps";
+    public static final String ENABLED = "enabled", MAXITER = "maxiter", MAXSITER = "maxsiter", NITER = "niter", 
+            BLOCKITER = "blockiter", METHOD="method", EPS = "eps";
     public static final double DEF_EPS = 1e-9;
     private boolean enabled_;
     private int maxiter_ = DEF_MAXITER, maxsiter_ = DEF_MAXSITER, niter_ = DEF_NITER;
     private boolean block_ = DEF_BLOCK;
     private double eps_ = DEF_EPS;
+    private Method method_ = Method.LevenbergMarquardt;
 
     public void setEnabled(boolean use) {
         enabled_ = use;
@@ -64,6 +71,14 @@ public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
     public void setBlockIterations(boolean b){
         block_=b;
     }
+    
+    public Method getMethod(){
+        return method_;
+    }
+    
+    public void setMethod(Method m){
+        method_=m;
+    }
 
     @Override
     public NumericalProcessingSpec clone() {
@@ -93,6 +108,7 @@ public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
         if (niter_ != DEF_NITER || verbose) {
             info.set(NITER, niter_);
         }
+        info.set(METHOD, method_.name());
         return info;
     }
 
@@ -125,6 +141,9 @@ public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
         if (eps != null) {
             eps_ = eps;
         }
+        String m=info.get(METHOD, String.class);
+        if (m != null)
+            method_=Method.valueOf(m);
         return true;
     }
 
@@ -134,7 +153,7 @@ public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
     }
 
     public boolean equals(NumericalProcessingSpec obj) {
-        return obj.enabled_ == enabled_ && obj.block_ == block_ && obj.eps_ == eps_
+        return obj.enabled_ == enabled_ && obj.block_ == block_ && obj.eps_ == eps_ && obj.method_ == method_
                 && obj.maxiter_ == maxiter_ && obj.maxsiter_ == obj.maxsiter_ && obj.niter_ == niter_;
     }
 
@@ -156,5 +175,6 @@ public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
         dic.put(InformationSet.item(prefix, NITER), Integer.class);
         dic.put(InformationSet.item(prefix, BLOCKITER), Boolean.class);
         dic.put(InformationSet.item(prefix, EPS), Double.class);
+        dic.put(InformationSet.item(prefix, METHOD), String.class);
     }
 }

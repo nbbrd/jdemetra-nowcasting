@@ -116,8 +116,8 @@ public class DfmSpec implements IProcSpecification, Cloneable {
     }
 
     public static void fillDictionary(String prefix, Map<String, Class> dic) {
-        VarSpec.fillDictionary(InformationSet.item(prefix, MSPEC), dic);
-        MeasurementSpec.fillDictionary(InformationSet.item(prefix, ESPEC), dic);
+        DfmModelSpec.fillDictionary(MSPEC, dic);
+        DfmEstimationSpec.fillDictionary(ESPEC, dic);
     }
 
 }

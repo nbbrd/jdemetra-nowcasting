@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 National Bank of Belgium
+ * Copyright 2014 National Bank of Belgium
  * 
  * Licensed under the EUPL, Version 1.1 or – as soon they will be approved 
  * by the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -48,7 +48,7 @@ public class DfmDocument extends ActiveDocument<DfmSpec, TsVariables, CompositeR
     
     @Override
     protected CompositeResults recalc(DfmSpec spec, TsVariables input) {
-        return DfmProcessor.instance.generateProcessing(spec, null).process(input);
+        return DfmProcessingFactory.instance.generateProcessing(spec, null).process(input);
     }
 }  
 

@@ -230,21 +230,7 @@ public class DfmInitializerTest {
 //            System.out.println(desc.var);
 //        }
         DfmMonitor monitor = new DfmMonitor();
-        DfmEstimator estimator = new DfmEstimator(new DfmEstimator.IEstimationHook() {
-            int i = 0;
-            long t0 = System.currentTimeMillis();
-
-            @Override
-            public boolean next(DynamicFactorModel current, Likelihood ll) {
-                System.out.print(++i);
-                System.out.print('\t');
-                System.out.print(ll.getLogLikelihood());
-                System.out.print('\t');
-                System.out.println(.001 * (System.currentTimeMillis() - t0));
-                return true;
-            }
-        });
-
+        DfmEstimator estimator = new DfmEstimator();
         estimator.setMaxIter(1000);
 //        estimator.setMaxInitialIter(0);
 //        estimator.setMaxNextIter(3);
@@ -274,28 +260,8 @@ public class DfmInitializerTest {
 
         DynamicFactorModel model1 = model0.clone();
         DfmMonitor monitor = new DfmMonitor();
-        DfmEstimator estimator = new DfmEstimator(new DfmEstimator.IEstimationHook() {
-            int i = 0;
-            long t0 = System.currentTimeMillis();
-
-            @Override
-            public boolean next(DynamicFactorModel current, Likelihood ll) {
-                System.out.print(++i);
-                System.out.print('\t');
-                System.out.print(ll.getLogLikelihood());
-                System.out.print('\t');
-                System.out.println(.001 * (System.currentTimeMillis() - t0));
-                return true;
-            }
-        });
+        DfmEstimator estimator = new DfmEstimator();
         model0.setInitialization(VarSpec.Initialization.Zero);
-//        DfmEM2 em = new DfmEM2(null);
-//        em.setMaxIter(500);
-//        em.initialize(model0, dfmInformationSet);
-//
-//        model0.setInitialization(DynamicFactorModel.Initialization.Zero);
-//        estimator.setMaxInitialIter(0);
-//        estimator.setMaxNextIter(10);
         monitor.setEstimator(estimator);
         estimator.setMaxIter(10000);
         //monitor.process(model0, s);

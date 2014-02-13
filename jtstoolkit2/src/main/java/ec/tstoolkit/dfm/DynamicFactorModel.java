@@ -5,8 +5,10 @@
  */
 package ec.tstoolkit.dfm;
 
+import ec.tstoolkit.algorithm.IProcResults;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DataBlockIterator;
+import ec.tstoolkit.information.InformationMapper;
 import ec.tstoolkit.maths.matrices.HouseholderR;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.maths.matrices.SubMatrix;
@@ -17,14 +19,16 @@ import ec.tstoolkit.var.VarSpec;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
  *
  * @author palatej
  */
-public class DynamicFactorModel implements Cloneable {
+public class DynamicFactorModel implements Cloneable, IProcResults {
 
     /**
      * The IMeasurement interface represents the behaviour of a measurement
@@ -776,7 +780,7 @@ public class DynamicFactorModel implements Cloneable {
         return builder.toString();
     }
 
-    class Ssf extends DefaultTimeInvariantMultivariateSsf {
+    public class Ssf extends DefaultTimeInvariantMultivariateSsf {
 
         private boolean mused(MeasurementDescriptor m, int i) {
             double z = m.coeff[i];
@@ -1015,4 +1019,108 @@ public class DynamicFactorModel implements Cloneable {
 //        else
         return r + c * (2 * n - c - 1) / 2;
     }
+
+    @Override
+    public Map<String, Class> getDictionary() {
+        return dictionary();
+    }
+
+    @Override
+    public <T> T getData(String id, Class<T> tclass) {
+        return mapper.getData(this, id, tclass);
+    }
+
+    @Override
+    public boolean contains(String id) {
+        return mapper.contains(id);
+    }
+
+    public static void fillDictionary(String prefix, Map<String, Class> map) {
+        mapper.fillDictionary(prefix, map);
+    }
+
+    public static Map<String, Class> dictionary() {
+        LinkedHashMap<String, Class> map = new LinkedHashMap<>();
+        fillDictionary(null, map);
+        return map;
+    }
+
+    public static <T> void addMapping(String name, InformationMapper.Mapper<DynamicFactorModel, T> mapping) {
+        synchronized (mapper) {
+            mapper.add(name, mapping);
+        }
+    }
+
+    private static final InformationMapper<DynamicFactorModel> mapper = new InformationMapper<>();
+
+    public static final String NLAGS = "nlags", NFACTORS = "nfactors", BLOCKLENGTH = "blocklength",
+            VPARAMS = "vparams", VCOVAR = "vcovar",
+            MVARS = "mvars", LOADINGS = "mcoeffs", MTYPES = "mtypes";
+
+    static {
+        mapper.add(NLAGS, new InformationMapper.Mapper<DynamicFactorModel, Integer>(Integer.class) {
+            @Override
+            public Integer retrieve(DynamicFactorModel source) {
+                return source.getTransition().nlags;
+            }
+        });
+        mapper.add(NFACTORS, new InformationMapper.Mapper<DynamicFactorModel, Integer>(Integer.class) {
+            @Override
+            public Integer retrieve(DynamicFactorModel source) {
+                return source.nf_;
+            }
+        });
+        mapper.add(BLOCKLENGTH, new InformationMapper.Mapper<DynamicFactorModel, Integer>(Integer.class) {
+            @Override
+            public Integer retrieve(DynamicFactorModel source) {
+                return source.c_;
+            }
+        });
+        mapper.add(VPARAMS, new InformationMapper.Mapper<DynamicFactorModel, Matrix>(Matrix.class) {
+            @Override
+            public Matrix retrieve(DynamicFactorModel source) {
+                return source.getTransition().varParams;
+            }
+        });
+        mapper.add(VCOVAR, new InformationMapper.Mapper<DynamicFactorModel, Matrix>(Matrix.class) {
+            @Override
+            public Matrix retrieve(DynamicFactorModel source) {
+                return source.getTransition().covar;
+            }
+        });
+        mapper.add(LOADINGS, new InformationMapper.Mapper<DynamicFactorModel, Matrix>(Matrix.class) {
+            @Override
+            public Matrix retrieve(DynamicFactorModel source) {
+                Matrix m = new Matrix(source.getMeasurementsCount(), source.nf_);
+                int row = 0;
+                for (MeasurementDescriptor md : source.mdesc_) {
+                    m.row(row++).copyFrom(md.coeff, 0);
+                }
+                return m;
+            }
+        });
+        mapper.add(MVARS, new InformationMapper.Mapper<DynamicFactorModel, double[]>(double[].class) {
+            @Override
+            public double[] retrieve(DynamicFactorModel source) {
+                double[] v = new double[source.getMeasurementsCount()];
+                int row = 0;
+                for (MeasurementDescriptor md : source.mdesc_) {
+                    v[row++] = md.var;
+                }
+                return v;
+            }
+        });
+        mapper.add(MTYPES, new InformationMapper.Mapper<DynamicFactorModel, MeasurementType[]>(MeasurementType[].class) {
+            @Override
+            public MeasurementType[] retrieve(DynamicFactorModel source) {
+                MeasurementType[] t = new MeasurementType[source.getMeasurementsCount()];
+                int row = 0;
+                for (MeasurementDescriptor md : source.mdesc_) {
+                    t[row++] = getMeasurementType(md.type);
+                }
+                return t;
+            }
+        });
+    }
+
 }

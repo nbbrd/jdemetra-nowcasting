@@ -16,6 +16,7 @@
  */
 package ec.tstoolkit.dfm;
 
+import ec.tstoolkit.algorithm.IProcessingHookProvider;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.eco.Likelihood;
 import ec.tstoolkit.maths.matrices.Matrix;
@@ -36,30 +37,8 @@ import ec.tstoolkit.timeseries.simplets.TsDomain;
  */
 public class DfmEstimator implements IDfmEstimator {
 
-    public static interface IEstimationHook {
-
-        boolean next(DynamicFactorModel current, Likelihood ll);
-    }
-
-    static class Minimizer extends LevenbergMarquardtMethod {
-
-        private final IEstimationHook hook_;
-
-        Minimizer(IEstimationHook hook) {
-            hook_ = hook;
-        }
-
-        @Override
-        protected boolean iterate() {
-            boolean rslt = super.iterate();
-            MSsfFunctionInstance pt = (MSsfFunctionInstance) getResult();
-            DynamicFactorModel model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
-            if (hook_ != null) {
-                rslt = hook_.next(model, pt.getLikelihood()) && rslt;
-            }
-            return rslt;
-        }
-    }
+    private static final String SIMPLIFIED = "Optimizing simplified model",
+            MSTEP = "Optimizing measurements", VSTEP = "Optimizing Var model", ALL = "Optimizing all parameters";
     private int maxiter_ = 500;
     private boolean converged_;
     private final IFunctionMinimizer min_;
@@ -69,10 +48,6 @@ public class DfmEstimator implements IDfmEstimator {
 
     public DfmEstimator() {
         min_ = new ProxyMinimizer(new LevenbergMarquardtMethod());
-    }
-
-    public DfmEstimator(IEstimationHook hook) {
-        min_ = new ProxyMinimizer(new Minimizer(hook));
     }
 
     public DfmEstimator(IFunctionMinimizer min) {
@@ -123,8 +98,21 @@ public class DfmEstimator implements IDfmEstimator {
         return converged_;
     }
 
+    private void setMessage(String msg) {
+
+        if (min_ instanceof IProcessingHookProvider) {
+            ((IProcessingHookProvider) min_).setHookMessage(msg);
+        } else if (min_ instanceof ProxyMinimizer) {
+            ISsqFunctionMinimizer core = ((ProxyMinimizer) min_).getCore();
+            if (core instanceof IProcessingHookProvider) {
+                ((IProcessingHookProvider) core).setHookMessage(msg);
+            }
+        }
+    }
+
     @Override
-    public boolean estimate(final DynamicFactorModel dfm, DfmInformationSet input) {
+    public boolean estimate(final DynamicFactorModel dfm, DfmInformationSet input
+    ) {
         try {
             converged_ = false;
             Matrix m = input.generateMatrix(idom_);
@@ -138,6 +126,7 @@ public class DfmEstimator implements IDfmEstimator {
             model.normalize();
 
             if (nstart_ > 0) {
+                setMessage(SIMPLIFIED);
                 min_.setMaxIter(nstart_);
                 SimpleDfmMapping smapping = new SimpleDfmMapping(model);
                 smapping.validate(model);
@@ -152,6 +141,7 @@ public class DfmEstimator implements IDfmEstimator {
                     model.normalize();
                     mapping = new DfmMapping(model, true, false);
                     fn = new MSsfFunction(mdata, mapping, algorithm);
+                    setMessage(VSTEP);
                     min_.minimize(fn, fn.evaluate(mapping.map(model)));
                     niter += min_.getIterCount();
                     pt = (MSsfFunctionInstance) min_.getResult();
@@ -159,6 +149,7 @@ public class DfmEstimator implements IDfmEstimator {
                     model.normalize();
                     mapping = new DfmMapping(model, false, true);
                     fn = new MSsfFunction(mdata, mapping, algorithm);
+                    setMessage(MSTEP);
                     min_.minimize(fn, fn.evaluate(mapping.map(model)));
                     niter += min_.getIterCount();
                     pt = (MSsfFunctionInstance) min_.getResult();
@@ -166,15 +157,15 @@ public class DfmEstimator implements IDfmEstimator {
                     model.normalize();
                     mapping = new DfmMapping(model, false, false);
                     fn = new MSsfFunction(mdata, mapping, algorithm);
+                    setMessage(ALL);
                     converged_ = min_.minimize(fn, fn.evaluate(mapping.map(model)))
                             && min_.getIterCount() < nnext_;
                     niter += min_.getIterCount();
                     pt = (MSsfFunctionInstance) min_.getResult();
                     model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
-                    System.out.println(pt.getLikelihood().getLogLikelihood());
                     if (converged_ || niter >= maxiter_) {
-                         model.normalize();
-                         break;
+                        model.normalize();
+                        break;
                     }
                 }
             } else {
@@ -182,6 +173,7 @@ public class DfmEstimator implements IDfmEstimator {
                 mapping = new DfmMapping(model, false, false);
                 fn = new MSsfFunction(mdata, mapping, algorithm);
                 min_.setMaxIter(maxiter_);
+                setMessage(ALL);
                 converged_ = min_.minimize(fn, fn.evaluate(mapping.map(model)));
                 pt = (MSsfFunctionInstance) min_.getResult();
                 model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
