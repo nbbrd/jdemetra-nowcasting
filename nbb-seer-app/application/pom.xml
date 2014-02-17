@@ -49,6 +49,10 @@
             <groupId>be.nbb.demetra</groupId>
             <artifactId>nbdemetra-dfm</artifactId>
         </dependency>
+        <dependency>
+            <groupId>eu.europa.ec.joinup.sat</groupId>
+            <artifactId>nbdemetra-spreadsheet</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

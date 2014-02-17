@@ -1,2 +1,3 @@
 Manifest-Version: 1.0
 OpenIDE-Module-Localizing-Bundle: be/nbb/demetra/dfm/Bundle.properties
+OpenIDE-Module-Requires: org.openide.windows.WindowManager
