@@ -17,10 +17,17 @@
 package ec.tstoolkit.dfm;
 
 import data.Data;
+import ec.tstoolkit.algorithm.IProcessingHook;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DescriptiveStatistics;
 import ec.tstoolkit.eco.Likelihood;
 import ec.tstoolkit.maths.matrices.Matrix;
+import ec.tstoolkit.maths.realfunctions.IFunctionInstance;
+import ec.tstoolkit.maths.realfunctions.ISsqFunctionInstance;
+import ec.tstoolkit.maths.realfunctions.ProxyMinimizer;
+import ec.tstoolkit.maths.realfunctions.levmar.LevenbergMarquardtMethod;
+import ec.tstoolkit.maths.realfunctions.riso.LbfgsMinimizer;
+import ec.tstoolkit.mssf2.MSsfFunctionInstance;
 import ec.tstoolkit.ssf2.ResidualsCumulator;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
@@ -256,19 +263,57 @@ public class DfmInitializerTest {
 
         //DefaultInitializer initializer = new DefaultInitializer();
         PcInitializer initializer = new PcInitializer();
-        //initializer.initialize(model0, dfmInformationSet);
+        initializer.initialize(model0, dfmInformationSet);
 
         DynamicFactorModel model1 = model0.clone();
         DfmMonitor monitor = new DfmMonitor();
-        DfmEstimator estimator = new DfmEstimator();
-        model0.setInitialization(VarSpec.Initialization.Zero);
+//        LbfgsMinimizer lbfgs=new LbfgsMinimizer();
+//        IProcessingHook<LbfgsMinimizer, IFunctionInstance> hook=new IProcessingHook<LbfgsMinimizer, IFunctionInstance>() {
+//
+//            @Override
+//            public void process(IProcessingHook.HookInformation<LbfgsMinimizer, IFunctionInstance> info, boolean cancancel) {
+//                MSsfFunctionInstance pt=(MSsfFunctionInstance) info.information;
+//                System.out.println(pt.getLikelihood().getLogLikelihood());
+//            }
+//        };
+//        lbfgs.register(hook);
+//        DfmEstimator estimator = new DfmEstimator(lbfgs);
+        LevenbergMarquardtMethod lm = new LevenbergMarquardtMethod();
+        IProcessingHook<LevenbergMarquardtMethod, ISsqFunctionInstance> hook = new IProcessingHook<LevenbergMarquardtMethod, ISsqFunctionInstance>() {
+
+            @Override
+            public void process(IProcessingHook.HookInformation<LevenbergMarquardtMethod, ISsqFunctionInstance> info, boolean cancancel) {
+                MSsfFunctionInstance pt = (MSsfFunctionInstance) info.information;
+                DynamicFactorModel model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
+                System.out.print(info.message);
+                System.out.print('\t');
+                System.out.print(pt.getLikelihood().getLogLikelihood());
+                System.out.print('\t');
+                System.out.println(new DfmMapping(model).parameters());
+            }
+        };
+        lm.register(hook);
+        DfmEstimator estimator = new DfmEstimator(new ProxyMinimizer(lm));
+        //model0.setInitialization(VarSpec.Initialization.Zero);
         monitor.setEstimator(estimator);
-        estimator.setMaxIter(10000);
-        //monitor.process(model0, s);
+        estimator.setMaxIter(200);
+        monitor.process(model0, s);
         //DfmEM em = new DfmEM();
         DfmEM2 em = new DfmEM2(null);
         //em.setCorrectingInitialVariance(false);
-        em.setMaxIter(30000);
+        em.setMaxIter(200);
+        IProcessingHook<DfmEM2, DynamicFactorModel> emhook = new IProcessingHook<DfmEM2, DynamicFactorModel>() {
+
+            @Override
+            public void process(IProcessingHook.HookInformation<DfmEM2, DynamicFactorModel> info, boolean cancancel) {
+                System.out.print(info.message);
+                System.out.print('\t');
+                System.out.print(info.source.getFinalLogLikelihood());
+                System.out.print('\t');
+                System.out.println(new DfmMapping(info.information).parameters());
+            }
+        };
+        em.register(emhook);
         em.initialize(model0, dfmInformationSet);
 
     }

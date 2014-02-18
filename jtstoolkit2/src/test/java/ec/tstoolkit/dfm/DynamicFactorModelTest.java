@@ -172,7 +172,7 @@ public class DynamicFactorModelTest {
     }
 
     static {
-         loadDavidModel();
+        loadDavidModel();
     }
 
     public DynamicFactorModelTest() {
@@ -313,17 +313,24 @@ public class DynamicFactorModelTest {
     public void testVar3() {
         long q0 = System.currentTimeMillis();
         Likelihood ll = new Likelihood();
-        for (int k = 0; k < 10; ++k) {
-            MFilter filter = new MFilter();
-            MPredictionErrorDecomposition results = new MPredictionErrorDecomposition(true);
-            filter.process(dmodel.ssfRepresentation(), new MultivariateSsfData(dd.subMatrix(), null), results);
-            evaluate(results, ll);
-        }
+        //for (int k = 0; k < 10; ++k) {
+        MFilter filter = new MFilter();
+        MPredictionErrorDecomposition results = new MPredictionErrorDecomposition(true);
+        filter.process(dmodel.ssfRepresentation(), new MultivariateSsfData(dd.subMatrix(), null), results);
+        evaluate(results, ll);
+        DynamicFactorModel md = dmodel.clone();
+        md.rescaleVariances(ll.getSigma());
+        md.normalize();
+        results = new MPredictionErrorDecomposition(true);
+        filter.process(md.ssfRepresentation(), new MultivariateSsfData(dd.subMatrix(), null), results);
+        evaluate(results, ll);
+        //}
         long q1 = System.currentTimeMillis();
         System.out.println("test3");
         //System.out.println(results.getLogDeterminant());
         //System.out.println(results.getSsqErr());
         System.out.println(ll.getLogLikelihood());
+        System.out.println(md);
         System.out.println(q1 - q0);
     }
 
@@ -459,16 +466,16 @@ public class DynamicFactorModelTest {
         x = new DataBlock(mapping.map(m.ssfRepresentation()));
         System.out.println(x);
     }
-    
+
     @Test
     public void testMeasurements() {
-        HashSet<MeasurementStructure> set=new HashSet<>();
-        for (MeasurementDescriptor mdesc : dmodel.getMeasurements()){
+        HashSet<MeasurementStructure> set = new HashSet<>();
+        for (MeasurementDescriptor mdesc : dmodel.getMeasurements()) {
             set.add(mdesc.getStructure());
         }
-        for (MeasurementStructure s : set){
+        for (MeasurementStructure s : set) {
             System.out.println(s);
         }
     }
-    
+
 }

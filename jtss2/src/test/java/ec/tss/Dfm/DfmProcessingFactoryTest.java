@@ -64,7 +64,7 @@ public class DfmProcessingFactoryTest {
 //        espec.getPostEmSpec().setEnabled(true);
 //        espec.getPostEmSpec().setMaxIter(10);
         espec.getNumericalProcessingSpec().setMaxInitialIter(0);
-       espec.getNumericalProcessingSpec().setMethod(NumericalProcessingSpec.Method.Lbfgs);
+//       espec.getNumericalProcessingSpec().setMethod(NumericalProcessingSpec.Method.Lbfgs);
 //        espec.getNumericalProcessingSpec().setEnabled(false);
         espec.getNumericalProcessingSpec().setMaxIter(500);
         vars.set("m1", new TsVariable(data.Data.M1));

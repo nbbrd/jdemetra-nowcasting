@@ -140,6 +140,8 @@ public class MFilter {
             m_state.A.copyFrom(a0, 0);
         }
         m_ssf.Pf0(m_state.P.subMatrix());
+        m_ssf.TVT(m_pos, m_state.P.subMatrix());
+        m_ssf.addV(m_pos, m_state.P.subMatrix());
         return 0;
     }
 

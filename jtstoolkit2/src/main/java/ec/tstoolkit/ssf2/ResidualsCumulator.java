@@ -109,8 +109,6 @@ public class ResidualsCumulator {
      * @param ll
      */
     public void evaluate(final Likelihood ll) {
-        int n = getObsCount();
-        double ssqerr = getSsqErr(), ldet = getLogDeterminant();
-        ll.set(ssqerr, ldet, n);
+        ll.set(m_ssqerr,  m_det.getLogDeterminant(), m_n);
     }
 }

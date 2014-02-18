@@ -75,7 +75,7 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
         correctStart_ = correct;
     }
 
-    public int GetMaxIter() {
+    public int getMaxIter() {
         return maxiter_;
     }
 
@@ -158,8 +158,6 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
         }
     }
 
-    private long t0;
-
     @Override
     public boolean initialize(DynamicFactorModel dfm, DfmInformationSet data) {
         this.data = data;
@@ -173,28 +171,34 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
         }
         iter_ = 0;
         ll_ = 0;
-        t0 = System.currentTimeMillis();
+        filter(true);
         while (iter_++ < maxiter_) {
             if (!EStep()) {
                 break;
             }
             MStep();
-//            System.out.println(dfm);
         }
 
         // finishing
         dfm.normalize();
+        filter(false);
+        return true;
+    }
+    
+    private void filter(boolean adjust){
         MFilter filter = new MFilter();
         MPredictionErrorDecomposition results = new MPredictionErrorDecomposition(true);
-        filter.process(dfm.ssfRepresentation(), new MultivariateSsfData(data.generateMatrix(null).subMatrix(), null), results);
+        filter.process(dfm.ssfRepresentation(), new MultivariateSsfData(data.generateMatrix(null).subMatrix().transpose(), null), results);
         Likelihood ll = new Likelihood();
         evaluate(results, ll);
         ll_ = ll.getLogLikelihood();
-
-        return true;
+        if (adjust){
+            dfm.rescaleVariances(ll.getSigma());
+        }
     }
 
     private boolean EStep() {
+        dfm.normalize();
         if (!processor.process(dfm, data)) {
             return false;
         }
@@ -355,7 +359,7 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
         Q.sub(Y);
         Q.mul(1.0 / dataSize);
 
-        if (correctStart_ && dfm.getInitialization() != VarSpec.Initialization.Zero) {
+        if (correctStart_ && dfm.getInitialization() == VarSpec.Initialization.SteadyState) {
             LbfgsMinimizer bfgs = new LbfgsMinimizer();
             //bfgs.setLineSearch(new SimpleLineSearch());
             bfgs.setMaxIter(30);
@@ -532,9 +536,9 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
                 // V^-1 = (LL')^-1 = L'^-1*L^-1
                 Matrix lower = LowerTriangularMatrix.inverse(lv0);
                 Matrix iv0 = SymmetricMatrix.XtX(lower);
-                int nl = dfm.getTransition().nlags;
-                int nf = dfm.getFactorsCount();
                 int len = dfm.getBlockLength();
+                int nl = len-1; // dfm.getTransition().nlags;
+                int nf = dfm.getFactorsCount();
                 double ssq0 = 0;
                 for (int i = 0; i < nf; ++i) {
                     for (int k = 0; k < nl; ++k) {
@@ -588,7 +592,7 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
                 DynamicFactorModel tmp = dfm.clone();
                 tmp.clearMeasurements();
 
-                tmp.setBlockLength(dfm.getTransition().nlags);
+                tmp.setBlockLength(dfm.getBlockLength()-1);
                 tmp.getTransition().varParams.copy(V);
                 tmp.getTransition().covar.copy(SymmetricMatrix.XXt(lQ));
                 try {

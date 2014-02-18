@@ -115,6 +115,7 @@ public class DfmEstimator implements IDfmEstimator {
     ) {
         try {
             converged_ = false;
+            Likelihood ll = null;
             Matrix m = input.generateMatrix(idom_);
             MSsfAlgorithm algorithm = new MSsfAlgorithm();
             IMSsfData mdata = new MultivariateSsfData(m.subMatrix().transpose(), null);
@@ -163,8 +164,8 @@ public class DfmEstimator implements IDfmEstimator {
                     niter += min_.getIterCount();
                     pt = (MSsfFunctionInstance) min_.getResult();
                     model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
+                    ll = pt.getLikelihood();
                     if (converged_ || niter >= maxiter_) {
-                        model.normalize();
                         break;
                     }
                 }
@@ -177,7 +178,13 @@ public class DfmEstimator implements IDfmEstimator {
                 converged_ = min_.minimize(fn, fn.evaluate(mapping.map(model)));
                 pt = (MSsfFunctionInstance) min_.getResult();
                 model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
+                ll = pt.getLikelihood();
             }
+            if (ll != null) {
+                double v = ll.getSigma();
+                model.rescaleVariances(v);
+             }
+            model.normalize();
             dfm.copy(model);
             return true;
         } catch (Exception err) {

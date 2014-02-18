@@ -67,19 +67,19 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
      * Z = 1 [0 ... 0]
      */
     private static class _L implements IMeasurement {
-
+        
         static final _L ML = new _L();
-
+        
         @Override
         public int getLength() {
             return 1;
         }
-
+        
         @Override
         public void fill(DataBlock z) {
             z.set(0, 1);
         }
-
+        
         @Override
         public double dot(DataBlock x) {
             return x.get(0);
@@ -90,24 +90,24 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
      * Z = 1 1 ... 1 (len times)
      */
     private static class _C implements IMeasurement {
-
+        
         static final _C MC12 = new _C(12), MC4 = new _C(4);
-
+        
         private _C(int l) {
             len = l;
         }
         private final int len;
-
+        
         @Override
         public int getLength() {
             return len;
         }
-
+        
         @Override
         public void fill(DataBlock z) {
             z.set(1);
         }
-
+        
         @Override
         public double dot(DataBlock x) {
             return x.sum();
@@ -119,19 +119,19 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
      * growth) Z = 1 2 1 for len = 2 Z = 1 2 3 4 3 2 1 for len = 4 ...
      */
     private static class _CD implements IMeasurement {
-
+        
         static final _CD MCD3 = new _CD(3);
-
+        
         private _CD(int l) {
             len = l;
         }
         private final int len;
-
+        
         @Override
         public int getLength() {
             return 2 * len - 1;
         }
-
+        
         @Override
         public void fill(DataBlock z) {
             int n = (len << 1) - 1;
@@ -141,7 +141,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             }
             z.set(len - 1, len);
         }
-
+        
         @Override
         public double dot(DataBlock x) {
             double r = 0;
@@ -172,17 +172,17 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
          */
         C;
     }
-
+    
     public static final class MeasurementStructure implements Comparable<MeasurementStructure> {
-
+        
         public final MeasurementType type;
         public final boolean[] used;
-
+        
         public MeasurementStructure(final MeasurementType type, final boolean[] used) {
             this.type = type;
             this.used = used;
         }
-
+        
         @Override
         public int compareTo(MeasurementStructure o) {
             int cmp = type.compareTo(o.type);
@@ -205,7 +205,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
                 return 0;
             }
         }
-
+        
         @Override
         public String toString() {
             StringBuilder builder = new StringBuilder();
@@ -219,7 +219,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             builder.append(']');
             return builder.toString();
         }
-
+        
         @Override
         public boolean equals(Object o) {
             if (o instanceof MeasurementStructure) {
@@ -228,9 +228,9 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             } else {
                 return false;
             }
-
+            
         }
-
+        
         @Override
         public int hashCode() {
             int hash = 5;
@@ -239,15 +239,15 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             return hash;
         }
     }
-
+    
     public static final class MeasurementLoads implements Comparable<MeasurementLoads> {
-
+        
         public final boolean[] used;
-
+        
         public MeasurementLoads(final boolean[] used) {
             this.used = used;
         }
-
+        
         @Override
         public int compareTo(MeasurementLoads o) {
             if (used.length < o.used.length) {
@@ -265,7 +265,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             }
             return 0;
         }
-
+        
         @Override
         public String toString() {
             StringBuilder builder = new StringBuilder();
@@ -279,7 +279,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             builder.append(']');
             return builder.toString();
         }
-
+        
         @Override
         public boolean equals(Object o) {
             if (o instanceof MeasurementLoads) {
@@ -289,14 +289,14 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
                 return false;
             }
         }
-
+        
         @Override
         public int hashCode() {
             int hash = 3;
             hash = 41 * hash + Arrays.hashCode(this.used);
             return hash;
         }
-
+        
     }
 
     /**
@@ -330,7 +330,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             }
             this.var = 1;   // DAVID: why is equal to 1?  I think it must be initialized
         }
-
+        
         @Override
         public String toString() {
             StringBuilder builder = new StringBuilder();
@@ -363,7 +363,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
         public boolean isUsed(int fac) {
             return !Double.isNaN(coeff[fac]);
         }
-
+        
         public boolean[] getUsedFactors() {
             boolean[] used = new boolean[coeff.length]; // DAVID: I THINK THIS LINE SHOULD BE COMMENTED (OTHERWISE IT CREATES A NEW USED)
             for (int i = 0; i < used.length; ++i) {
@@ -371,7 +371,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             }
             return used;
         }
-
+        
         public int getUsedFactorsCount() {
             int n = 0;
             for (int i = 0; i < coeff.length; ++i) {
@@ -381,11 +381,11 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             }
             return n;
         }
-
+        
         public MeasurementStructure getStructure() {
             return new MeasurementStructure(getMeasurementType(type), getUsedFactors());
         }
-
+        
         public MeasurementLoads getLoads() {
             return new MeasurementLoads(getUsedFactors());
         }
@@ -442,7 +442,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
                 return null;
         }
     }
-
+    
     public static MeasurementType getMeasurementType(final IMeasurement m) {
         if (m instanceof _C) {
             return MeasurementType.C;
@@ -485,7 +485,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
                 return null;
         }
     }
-
+    
     private int c_;
     private final int nf_;
     private TransitionDescriptor tdesc_;
@@ -503,6 +503,13 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
     public DynamicFactorModel(int c, int nf) {
         c_ = c;
         nf_ = nf;
+    }
+    
+    public void rescaleVariances(double cvar) {
+        for (DynamicFactorModel.MeasurementDescriptor mdesc : mdesc_) {
+            mdesc.var *= cvar;
+        }
+        tdesc_.covar.mul(cvar);
     }
 
     /**
@@ -544,23 +551,15 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             }
         }
         // loadings
-        double vmax = 0;
-        for (MeasurementDescriptor desc : mdesc_) {
-            if (desc.var > vmax) {
-                vmax = desc.var;
-            }
-        }
-        double emax = Math.sqrt(vmax);
         for (MeasurementDescriptor desc : mdesc_) {
             for (int i = 0; i < desc.coeff.length; ++i) {
                 if (!Double.isNaN(desc.coeff[i])) {
-                    desc.coeff[i] *= w[i] / emax;
+                    desc.coeff[i] *= w[i];
                 }
             }
-            desc.var /= vmax;
         }
     }
-
+    
     @Override
     public DynamicFactorModel clone() {
         try {
@@ -718,7 +717,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
     public void addMeasurement(MeasurementDescriptor desc) {
         mdesc_.add(desc);
     }
-
+    
     public void clearMeasurements() {
         mdesc_.clear();
     }
@@ -728,7 +727,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
      * @return
      */
     public IMSsf ssfRepresentation() {
-        return new Ssf(init_, V0_);
+        return new Ssf();
     }
 
     /**
@@ -766,7 +765,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
         V0_ = v0.clone();
         init_ = VarSpec.Initialization.UserDefined;
     }
-
+    
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -779,20 +778,20 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
         builder.append(tdesc_.covar);
         return builder.toString();
     }
-
-    public class Ssf extends DefaultTimeInvariantMultivariateSsf {
-
+    
+    public final class Ssf extends DefaultTimeInvariantMultivariateSsf {
+        
         private boolean mused(MeasurementDescriptor m, int i) {
             double z = m.coeff[i];
             return z != 0 && !Double.isNaN(z);
         }
-
+        
         public DynamicFactorModel getModel() {
             return DynamicFactorModel.this;
         }
         private final DataBlock ttmp, xtmp;
-
-        private Ssf(VarSpec.Initialization init, Matrix V0) {
+        
+        private Ssf() {
             int nl = tdesc_.nlags;
             int mdim = nf_ * c_, vdim = mdesc_.size();
             this.initialize(mdim, vdim, nf_, true);
@@ -836,13 +835,17 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
                     m_Pf0 = getInitialVariance();
                     break;
                 case UserDefined:
-                    m_Pf0 = V0;
+                    m_Pf0 = V0_;
                     break;
-                default:
-                    m_Pf0 = m_V;
+                default: // 0
+                    m_Pf0 = new Matrix(mdim, mdim);
+//                    for (int i = 0; i < nl; ++i) {
+//                        TVT(0, m_Pf0.subMatrix());
+//                        addV(0, m_Pf0.subMatrix());
+//                    }
             }
         }
-
+        
         @Override
         public void TX(int pos, DataBlock x) {
             int nl = tdesc_.nlags;
@@ -873,7 +876,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             do {
                 TX(pos, col);
             } while (cols.next());
-
+            
             DataBlockIterator rows = vm.rows();
             DataBlock row = rows.getData();
             do {
@@ -881,7 +884,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             } while (rows.next());
             SymmetricMatrix.reinforeSymmetry(vm);
         }
-
+        
         @Override
         public void addV(final int pos, final SubMatrix v) {
             for (int i = 0; i < nf_; ++i) {
@@ -889,7 +892,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
                 cv.add(tdesc_.covar.column(i));
             }
         }
-
+        
         @Override
         public double ZX(final int pos, int v, final DataBlock x) {
             MeasurementDescriptor zdesc = mdesc_.get(v);
@@ -903,7 +906,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             }
             return r;
         }
-
+        
         @Override
         public void ZM(final int pos, final SubMatrix m, final SubMatrix zm) {
             DataBlockIterator rows = zm.rows();
@@ -912,7 +915,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
                 ZM(pos, rows.getPosition(), m, row);
             } while (rows.next());
         }
-
+        
         @Override
         public void ZM(final int pos, final int v, final SubMatrix M, final DataBlock zm) {
             MeasurementDescriptor zdesc = mdesc_.get(v);
@@ -932,7 +935,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
 //                zm.set(cols.getPosition(), ZX(pos, v, col));
 //            } while (cols.next());
         }
-
+        
         @Override
         public void XT(int pos, DataBlock x) {
             // put the results in xtmp;
@@ -950,7 +953,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             }
             x.copy(xtmp);
         }
-
+        
         private Matrix getInitialVariance() {
             int nl = tdesc_.nlags;
             // We have to solve the steady state equation:
@@ -1012,51 +1015,51 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             return fullCov;
         }
     }
-
+    
     private static int pos(int r, int c, int n) {
 //        if (r<c)
 //            return c + r * (2 * n - r - 1) / 2;
 //        else
         return r + c * (2 * n - c - 1) / 2;
     }
-
+    
     @Override
     public Map<String, Class> getDictionary() {
         return dictionary();
     }
-
+    
     @Override
     public <T> T getData(String id, Class<T> tclass) {
         return mapper.getData(this, id, tclass);
     }
-
+    
     @Override
     public boolean contains(String id) {
         return mapper.contains(id);
     }
-
+    
     public static void fillDictionary(String prefix, Map<String, Class> map) {
         mapper.fillDictionary(prefix, map);
     }
-
+    
     public static Map<String, Class> dictionary() {
         LinkedHashMap<String, Class> map = new LinkedHashMap<>();
         fillDictionary(null, map);
         return map;
     }
-
+    
     public static <T> void addMapping(String name, InformationMapper.Mapper<DynamicFactorModel, T> mapping) {
         synchronized (mapper) {
             mapper.add(name, mapping);
         }
     }
-
+    
     private static final InformationMapper<DynamicFactorModel> mapper = new InformationMapper<>();
-
+    
     public static final String NLAGS = "nlags", NFACTORS = "nfactors", BLOCKLENGTH = "blocklength",
             VPARAMS = "vparams", VCOVAR = "vcovar",
             MVARS = "mvars", LOADINGS = "mcoeffs", MTYPES = "mtypes";
-
+    
     static {
         mapper.add(NLAGS, new InformationMapper.Mapper<DynamicFactorModel, Integer>(Integer.class) {
             @Override
@@ -1122,5 +1125,5 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             }
         });
     }
-
+    
 }
