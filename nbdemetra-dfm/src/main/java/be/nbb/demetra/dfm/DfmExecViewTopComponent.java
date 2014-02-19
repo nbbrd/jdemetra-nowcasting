@@ -5,17 +5,20 @@
  */
 package be.nbb.demetra.dfm;
 
-import ec.tstoolkit.dfm.DfmModelSpec;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
+import ec.nbdemetra.ui.DemetraUiIcon;
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import javax.swing.AbstractAction;
+import javax.swing.Box;
+import javax.swing.JButton;
 import javax.swing.JComponent;
-import javax.swing.JLabel;
 import javax.swing.JToolBar;
 import org.netbeans.api.settings.ConvertAsProperties;
 import org.netbeans.core.spi.multiview.CloseOperationState;
 import org.netbeans.core.spi.multiview.MultiViewDescription;
 import org.netbeans.core.spi.multiview.MultiViewElement;
 import org.netbeans.core.spi.multiview.MultiViewElementCallback;
+import org.openide.util.ImageUtilities;
 import org.openide.windows.TopComponent;
 import org.openide.util.NbBundle.Messages;
 
@@ -23,48 +26,28 @@ import org.openide.util.NbBundle.Messages;
  * Top component which displays something.
  */
 @ConvertAsProperties(
-        dtd = "-//be.nbb.demetra.dfm//DfmModelSpecView//EN",
+        dtd = "-//be.nbb.demetra.dfm//DfmExecView//EN",
         autostore = false
 )
 @TopComponent.Description(
-        preferredID = "DfmModelSpecViewTopComponent",
+        preferredID = "DfmExecViewTopComponent",
         //iconBase="SET/PATH/TO/ICON/HERE", 
         persistenceType = TopComponent.PERSISTENCE_NEVER
 )
 @TopComponent.Registration(mode = "editor", openAtStartup = false)
-//@ActionID(category = "Window", id = "be.nbb.demetra.dfm.DfmModelSpecViewTopComponent")
-//@ActionReference(path = "Menu/Window" /*, position = 333 */)
-//@TopComponent.OpenActionRegistration(
-//        displayName = "#CTL_DfmModelSpecViewAction",
-//        preferredID = "DfmModelSpecViewTopComponent"
-//)
 @Messages({
-    "CTL_DfmModelSpecViewAction=DfmModelSpecView",
-    "CTL_DfmModelSpecViewTopComponent=DfmModelSpecView Window",
-    "HINT_DfmModelSpecViewTopComponent=This is a DfmModelSpecView window"
+    "CTL_DfmExecViewAction=DfmExecView",
+    "CTL_DfmExecViewTopComponent=DfmExecView Window",
+    "HINT_DfmExecViewTopComponent=This is a DfmExecView window"
 })
-public final class DfmModelSpecViewTopComponent extends TopComponent implements MultiViewElement, MultiViewDescription {
+public final class DfmExecViewTopComponent extends TopComponent implements MultiViewElement, MultiViewDescription {
 
-    public static final String MODEL_PROPERTY = "model";
-    private DfmModelSpec model;
-
-    public DfmModelSpecViewTopComponent() {
+    public DfmExecViewTopComponent() {
         initComponents();
-        setName(Bundle.CTL_DfmModelSpecViewTopComponent());
-        setToolTipText(Bundle.HINT_DfmModelSpecViewTopComponent());
+        setName(Bundle.CTL_DfmExecViewTopComponent());
+        setToolTipText(Bundle.HINT_DfmExecViewTopComponent());
 
-        setDisplayName("Model");
-        
-        addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case MODEL_PROPERTY:
-                        onModelChange();
-                        break;
-                }
-            }
-        });
+        setDisplayName("Exec");
     }
 
     /**
@@ -75,41 +58,40 @@ public final class DfmModelSpecViewTopComponent extends TopComponent implements 
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        dfmModelSpecView1 = new be.nbb.demetra.dfm.DfmModelSpecView();
-
-        setLayout(new java.awt.BorderLayout());
-        add(dfmModelSpecView1, java.awt.BorderLayout.CENTER);
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
+        this.setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 400, Short.MAX_VALUE)
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 300, Short.MAX_VALUE)
+        );
     }// </editor-fold>//GEN-END:initComponents
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private be.nbb.demetra.dfm.DfmModelSpecView dfmModelSpecView1;
     // End of variables declaration//GEN-END:variables
     @Override
     public void componentOpened() {
+        // TODO add custom code on component opening
     }
 
     @Override
     public void componentClosed() {
+        // TODO add custom code on component closing
     }
 
     void writeProperties(java.util.Properties p) {
+        // better to version settings since initial version as advocated at
+        // http://wiki.apidesign.org/wiki/PropertyFiles
+        p.setProperty("version", "1.0");
+        // TODO store your settings
     }
 
     void readProperties(java.util.Properties p) {
-    }
-
-    private void onModelChange() {
-        dfmModelSpecView1.setModel(model);
-    }
-
-    public DfmModelSpec getModel() {
-        return model;
-    }
-
-    public void setModel(DfmModelSpec model) {
-        DfmModelSpec old = this.model;
-        this.model = model != null ? model : new DfmModelSpec();
-        firePropertyChange(MODEL_PROPERTY, old, this.model);
+        String version = p.getProperty("version");
+        // TODO read your settings according to their version
     }
 
     //<editor-fold defaultstate="collapsed" desc="MultiViewElement">
@@ -122,8 +104,16 @@ public final class DfmModelSpecViewTopComponent extends TopComponent implements 
     public JComponent getToolbarRepresentation() {
         JToolBar result = new JToolBar();
         result.addSeparator();
-        result.add(new JLabel(" nvars=4 "));
-        result.add(new JLabel(" nlags=4 "));
+        result.add(Box.createRigidArea(new Dimension(5, 0)));
+        
+        JButton runButton = result.add(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+            }
+        });
+        runButton.setIcon(DemetraUiIcon.COMPILE_16);
+        runButton.setDisabledIcon(ImageUtilities.createDisabledIcon(runButton.getIcon()));
+
         return result;
     }
 

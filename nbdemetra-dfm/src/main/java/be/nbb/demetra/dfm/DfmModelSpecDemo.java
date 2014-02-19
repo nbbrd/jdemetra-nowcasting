@@ -29,23 +29,37 @@ import ec.tstoolkit.var.VarSpec;
  */
 public class DfmModelSpecDemo {
 
-    public static DfmModelSpec get() {
+    public static DfmModelSpec getDemo() {
+        DfmModelSpec result = newDfmModelSpec(4, 4);
+        for (int i = 0; i < 10; i++) {
+            result.getMeasurements().add(newMeasurementSpec("S" + i, 4));
+        }
+        return result;
+    }
+
+    public static DfmModelSpec newDfmModelSpec(int nvars, int nlags) {
         DfmModelSpec m = new DfmModelSpec();
         VarSpec vs = new VarSpec();
-        vs.setSize(4, 4);
+        vs.setSize(nvars, nlags);
         m.setVarSpec(vs);
-        for (int i = 0; i < 10; i++) {
-            MeasurementSpec ms = new MeasurementSpec();
-            ms.setName("S" + i);
-            Parameter[] params = new Parameter[4];
-            for (int z = 0; z < params.length; z++) {
-                params[z] = new Parameter();
-            }
-            ms.setCoefficient(params);
-            ms.setVariance(new Parameter(0, ParameterType.Fixed));
-            ms.setFactorsTransformation(DynamicFactorModel.MeasurementType.L);
-            m.getMeasurements().add(ms);
-        }
         return m;
+    }
+
+    public static MeasurementSpec newMeasurementSpec(String name, int nvars) {
+        MeasurementSpec ms = new MeasurementSpec();
+        ms.setName(name);
+        ms.setSeriesTransformations(null);
+        ms.setFactorsTransformation(DynamicFactorModel.MeasurementType.L);
+        Parameter[] params = new Parameter[nvars];
+        for (int z = 0; z < params.length; z++) {
+            params[z] = newParameter(false);
+        }
+        ms.setCoefficient(params);
+        ms.setVariance(newParameter(false));
+        return ms;
+    }
+
+    public static Parameter newParameter(boolean selected) {
+        return new Parameter(0, selected ? ParameterType.Undefined : ParameterType.Fixed);
     }
 }

@@ -17,27 +17,30 @@
 package be.nbb.demetra.dfm;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import ec.nbdemetra.ui.awt.PopupListener;
 import ec.nbdemetra.ui.properties.ListSelection;
+import ec.tss.DynamicTsVariable;
 import ec.tss.Ts;
 import ec.tss.TsCollection;
 import ec.tss.TsInformationType;
 import ec.tss.datatransfer.TssTransferSupport;
-import ec.tstoolkit.Parameter;
 import ec.tstoolkit.ParameterType;
 import ec.tstoolkit.dfm.DfmModelSpec;
 import ec.tstoolkit.dfm.DynamicFactorModel.MeasurementType;
 import ec.tstoolkit.dfm.MeasurementSpec;
 import ec.tstoolkit.dfm.MeasurementSpec.Transformation;
+import ec.tstoolkit.timeseries.regression.TsVariable;
+import ec.tstoolkit.timeseries.regression.TsVariables;
 import ec.util.grid.swing.XTable;
 import ec.util.various.swing.BasicSwingLauncher;
 import ec.util.various.swing.JCommand;
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.beans.Beans;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 import javax.swing.DefaultCellEditor;
@@ -63,7 +66,7 @@ public final class DfmModelSpecView extends JComponent {
             @Override
             public Component call() throws Exception {
                 DfmModelSpecView demo = new DfmModelSpecView();
-                demo.setModel(DfmModelSpecDemo.get());
+                demo.setModel(DfmModelSpecDemo.getDemo());
                 return demo;
             }
         }).launch();
@@ -76,13 +79,15 @@ public final class DfmModelSpecView extends JComponent {
 
     public DfmModelSpecView() {
         this.view = new XTable();
+        this.model = DfmModelSpecDemo.newDfmModelSpec(4, 4);
 
         view.addMouseListener(new PopupListener.PopupAdapter(createMenu().getPopupMenu()));
         view.setDefaultRenderer(Transformation[].class, new TransformationRenderer());
         view.setDefaultEditor(Transformation[].class, new TransformationEditor());
         view.setDefaultEditor(MeasurementType.class, new MeasurementTypeEditor());
+        view.setNoDataRenderer(new XTable.DefaultNoDataRenderer("Drop data here"));
 
-        setTransferHandler(new DfmModelSpecViewTransferHandler());
+        view.setTransferHandler(new DfmModelSpecViewTransferHandler());
 
         addPropertyChangeListener(new PropertyChangeListener() {
             @Override
@@ -97,6 +102,10 @@ public final class DfmModelSpecView extends JComponent {
 
         setLayout(new BorderLayout());
         add(new JScrollPane(view), BorderLayout.CENTER);
+
+        if (Beans.isDesignTime()) {
+            setModel(DfmModelSpecDemo.getDemo());
+        }
     }
 
     private void onModelChange() {
@@ -118,6 +127,19 @@ public final class DfmModelSpecView extends JComponent {
         firePropertyChange(MODEL_PROPERTY, old, this.model);
     }
     //</editor-fold>
+
+    private final TsVariables variables = new TsVariables();
+
+    public void appendTsVariables(TsCollection col) {
+        for (Ts o : col) {
+            String varName = variables.nextName();
+            variables.set(varName, o.getMoniker().isAnonymous()
+                    ? new TsVariable(o.getName(), o.getTsData())
+                    : new DynamicTsVariable(o.getName(), o.getMoniker(), o.getTsData()));
+            model.getMeasurements().add(DfmModelSpecDemo.newMeasurementSpec(varName, model.getVarSpec().getEquationsCount()));
+        }
+        firePropertyChange(MODEL_PROPERTY, null, model);
+    }
 
     private JMenu createMenu() {
         JMenu result = new JMenu();
@@ -241,9 +263,15 @@ public final class DfmModelSpecView extends JComponent {
                 @Override
                 public void setValue(Object value) {
                     Transformation[] transformations = (Transformation[]) value;
-                    content.set(Arrays.asList(Transformation.values()), transformations != null ? Arrays.asList(transformations) : Collections.<Transformation>emptyList());
+                    List<Transformation> input = Lists.newArrayList(Transformation.values());
+                    if (transformations == null) {
+                        content.set(input);
+                    } else {
+                        List<Transformation> sel = Arrays.asList(transformations);
+                        input.removeAll(sel);
+                        content.set(input, sel);
+                    }
                 }
-
             });
         }
 
@@ -304,24 +332,11 @@ public final class DfmModelSpecView extends JComponent {
             if (col != null) {
                 col.query(TsInformationType.All);
                 if (!col.isEmpty()) {
-                    for (Ts o : col) {
-                        MeasurementSpec item = new MeasurementSpec();
-                        item.setName(o.getName());
-                        item.setSeriesTransformations(null);
-                        item.setFactorsTransformation(MeasurementType.L);
-                        Parameter[] parameters = new Parameter[model.getVarSpec().getEquationsCount()];
-                        for (int i = 0; i < parameters.length; i++) {
-                            parameters[i] = new Parameter();
-                        }
-                        item.setCoefficient(parameters);
-                        model.getMeasurements().add(item);
-                        firePropertyChange(MODEL_PROPERTY, null, model);
-                    }
+                    appendTsVariables(col);
                 }
                 return true;
             }
             return false;
         }
-
     }
 }
