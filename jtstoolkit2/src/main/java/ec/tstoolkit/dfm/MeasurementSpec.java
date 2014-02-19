@@ -39,13 +39,25 @@ public class MeasurementSpec implements IProcSpecification {
 
     public static final String NAME = "name", SERIESTRANSFORMATIONS = "stransformations", 
             COEFF = "coeff", VAR = "var", FACTORTRANSFORMATION = "ftransformation",
-            MEAN="mean", STDEV="stdev";
+            MEAN="mean", STDEV="stdev", DEF_NAME="var";
+    private static volatile int g_idx=0;
     private String name;
     private Transformation[] transformations;
     private double mean=Double.NaN, stdev=Double.NaN;
     private Parameter[] coeff;
     private Parameter var;
-    private DynamicFactorModel.MeasurementType type;
+    private DynamicFactorModel.MeasurementType type= DynamicFactorModel.MeasurementType.L;
+    
+    public MeasurementSpec(int nfac){
+        name=DEF_NAME+(++g_idx);
+        coeff=Parameter.create(nfac);
+        transformations=new Transformation[0];
+        var=new Parameter();
+    }
+    
+    public MeasurementSpec(){
+        this(0);
+    }
 
     @Override
     public MeasurementSpec clone() {
