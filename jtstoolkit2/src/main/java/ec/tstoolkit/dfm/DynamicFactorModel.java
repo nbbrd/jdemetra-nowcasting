@@ -510,6 +510,8 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             mdesc.var *= cvar;
         }
         tdesc_.covar.mul(cvar);
+        if (V0_ != null)
+            V0_.mul(cvar);
     }
 
     /**

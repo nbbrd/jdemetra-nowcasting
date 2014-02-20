@@ -244,7 +244,7 @@ public class DfmInitializerTest {
         //monitor.setInitializer(initializer);
         //        monitor.setInitializer(new DefaultInitializer());
         monitor.setEstimator(estimator);
-        monitor.process(model0, s);
+        //monitor.process(model0, s);
         em.setMaxIter(1000);
         em.initialize(model0, dfmInformationSet);
 
@@ -263,7 +263,7 @@ public class DfmInitializerTest {
 
         //DefaultInitializer initializer = new DefaultInitializer();
         PcInitializer initializer = new PcInitializer();
-        initializer.initialize(model0, dfmInformationSet);
+        //initializer.initialize(model0, dfmInformationSet);
 
         DynamicFactorModel model1 = model0.clone();
         DfmMonitor monitor = new DfmMonitor();
@@ -294,14 +294,19 @@ public class DfmInitializerTest {
         };
         lm.register(hook);
         DfmEstimator estimator = new DfmEstimator(new ProxyMinimizer(lm));
-        //model0.setInitialization(VarSpec.Initialization.Zero);
+//        model0.setInitialization(VarSpec.Initialization.Zero);
+//        Matrix v0=new Matrix(36, 36);
+//        v0.diagonal().set(1e3);
+//        model0.setInitialCovariance(v0);
         monitor.setEstimator(estimator);
+        estimator.setMaxInitialIter(0);
+        estimator.setMixedMethod(true);
         estimator.setMaxIter(200);
         monitor.process(model0, s);
         //DfmEM em = new DfmEM();
         DfmEM2 em = new DfmEM2(null);
         //em.setCorrectingInitialVariance(false);
-        em.setMaxIter(200);
+        em.setMaxIter(2000);
         IProcessingHook<DfmEM2, DynamicFactorModel> emhook = new IProcessingHook<DfmEM2, DynamicFactorModel>() {
 
             @Override

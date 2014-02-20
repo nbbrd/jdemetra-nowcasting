@@ -15,6 +15,7 @@ import ec.tstoolkit.eco.Likelihood;
 import ec.tstoolkit.maths.matrices.LowerTriangularMatrix;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.maths.matrices.MatrixException;
+import ec.tstoolkit.maths.matrices.SubMatrix;
 import ec.tstoolkit.maths.matrices.SymmetricMatrix;
 import ec.tstoolkit.maths.realfunctions.DefaultDomain;
 import ec.tstoolkit.maths.realfunctions.IFunction;
@@ -184,22 +185,22 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
         filter(false);
         return true;
     }
-    
-    private void filter(boolean adjust){
+
+    private void filter(boolean adjust) {
         MFilter filter = new MFilter();
         MPredictionErrorDecomposition results = new MPredictionErrorDecomposition(true);
         filter.process(dfm.ssfRepresentation(), new MultivariateSsfData(data.generateMatrix(null).subMatrix().transpose(), null), results);
         Likelihood ll = new Likelihood();
         evaluate(results, ll);
         ll_ = ll.getLogLikelihood();
-        if (adjust){
+        if (adjust) {
             dfm.rescaleVariances(ll.getSigma());
+            dfm.normalize();
         }
     }
 
     private boolean EStep() {
-        dfm.normalize();
-        if (!processor.process(dfm, data)) {
+       if (!processor.process(dfm, data)) {
             return false;
         }
         Likelihood ll = new Likelihood();
@@ -211,7 +212,7 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
         if (hinfo.cancel) {
             return false;
         }
-        calcG();
+       calcG();
         return true;
     }
 
@@ -317,7 +318,8 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
         for (int i = 0; i < nf; ++i) {
             for (int j = 0; j < nl; ++j) {
                 for (int k = 0; k < nf; ++k) {
-                    f.set(i, j * nf + k, ef(i * blen, k * blen + j + 1).sum());
+                    double x=ef(i * blen, k * blen + j + 1).sum();
+                    f.set(i, j * nf + k, x);
                 }
             }
         }
@@ -325,7 +327,8 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
             for (int k = 0; k < nf; ++k, ++r) {
                 for (int j = 1, c = 0; j <= nl; ++j) {
                     for (int l = 0; l < nf; ++l, ++c) {
-                        f2.set(r, c, ef(k * blen + i, l * blen + j).sum());
+                        double x= ef(k * blen + i, l * blen + j).sum();
+                        f2.set(r, c, x);
                     }
                 }
             }
@@ -370,10 +373,6 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
             if (ofn != null && cur.getValue() > ofn.getValue()) {
                 dfm.getTransition().varParams.copy(ofn.V);
                 dfm.getTransition().covar.copy(SymmetricMatrix.XXt(ofn.lQ));
-            } else {
-                System.out.print(cur.getValue());
-                System.out.print('\t');
-                System.out.print(ofn.getValue());
             }
         }
     }
@@ -382,7 +381,7 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
     class LL2 implements IFunction {
 
         private final Table<Matrix> allK;
-        private final Matrix lQ0;
+        private final Matrix lQ0, K0;
 
         LL2() {
             lQ0 = dfm.getTransition().covar.clone();
@@ -396,6 +395,21 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
                     Matrix m = calcK(i, j);
                     allK.set(i, j, m);
                     allK.set(j, i, m.transpose());
+                }
+            }
+//          int n = dfm.getBlockLength(), nc = n-1, nf = dfm.getFactorsCount();
+         int n = dfm.getBlockLength(), nc = dfm.getTransition().nlags, nf = dfm.getFactorsCount();
+            K0 = new Matrix(nc * nf, nc * nf);
+//           int del = 1;
+           int del = n - nc;
+            for (int i = 0; i < nf; ++i) {
+                for (int k = 0; k < nc; ++k) {
+                    for (int j = 0; j < nf; ++j) {
+                        for (int l = 0; l < nc; ++l) {
+                            double v=ef(i * n + k + del, j * n + l + del).get(0);
+                             K0.set(i * nc + k, j * nc + l, v);
+                       }
+                    }
                 }
             }
         }
@@ -421,7 +435,12 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
             Matrix K = new Matrix(n, n);
             for (int k = 0; k < n; ++k) {
                 for (int l = 0; l < n; ++l) {
-                    K.set(k, l, ef(i + k * len, j + l * len).sum());
+                    double s = ef(i + k * len, j + l * len).sum();
+//                    // add first ef...
+                    for (int u = 1; u < len - dfm.getTransition().nlags; ++u) {
+                        s += ef(i + u + k * len, j + u + l * len).get(0);
+                    }
+                    K.set(k, l, s);
                 }
             }
             return K;
@@ -536,21 +555,7 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
                 // V^-1 = (LL')^-1 = L'^-1*L^-1
                 Matrix lower = LowerTriangularMatrix.inverse(lv0);
                 Matrix iv0 = SymmetricMatrix.XtX(lower);
-                int len = dfm.getBlockLength();
-                int nl = len-1; // dfm.getTransition().nlags;
-                int nf = dfm.getFactorsCount();
-                double ssq0 = 0;
-                for (int i = 0; i < nf; ++i) {
-                    for (int k = 0; k < nl; ++k) {
-                        for (int j = 0; j < nf; ++j) {
-                            for (int l = 0; l < nl; ++l) {
-                                double ejk = ef(i * len + k + 1, j * len + l + 1).get(0);
-                                ssq0 += iv0.get(i * nl + k, j * nl + l) * ejk;
-                            }
-                        }
-                    }
-                }
-                return ssq0;
+                return iv0.dot(K0);
             }
 
             private double calcdetv0() {
@@ -566,8 +571,9 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
                 if (!sumLog.pos) {
                     throw new DfmException();
                 }
-                return dataSize * 2 * sumLog.value;
-            }
+                return (dataSize + dfm.getBlockLength() - dfm.getTransition().nlags -1) * 2 * sumLog.value;
+//               return dataSize * 2 * sumLog.value;
+             }
 
             private double calcssq() {
                 int nl = 1 + dfm.getTransition().nlags;
@@ -591,8 +597,8 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
                 // compute the initial covar. We reuse the code of DynamicFactorModel
                 DynamicFactorModel tmp = dfm.clone();
                 tmp.clearMeasurements();
-
-                tmp.setBlockLength(dfm.getBlockLength()-1);
+                tmp.setBlockLength(dfm.getTransition().nlags);
+//                tmp.setBlockLength(dfm.getBlockLength()-1);
                 tmp.getTransition().varParams.copy(V);
                 tmp.getTransition().covar.copy(SymmetricMatrix.XXt(lQ));
                 try {

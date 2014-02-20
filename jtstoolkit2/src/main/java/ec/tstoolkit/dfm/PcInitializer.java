@@ -80,7 +80,7 @@ public class PcInitializer implements IDfmInitializer {
         if (!computeLoadings(model)) {
             return false;
         }
-        model.normalize();
+        //model.normalize();
         return true;
     }
 
