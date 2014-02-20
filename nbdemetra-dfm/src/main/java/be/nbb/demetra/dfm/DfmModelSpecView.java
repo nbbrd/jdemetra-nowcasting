@@ -20,6 +20,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import ec.nbdemetra.ui.awt.PopupListener;
 import ec.nbdemetra.ui.properties.ListSelection;
+import ec.tss.Dfm.DfmDocument;
 import ec.tss.DynamicTsVariable;
 import ec.tss.Ts;
 import ec.tss.TsCollection;
@@ -75,11 +76,11 @@ public final class DfmModelSpecView extends JComponent {
     public static final String MODEL_PROPERTY = "model";
     //
     private final XTable view;
-    private DfmModelSpec model;
+    private DfmDocument model;
 
     public DfmModelSpecView() {
         this.view = new XTable();
-        this.model = DfmModelSpecDemo.newDfmModelSpec(4, 4);
+        this.model = NewDfmDocumentAction.newDocument("test");
 
         view.addMouseListener(new PopupListener.PopupAdapter(createMenu().getPopupMenu()));
         view.setDefaultRenderer(Transformation[].class, new TransformationRenderer());
@@ -109,21 +110,21 @@ public final class DfmModelSpecView extends JComponent {
     }
 
     private void onModelChange() {
-        view.setModel(new InternalModel());
-        int nbrFactors = model.getVarSpec().getEquationsCount();
+        view.setModel(new ModelSpecModel());
+        int nbrFactors = model.getSpecification().getModelSpec().getVarSpec().getEquationsCount();
         for (int i = 0; i < nbrFactors; i++) {
             view.getColumnModel().getColumn(i + 3).setPreferredWidth(10);
         }
     }
 
     //<editor-fold defaultstate="collapsed" desc="Getters/Setters">
-    public DfmModelSpec getModel() {
+    public DfmDocument getModel() {
         return model;
     }
 
-    public void setModel(DfmModelSpec model) {
-        DfmModelSpec old = this.model;
-        this.model = model != null ? model : new DfmModelSpec();
+    public void setModel(DfmDocument model) {
+        DfmDocument old = this.model;
+        this.model = model != null ? model : NewDfmDocumentAction.newDocument("test");
         firePropertyChange(MODEL_PROPERTY, old, this.model);
     }
     //</editor-fold>
@@ -136,7 +137,7 @@ public final class DfmModelSpecView extends JComponent {
             variables.set(varName, o.getMoniker().isAnonymous()
                     ? new TsVariable(o.getName(), o.getTsData())
                     : new DynamicTsVariable(o.getName(), o.getMoniker(), o.getTsData()));
-            model.getMeasurements().add(DfmModelSpecDemo.newMeasurementSpec(varName, model.getVarSpec().getEquationsCount()));
+            model.getSpecification().getModelSpec().getMeasurements().add(DfmModelSpecDemo.newMeasurementSpec(varName, model.getSpecification().getModelSpec().getVarSpec().getEquationsCount()));
         }
         firePropertyChange(MODEL_PROPERTY, null, model);
     }
@@ -147,25 +148,25 @@ public final class DfmModelSpecView extends JComponent {
         return result;
     }
 
-    private final class InternalModel extends AbstractTableModel {
+    private final class ModelSpecModel extends AbstractTableModel {
 
         public List<MeasurementSpec> getMeasurements() {
-            return model.getMeasurements();
+            return model.getSpecification().getModelSpec().getMeasurements();
         }
 
         @Override
         public int getRowCount() {
-            return model.getMeasurements().size();
+            return model.getSpecification().getModelSpec().getMeasurements().size();
         }
 
         @Override
         public int getColumnCount() {
-            return 3 + model.getVarSpec().getEquationsCount();
+            return 3 + model.getSpecification().getModelSpec().getVarSpec().getEquationsCount();
         }
 
         @Override
         public Object getValueAt(int rowIndex, int columnIndex) {
-            MeasurementSpec ms = model.getMeasurements().get(rowIndex);
+            MeasurementSpec ms = model.getSpecification().getModelSpec().getMeasurements().get(rowIndex);
             switch (columnIndex) {
                 case 0:
                     return ms.getName();
@@ -185,7 +186,7 @@ public final class DfmModelSpecView extends JComponent {
 
         @Override
         public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
-            MeasurementSpec ms = model.getMeasurements().get(rowIndex);
+            MeasurementSpec ms = model.getSpecification().getModelSpec().getMeasurements().get(rowIndex);
             switch (columnIndex) {
                 case 1:
                     ms.setSeriesTransformations((Transformation[]) aValue);
@@ -289,7 +290,7 @@ public final class DfmModelSpecView extends JComponent {
 
         @Override
         public void execute(XTable component) throws Exception {
-            InternalModel model = (InternalModel) component.getModel();
+            ModelSpecModel model = (ModelSpecModel) component.getModel();
             int index = component.convertRowIndexToModel(component.getSelectedRows()[0]);
             MeasurementSpec selected = model.getMeasurements().get(index);
             for (MeasurementSpec o : model.getMeasurements()) {

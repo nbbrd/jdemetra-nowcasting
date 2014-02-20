@@ -16,12 +16,11 @@
  */
 package be.nbb.demetra.dfm;
 
+import ec.tss.Dfm.DfmDocument;
 import ec.tstoolkit.Parameter;
 import ec.tstoolkit.ParameterType;
-import ec.tstoolkit.dfm.DfmModelSpec;
 import ec.tstoolkit.dfm.DynamicFactorModel;
 import ec.tstoolkit.dfm.MeasurementSpec;
-import ec.tstoolkit.var.VarSpec;
 
 /**
  *
@@ -29,20 +28,12 @@ import ec.tstoolkit.var.VarSpec;
  */
 public class DfmModelSpecDemo {
 
-    public static DfmModelSpec getDemo() {
-        DfmModelSpec result = newDfmModelSpec(4, 4);
+    public static DfmDocument getDemo() {
+        DfmDocument result = NewDfmDocumentAction.newDocument("demo");
         for (int i = 0; i < 10; i++) {
-            result.getMeasurements().add(newMeasurementSpec("S" + i, 4));
+            result.getSpecification().getModelSpec().getMeasurements().add(newMeasurementSpec("S" + i, 4));
         }
         return result;
-    }
-
-    public static DfmModelSpec newDfmModelSpec(int nvars, int nlags) {
-        DfmModelSpec m = new DfmModelSpec();
-        VarSpec vs = new VarSpec();
-        vs.setSize(nvars, nlags);
-        m.setVarSpec(vs);
-        return m;
     }
 
     public static MeasurementSpec newMeasurementSpec(String name, int nvars) {

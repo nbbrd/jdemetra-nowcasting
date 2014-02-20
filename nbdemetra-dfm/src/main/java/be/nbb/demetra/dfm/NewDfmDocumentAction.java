@@ -6,6 +6,10 @@
 package be.nbb.demetra.dfm;
 
 import ec.nbdemetra.ui.NbComponents;
+import ec.tss.Dfm.DfmDocument;
+import ec.tstoolkit.dfm.DfmModelSpec;
+import ec.tstoolkit.dfm.DfmSpec;
+import ec.tstoolkit.var.VarSpec;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import org.netbeans.core.spi.multiview.MultiViewDescription;
@@ -34,11 +38,31 @@ public final class NewDfmDocumentAction implements ActionListener {
         String name = "DFM doc " + i++;
         TopComponent c = NbComponents.findTopComponentByName(name);
         if (c == null) {
-            MultiViewDescription[] descriptions = {new DfmModelSpecViewTopComponent(), new DfmExecViewTopComponent(), new DfmOutputViewTopComponent()};
+            DfmDocument document = newDocument(name);
+            MultiViewDescription[] descriptions = {
+                new DfmModelSpecViewTopComponent(document),
+                new DfmExecViewTopComponent(document),
+                new DfmOutputViewTopComponent(document)};
             c = MultiViewFactory.createMultiView(descriptions, descriptions[0]);
             c.setName(name);
             c.open();
         }
         c.requestActive();
+    }
+
+    public static DfmDocument newDocument(String name) {
+        DfmDocument result = new DfmDocument(name);
+        DfmSpec spec = new DfmSpec();
+        spec.setModelSpec(newDfmModelSpec(4, 4));
+        result.setSpecification(spec);
+        return result;
+    }
+
+    public static DfmModelSpec newDfmModelSpec(int nvars, int nlags) {
+        DfmModelSpec m = new DfmModelSpec();
+        VarSpec vs = new VarSpec();
+        vs.setSize(nvars, nlags);
+        m.setVarSpec(vs);
+        return m;
     }
 }

@@ -5,9 +5,7 @@
  */
 package be.nbb.demetra.dfm;
 
-import ec.tstoolkit.dfm.DfmModelSpec;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
+import ec.tss.Dfm.DfmDocument;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JToolBar;
@@ -32,12 +30,6 @@ import org.openide.util.NbBundle.Messages;
         persistenceType = TopComponent.PERSISTENCE_NEVER
 )
 @TopComponent.Registration(mode = "editor", openAtStartup = false)
-//@ActionID(category = "Window", id = "be.nbb.demetra.dfm.DfmModelSpecViewTopComponent")
-//@ActionReference(path = "Menu/Window" /*, position = 333 */)
-//@TopComponent.OpenActionRegistration(
-//        displayName = "#CTL_DfmModelSpecViewAction",
-//        preferredID = "DfmModelSpecViewTopComponent"
-//)
 @Messages({
     "CTL_DfmModelSpecViewAction=DfmModelSpecView",
     "CTL_DfmModelSpecViewTopComponent=DfmModelSpecView Window",
@@ -45,26 +37,17 @@ import org.openide.util.NbBundle.Messages;
 })
 public final class DfmModelSpecViewTopComponent extends TopComponent implements MultiViewElement, MultiViewDescription {
 
-    public static final String MODEL_PROPERTY = "model";
-    private DfmModelSpec model;
-
     public DfmModelSpecViewTopComponent() {
         initComponents();
         setName(Bundle.CTL_DfmModelSpecViewTopComponent());
         setToolTipText(Bundle.HINT_DfmModelSpecViewTopComponent());
 
         setDisplayName("Model");
-        
-        addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case MODEL_PROPERTY:
-                        onModelChange();
-                        break;
-                }
-            }
-        });
+    }
+
+    public DfmModelSpecViewTopComponent(DfmDocument document) {
+        this();
+        dfmModelSpecView1.setModel(document);
     }
 
     /**
@@ -84,6 +67,14 @@ public final class DfmModelSpecViewTopComponent extends TopComponent implements 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private be.nbb.demetra.dfm.DfmModelSpecView dfmModelSpecView1;
     // End of variables declaration//GEN-END:variables
+
+    void writeProperties(java.util.Properties p) {
+    }
+
+    void readProperties(java.util.Properties p) {
+    }
+
+    //<editor-fold defaultstate="collapsed" desc="MultiViewElement">
     @Override
     public void componentOpened() {
     }
@@ -92,27 +83,6 @@ public final class DfmModelSpecViewTopComponent extends TopComponent implements 
     public void componentClosed() {
     }
 
-    void writeProperties(java.util.Properties p) {
-    }
-
-    void readProperties(java.util.Properties p) {
-    }
-
-    private void onModelChange() {
-        dfmModelSpecView1.setModel(model);
-    }
-
-    public DfmModelSpec getModel() {
-        return model;
-    }
-
-    public void setModel(DfmModelSpec model) {
-        DfmModelSpec old = this.model;
-        this.model = model != null ? model : new DfmModelSpec();
-        firePropertyChange(MODEL_PROPERTY, old, this.model);
-    }
-
-    //<editor-fold defaultstate="collapsed" desc="MultiViewElement">
     @Override
     public JComponent getVisualRepresentation() {
         return this;

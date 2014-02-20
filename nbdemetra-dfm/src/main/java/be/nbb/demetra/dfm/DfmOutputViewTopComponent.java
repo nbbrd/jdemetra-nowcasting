@@ -5,6 +5,7 @@
  */
 package be.nbb.demetra.dfm;
 
+import ec.tss.Dfm.DfmDocument;
 import javax.swing.JComponent;
 import javax.swing.JToolBar;
 import org.netbeans.api.settings.ConvertAsProperties;
@@ -43,6 +44,10 @@ public final class DfmOutputViewTopComponent extends TopComponent implements Mul
         setDisplayName("Output");
     }
 
+    public DfmOutputViewTopComponent(DfmDocument document) {
+        this();
+    }
+
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -65,16 +70,6 @@ public final class DfmOutputViewTopComponent extends TopComponent implements Mul
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     // End of variables declaration//GEN-END:variables
-    @Override
-    public void componentOpened() {
-        // TODO add custom code on component opening
-    }
-
-    @Override
-    public void componentClosed() {
-        // TODO add custom code on component closing
-    }
-
     void writeProperties(java.util.Properties p) {
         // better to version settings since initial version as advocated at
         // http://wiki.apidesign.org/wiki/PropertyFiles
@@ -86,8 +81,18 @@ public final class DfmOutputViewTopComponent extends TopComponent implements Mul
         String version = p.getProperty("version");
         // TODO read your settings according to their version
     }
-    
+
     //<editor-fold defaultstate="collapsed" desc="MultiViewElement">
+    @Override
+    public void componentOpened() {
+        // TODO add custom code on component opening
+    }
+
+    @Override
+    public void componentClosed() {
+        // TODO add custom code on component closing
+    }
+
     @Override
     public JComponent getVisualRepresentation() {
         return this;
