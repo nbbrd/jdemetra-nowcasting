@@ -45,6 +45,11 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
     private VarSpec vspec;
     private final List<MeasurementSpec> mspecs = new ArrayList<>();
 
+    public DfmModelSpec(){
+        vspec=new VarSpec();
+        vspec.setSize(2, 2);
+    }
+    
     public VarSpec getVarSpec() {
         return vspec;
     }

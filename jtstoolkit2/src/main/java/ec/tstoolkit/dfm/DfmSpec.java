@@ -31,8 +31,8 @@ import java.util.Objects;
 public class DfmSpec implements IProcSpecification, Cloneable {
 
     public static final String MSPEC = "model", ESPEC = "estimation", SASPEC = "sa";
-    private DfmModelSpec model_;
-    private DfmEstimationSpec estimation_;
+    private DfmModelSpec model_=new DfmModelSpec();
+    private DfmEstimationSpec estimation_=new DfmEstimationSpec();
     private ISaSpecification sa_ = TramoSeatsSpecification.RSA4;
 
     public DfmModelSpec getModelSpec() {
