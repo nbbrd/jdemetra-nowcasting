@@ -22,13 +22,13 @@ public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
 
     public static final int DEF_VERSION = 2, DEF_MAXITER = 1000, DEF_MAXSITER = 15,
             DEF_NITER = 5;
-    public static final Boolean DEF_BLOCK = true;
+    public static final Boolean DEF_BLOCK = true, DEF_MIXED=true;
     public static final String ENABLED = "enabled", MAXITER = "maxiter", MAXSITER = "maxsiter", NITER = "niter", 
-            BLOCKITER = "blockiter", METHOD="method", EPS = "eps";
+            BLOCKITER = "blockiter", METHOD="method", EPS = "eps", MIXED="mixed";
     public static final double DEF_EPS = 1e-9;
     private boolean enabled_;
     private int maxiter_ = DEF_MAXITER, maxsiter_ = DEF_MAXSITER, niter_ = DEF_NITER;
-    private boolean block_ = DEF_BLOCK;
+    private boolean block_ = DEF_BLOCK, mixed_=DEF_MIXED;
     private double eps_ = DEF_EPS;
     private Method method_ = Method.LevenbergMarquardt;
 
@@ -72,6 +72,14 @@ public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
         block_=b;
     }
     
+    public boolean isMixedEstimation(){
+        return mixed_;
+    }
+    
+    public void setMixedEstimation(boolean b){
+        mixed_=b;
+    }
+
     public Method getMethod(){
         return method_;
     }
@@ -79,7 +87,15 @@ public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
     public void setMethod(Method m){
         method_=m;
     }
+    
+    public double getPrecision(){
+        return eps_;
+    }
 
+    public void setPrecision(double eps){
+        eps_=eps;
+    }
+    
     @Override
     public NumericalProcessingSpec clone() {
         try {
@@ -95,6 +111,9 @@ public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
         info.set(ENABLED, enabled_);
         if (block_ != DEF_BLOCK || verbose) {
             info.set(BLOCKITER, block_);
+        }
+        if (mixed_ != DEF_MIXED || verbose) {
+            info.set(MIXED, mixed_);
         }
         if (eps_ != DEF_EPS || verbose) {
             info.set(EPS, eps_);
@@ -125,6 +144,10 @@ public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
         if (block != null) {
             block_ = block;
         }
+        Boolean mixed = info.get(MIXED, Boolean.class);
+        if (mixed != null) {
+            mixed_ = mixed;
+        }
         Integer ni = info.get(MAXITER, Integer.class);
         if (ni != null) {
             maxiter_ = ni;
@@ -153,7 +176,7 @@ public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
     }
 
     public boolean equals(NumericalProcessingSpec obj) {
-        return obj.enabled_ == enabled_ && obj.block_ == block_ && obj.eps_ == eps_ && obj.method_ == method_
+        return obj.enabled_ == enabled_ && obj.block_ == block_ && obj.mixed_ == mixed_ && obj.eps_ == eps_ && obj.method_ == method_
                 && obj.maxiter_ == maxiter_ && obj.maxsiter_ == obj.maxsiter_ && obj.niter_ == niter_;
     }
 
@@ -174,6 +197,7 @@ public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
         dic.put(InformationSet.item(prefix, MAXSITER), Integer.class);
         dic.put(InformationSet.item(prefix, NITER), Integer.class);
         dic.put(InformationSet.item(prefix, BLOCKITER), Boolean.class);
+        dic.put(InformationSet.item(prefix, MIXED), Boolean.class);
         dic.put(InformationSet.item(prefix, EPS), Double.class);
         dic.put(InformationSet.item(prefix, METHOD), String.class);
     }

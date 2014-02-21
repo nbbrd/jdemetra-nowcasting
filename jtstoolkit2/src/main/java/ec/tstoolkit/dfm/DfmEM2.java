@@ -50,6 +50,7 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
     private int modelSize;
     private int dataSize;
     private double ll_;
+    private int numiter_ = 50;
 
     public DfmEM2(IDfmInitializer initializer) {
         this.initializer = initializer;
@@ -82,6 +83,14 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
 
     public void setMaxIter(int i) {
         maxiter_ = i;
+    }
+
+    public int getMaxNumericIter() {
+        return numiter_;
+    }
+
+    public void setMaxNumericIter(int i) {
+        numiter_ = i;
     }
 
     private DataBlock ef(int i) {
@@ -187,20 +196,23 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
     }
 
     private void filter(boolean adjust) {
-        MFilter filter = new MFilter();
-        MPredictionErrorDecomposition results = new MPredictionErrorDecomposition(true);
-        filter.process(dfm.ssfRepresentation(), new MultivariateSsfData(data.generateMatrix(null).subMatrix().transpose(), null), results);
-        Likelihood ll = new Likelihood();
-        evaluate(results, ll);
-        ll_ = ll.getLogLikelihood();
-        if (adjust) {
-            dfm.rescaleVariances(ll.getSigma());
-            dfm.normalize();
+        try {
+            MFilter filter = new MFilter();
+            MPredictionErrorDecomposition results = new MPredictionErrorDecomposition(true);
+            filter.process(dfm.ssfRepresentation(), new MultivariateSsfData(data.generateMatrix(null).subMatrix().transpose(), null), results);
+            Likelihood ll = new Likelihood();
+            evaluate(results, ll);
+            ll_ = ll.getLogLikelihood();
+            if (adjust) {
+                dfm.rescaleVariances(ll.getSigma());
+                dfm.normalize();
+            }
+        } catch (RuntimeException err) {
         }
     }
 
     private boolean EStep() {
-       if (!processor.process(dfm, data)) {
+        if (!processor.process(dfm, data)) {
             return false;
         }
         Likelihood ll = new Likelihood();
@@ -212,7 +224,7 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
         if (hinfo.cancel) {
             return false;
         }
-       calcG();
+        calcG();
         return true;
     }
 
@@ -318,7 +330,7 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
         for (int i = 0; i < nf; ++i) {
             for (int j = 0; j < nl; ++j) {
                 for (int k = 0; k < nf; ++k) {
-                    double x=ef(i * blen, k * blen + j + 1).sum();
+                    double x = ef(i * blen, k * blen + j + 1).sum();
                     f.set(i, j * nf + k, x);
                 }
             }
@@ -327,7 +339,7 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
             for (int k = 0; k < nf; ++k, ++r) {
                 for (int j = 1, c = 0; j <= nl; ++j) {
                     for (int l = 0; l < nf; ++l, ++c) {
-                        double x= ef(k * blen + i, l * blen + j).sum();
+                        double x = ef(k * blen + i, l * blen + j).sum();
                         f2.set(r, c, x);
                     }
                 }
@@ -365,14 +377,14 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
         if (correctStart_ && dfm.getInitialization() == VarSpec.Initialization.SteadyState) {
             LbfgsMinimizer bfgs = new LbfgsMinimizer();
             //bfgs.setLineSearch(new SimpleLineSearch());
-            bfgs.setMaxIter(30);
+            bfgs.setMaxIter(numiter_);
             LL2 fn = new LL2();
             LL2.Instance cur = fn.current();
             bfgs.minimize(fn, cur);
             LL2.Instance ofn = (LL2.Instance) bfgs.getResult();
             if (ofn != null && cur.getValue() > ofn.getValue()) {
                 dfm.getTransition().varParams.copy(ofn.V);
-                dfm.getTransition().covar.copy(SymmetricMatrix.XXt(ofn.lQ));
+                dfm.getTransition().covar.copy(ofn.Q);
             }
         }
     }
@@ -381,11 +393,9 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
     class LL2 implements IFunction {
 
         private final Table<Matrix> allK;
-        private final Matrix lQ0, K0;
+        private final Matrix K0;
 
         LL2() {
-            lQ0 = dfm.getTransition().covar.clone();
-            SymmetricMatrix.lcholesky(lQ0);
             // computes  results independent of the VAR parameters: K(i,j) = sum(f(i,j), t)
             int p = 1 + dfm.getTransition().nlags;
             allK = new Table<>(p, p);
@@ -398,17 +408,17 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
                 }
             }
 //          int n = dfm.getBlockLength(), nc = n-1, nf = dfm.getFactorsCount();
-         int n = dfm.getBlockLength(), nc = dfm.getTransition().nlags, nf = dfm.getFactorsCount();
+            int n = dfm.getBlockLength(), nc = dfm.getTransition().nlags, nf = dfm.getFactorsCount();
             K0 = new Matrix(nc * nf, nc * nf);
 //           int del = 1;
-           int del = n - nc;
+            int del = n - nc;
             for (int i = 0; i < nf; ++i) {
                 for (int k = 0; k < nc; ++k) {
                     for (int j = 0; j < nf; ++j) {
                         for (int l = 0; l < nc; ++l) {
-                            double v=ef(i * n + k + del, j * n + l + del).get(0);
-                             K0.set(i * nc + k, j * nc + l, v);
-                       }
+                            double v = ef(i * n + k + del, j * n + l + del).get(0);
+                            K0.set(i * nc + k, j * nc + l, v);
+                        }
                     }
                 }
             }
@@ -465,7 +475,7 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
 
         public class Instance implements IFunctionInstance {
 
-            private final Matrix lQ, V; // lQ = cholesky factor of Q
+            private final Matrix Q, lQ, V; // lQ = cholesky factor of Q
             private final DataBlock p;
             private final double val;
             private final Matrix lv0;
@@ -477,12 +487,15 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
                 int nf = dfm.getFactorsCount();
                 int nl = dfm.getTransition().nlags;
                 V = new Matrix(nf, nf * nl);
+                Q = new Matrix(nf, nf * nl);
                 int vlen = V.internalStorage().length;
                 this.p.range(0, vlen).copyTo(V.internalStorage(), 0);
-                this.lQ = lQ0.clone();
                 for (int i = 0, j = vlen; i < nf; j += nf - i, i++) {
-                    lQ.column(i).drop(i, 0).copy(this.p.range(j, j + nf - i));
+                    Q.column(i).drop(i, 0).copy(this.p.range(j, j + nf - i));
                 }
+                SymmetricMatrix.fromLower(Q);
+                lQ = Q.clone();
+                SymmetricMatrix.lcholesky(lQ);
                 lv0 = calclv0();
                 LA = calcLA();
                 val = calc();
@@ -491,31 +504,26 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
             public Instance() {
                 this.V = dfm.getTransition().varParams;
                 int nf = dfm.getFactorsCount();
-                this.lQ = lQ0;
+                this.Q = dfm.getTransition().covar;
                 int vlen = V.internalStorage().length;
                 p = new DataBlock(vlen + nf * (nf + 1) / 2);
                 p.range(0, vlen).copyFrom(V.internalStorage(), 0);
                 for (int i = 0, j = vlen; i < nf; j += nf - i, i++) {
-                    p.range(j, j + nf - i).copy(lQ.column(i).drop(i, 0));
+                    p.range(j, j + nf - i).copy(Q.column(i).drop(i, 0));
                 }
+                this.lQ = Q.clone();
+                SymmetricMatrix.lcholesky(lQ);
                 lv0 = calclv0();
                 LA = calcLA();
                 val = calc();
             }
 
             private double calc() {
-                double v = 0;
-                if (dfm.getInitialization() != VarSpec.Initialization.Zero) {
-                    v0 = calcdetv0();
-                    v1 = calcssq0();
-                    v += v0;
-                    v += v1;
-                }
+                v0 = calcdetv0();
+                v1 = calcssq0();
                 v2 = calcdetq();
                 v3 = calcssq();
-                v += v2;
-                v += v3;
-                return v;
+                return v0 + v1 + v2 + v3;
             }
 
             private Matrix A(int i) {
@@ -533,13 +541,6 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
                 }
             }
 
-            /**
-             * AQA = A'(i)*Q^-1*A(j) = A"(i)*L'^-1*L^-1*A
-             *
-             * @param i
-             * @param j
-             * @return
-             */
             @Override
             public IReadDataBlock getParameters() {
                 return p;
@@ -571,20 +572,23 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
                 if (!sumLog.pos) {
                     throw new DfmException();
                 }
-                return (dataSize + dfm.getBlockLength() - dfm.getTransition().nlags -1) * 2 * sumLog.value;
+                return (dataSize + dfm.getBlockLength() - dfm.getTransition().nlags - 1) * 2 * sumLog.value;
 //               return dataSize * 2 * sumLog.value;
-             }
+            }
 
             private double calcssq() {
                 int nl = 1 + dfm.getTransition().nlags;
                 int nf = dfm.getFactorsCount();
                 double ssq = 0;
+                Matrix aqa = new Matrix(nf, nf);
                 for (int i = 0; i < nl; ++i) {
-                    for (int j = 0; j < nl; ++j) {
-                        Matrix aqa = new Matrix(nf, nf);
+                    aqa.subMatrix().product(LA[i].subMatrix().transpose(),
+                            LA[i].subMatrix());
+                    ssq += K(i, i).dot(aqa);
+                    for (int j = 0; j < i; ++j) {
                         aqa.subMatrix().product(LA[i].subMatrix().transpose(),
                                 LA[j].subMatrix());
-                        ssq += K(i, j).dot(aqa);
+                        ssq += 2 * K(i, j).dot(aqa);
                     }
                 }
                 return ssq;
@@ -600,7 +604,7 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
                 tmp.setBlockLength(dfm.getTransition().nlags);
 //                tmp.setBlockLength(dfm.getBlockLength()-1);
                 tmp.getTransition().varParams.copy(V);
-                tmp.getTransition().covar.copy(SymmetricMatrix.XXt(lQ));
+                tmp.getTransition().covar.copy(Q);
                 try {
                     int n = tmp.getFactorsCount() * tmp.getBlockLength();
                     Matrix cov = new Matrix(n, n);
@@ -613,6 +617,9 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
 
             }
 
+            /**
+             * AQA = A'(i)*Q^-1*A(j) = A"(i)*L'^-1*L^-1*A We compute here L^-1*A
+             */
             private Matrix[] calcLA() {
                 Matrix[] M = new Matrix[1 + dfm.getTransition().nlags];
                 for (int i = 0; i < M.length; ++i) {

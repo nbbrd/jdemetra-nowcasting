@@ -8,8 +8,6 @@ package ec.tstoolkit.dfm;
 import ec.tstoolkit.algorithm.IProcSpecification;
 import ec.tstoolkit.information.InformationSet;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -17,12 +15,13 @@ import java.util.logging.Logger;
  */
 public class EmSpec implements IProcSpecification, Cloneable {
 
-    public static final int DEF_VERSION = 2, DEF_MAXITER = 100;
-    public static final String ENABLED = "enabled", VERSION = "version", MAXITER = "maxiter";
+    public static final int DEF_VERSION = 2, DEF_MAXITER = 100, DEF_MAXNUMITER = 50;
+    public static final String ENABLED = "enabled", VERSION = "version", MAXITER = "maxiter", MAXNUMITER ="maxnumiter";
 
     private boolean enabled_;
     private int version_ = DEF_VERSION;
     private int maxIter_ = DEF_MAXITER;
+    private int maxNumIter_=DEF_MAXNUMITER;
 
     public void setEnabled(boolean use) {
         enabled_ = use;
@@ -38,6 +37,14 @@ public class EmSpec implements IProcSpecification, Cloneable {
 
     public int getMaxIter() {
         return maxIter_;
+    }
+
+    public void setMaxNumIter(int iter) {
+        maxNumIter_ = iter;
+    }
+
+    public int getMaxNumIter() {
+        return maxNumIter_;
     }
 
     public void setVersion(int v) {
@@ -67,6 +74,9 @@ public class EmSpec implements IProcSpecification, Cloneable {
         if (maxIter_ != DEF_MAXITER || verbose) {
             info.set(MAXITER, maxIter_);
         }
+        if (maxNumIter_ != DEF_MAXNUMITER || verbose) {
+            info.set(MAXNUMITER, maxNumIter_);
+        }
         return info;
     }
 
@@ -87,6 +97,10 @@ public class EmSpec implements IProcSpecification, Cloneable {
         if (ni != null) {
             maxIter_ = ni;
         }
+        ni = info.get(MAXNUMITER, Integer.class);
+        if (ni != null) {
+            maxNumIter_ = ni;
+        }
         return true;
     }
     
@@ -105,12 +119,13 @@ public class EmSpec implements IProcSpecification, Cloneable {
     }
     
     public boolean equals(EmSpec spec){
-        return enabled_==spec.enabled_ && maxIter_ == spec.maxIter_ && version_ == spec.version_;
+        return enabled_==spec.enabled_ && maxIter_ == spec.maxIter_ && maxNumIter_ == spec.maxNumIter_ && version_ == spec.version_;
     }
 
     public static void fillDictionary(String prefix, Map<String, Class> dic) {
         dic.put(InformationSet.item(prefix, ENABLED), Boolean.class);
         dic.put(InformationSet.item(prefix, VERSION), Integer.class);
         dic.put(InformationSet.item(prefix, MAXITER), Integer.class);
+        dic.put(InformationSet.item(prefix, MAXNUMITER), Integer.class);
     }
 }

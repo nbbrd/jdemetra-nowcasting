@@ -316,17 +316,24 @@ public class DynamicFactorModelTest {
         //for (int k = 0; k < 10; ++k) {
         MFilter filter = new MFilter();
         MPredictionErrorDecomposition results = new MPredictionErrorDecomposition(true);
-        filter.process(dmodel.ssfRepresentation(), new MultivariateSsfData(dd.subMatrix(), null), results);
+        DynamicFactorModel tmp = dmodel.clone();
+        Matrix var = new Matrix(tmp.getFactorsCount() * tmp.getBlockLength(), tmp.getFactorsCount() * tmp.getBlockLength());
+        var.diagonal().set(1e7);
+        tmp.setInitialCovariance(var);
+        filter.process(tmp.ssfRepresentation(), new MultivariateSsfData(dd.subMatrix(), null), results);
         evaluate(results, ll);
-        DynamicFactorModel md = dmodel.clone();
+        System.out.println("test3");
+         System.out.println(ll.getLogLikelihood());
+        System.out.println(tmp);
+        DynamicFactorModel md = tmp.clone();
         md.rescaleVariances(ll.getSigma());
         md.normalize();
-        results = new MPredictionErrorDecomposition(true);
+       results = new MPredictionErrorDecomposition(true);
         filter.process(md.ssfRepresentation(), new MultivariateSsfData(dd.subMatrix(), null), results);
         evaluate(results, ll);
         //}
         long q1 = System.currentTimeMillis();
-        System.out.println("test3");
+        System.out.println("test3bis");
         //System.out.println(results.getLogDeterminant());
         //System.out.println(results.getSsqErr());
         System.out.println(ll.getLogLikelihood());

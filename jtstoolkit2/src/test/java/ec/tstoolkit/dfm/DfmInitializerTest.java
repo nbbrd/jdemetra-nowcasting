@@ -300,9 +300,9 @@ public class DfmInitializerTest {
 //        model0.setInitialCovariance(v0);
         monitor.setEstimator(estimator);
         estimator.setMaxInitialIter(0);
-        estimator.setMixedMethod(true);
+        //estimator.setMixedMethod(true);
         estimator.setMaxIter(200);
-        monitor.process(model0, s);
+        //monitor.process(model0, s);
         //DfmEM em = new DfmEM();
         DfmEM2 em = new DfmEM2(null);
         //em.setCorrectingInitialVariance(false);

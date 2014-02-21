@@ -99,9 +99,9 @@ public class DfmEstimator implements IDfmEstimator {
     }
 
     public void setMixedMethod(boolean b) {
-        mixed_=b;
+        mixed_ = b;
     }
-    
+
     public boolean hasConverged() {
         return converged_;
     }
@@ -121,18 +121,18 @@ public class DfmEstimator implements IDfmEstimator {
     @Override
     public boolean estimate(final DynamicFactorModel dfm, DfmInformationSet input
     ) {
+        converged_ = false;
+        Likelihood ll = null;
+        Matrix m = input.generateMatrix(idom_);
+        MSsfAlgorithm algorithm = new MSsfAlgorithm();
+        IMSsfData mdata = new MultivariateSsfData(m.subMatrix().transpose(), null);
+        DfmMapping mapping;
+        MSsfFunction fn;
+        MSsfFunctionInstance pt;
+        int niter = 0;
+        DynamicFactorModel model = dfm.clone();
+        model.normalize();
         try {
-            converged_ = false;
-            Likelihood ll = null;
-            Matrix m = input.generateMatrix(idom_);
-            MSsfAlgorithm algorithm = new MSsfAlgorithm();
-            IMSsfData mdata = new MultivariateSsfData(m.subMatrix().transpose(), null);
-            DfmMapping mapping;
-            MSsfFunction fn;
-            MSsfFunctionInstance pt;
-            int niter = 0;
-            DynamicFactorModel model = dfm.clone();
-            //model.normalize();
 
             if (nstart_ > 0) {
                 setMessage(SIMPLIFIED);
@@ -148,7 +148,7 @@ public class DfmEstimator implements IDfmEstimator {
             if (useBlockIterations_) {
                 min_.setMaxIter(nnext_);
                 while (true) {
-                    //model.normalize();
+                    model.normalize();
                     mapping = new DfmMapping(model, true, false);
                     fn = new MSsfFunction(mdata, mapping, algorithm);
                     setMessage(VSTEP);
@@ -157,7 +157,7 @@ public class DfmEstimator implements IDfmEstimator {
                     pt = (MSsfFunctionInstance) min_.getResult();
                     model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
                     model.rescaleVariances(pt.getLikelihood().getSigma());
-                    //model.normalize();
+                    model.normalize();
                     if (mixed_) {
                         DfmEM2 em = new DfmEM2(null);
                         em.setEstimateVar(false);
@@ -200,11 +200,12 @@ public class DfmEstimator implements IDfmEstimator {
                 model.rescaleVariances(pt.getLikelihood().getSigma());
                 ll = pt.getLikelihood();
             }
-            model.normalize();
-            dfm.copy(model);
             return true;
         } catch (Exception err) {
             return false;
+        } finally {
+            model.normalize();
+            dfm.copy(model);
         }
     }
 
