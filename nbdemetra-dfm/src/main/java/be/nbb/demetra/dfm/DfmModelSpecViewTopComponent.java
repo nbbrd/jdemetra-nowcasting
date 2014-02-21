@@ -5,6 +5,9 @@
  */
 package be.nbb.demetra.dfm;
 
+import ec.nbdemetra.ws.WorkspaceFactory;
+import ec.nbdemetra.ws.WorkspaceItem;
+import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
 import ec.tss.Dfm.DfmDocument;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -35,14 +38,21 @@ import org.openide.util.NbBundle.Messages;
     "CTL_DfmModelSpecViewTopComponent=DfmModelSpecView Window",
     "HINT_DfmModelSpecViewTopComponent=This is a DfmModelSpecView window"
 })
-public final class DfmModelSpecViewTopComponent extends TopComponent implements MultiViewElement, MultiViewDescription {
+public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<DfmDocument> implements MultiViewElement, MultiViewDescription {
 
-    public DfmModelSpecViewTopComponent() {
+    private static DfmDocumentManager manager() {
+        return WorkspaceFactory.getInstance().getManager(DfmDocumentManager.class);
+    }
+
+    public DfmModelSpecViewTopComponent(WorkspaceItem<DfmDocument> document) {
+        super(document);
         initComponents();
         setName(Bundle.CTL_DfmModelSpecViewTopComponent());
         setToolTipText(Bundle.HINT_DfmModelSpecViewTopComponent());
+    }
 
-        setDisplayName("Model");
+    public DfmModelSpecViewTopComponent() {
+        this(manager().create(WorkspaceFactory.getInstance().getActiveWorkspace()));
     }
 
     public DfmModelSpecViewTopComponent(DfmDocument document) {
@@ -138,4 +148,9 @@ public final class DfmModelSpecViewTopComponent extends TopComponent implements 
         return super.preferredID();
     }
     //</editor-fold>
+
+    @Override
+    protected String getContextPath() {
+        return DfmDocumentManager.CONTEXTPATH; //To change body of generated methods, choose Tools | Templates.
+    }
 }

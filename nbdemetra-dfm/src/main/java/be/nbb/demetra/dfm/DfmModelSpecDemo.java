@@ -29,7 +29,7 @@ import ec.tstoolkit.dfm.MeasurementSpec;
 public class DfmModelSpecDemo {
 
     public static DfmDocument getDemo() {
-        DfmDocument result = NewDfmDocumentAction.newDocument("demo");
+        DfmDocument result = new DfmDocument();
         for (int i = 0; i < 10; i++) {
             result.getSpecification().getModelSpec().getMeasurements().add(newMeasurementSpec("S" + i, 4));
         }

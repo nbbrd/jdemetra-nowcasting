@@ -6,6 +6,9 @@
 package be.nbb.demetra.dfm;
 
 import ec.nbdemetra.ui.DemetraUiIcon;
+import ec.nbdemetra.ws.WorkspaceFactory;
+import ec.nbdemetra.ws.WorkspaceItem;
+import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
 import ec.tss.Dfm.DfmDocument;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
@@ -41,20 +44,23 @@ import org.openide.util.NbBundle.Messages;
     "CTL_DfmExecViewTopComponent=DfmExecView Window",
     "HINT_DfmExecViewTopComponent=This is a DfmExecView window"
 })
-public final class DfmExecViewTopComponent extends TopComponent implements MultiViewElement, MultiViewDescription {
+public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocument> implements MultiViewElement, MultiViewDescription {
+
+    private static DfmDocumentManager manager() {
+        return WorkspaceFactory.getInstance().getManager(DfmDocumentManager.class);
+    }
 
     public DfmExecViewTopComponent() {
+        this(manager().create(WorkspaceFactory.getInstance().getActiveWorkspace()));
+    }
+
+    public DfmExecViewTopComponent(WorkspaceItem<DfmDocument> document) {
+        super(document);
         initComponents();
         setName(Bundle.CTL_DfmExecViewTopComponent());
         setToolTipText(Bundle.HINT_DfmExecViewTopComponent());
-
-        setDisplayName("Exec");
     }
 
-    public DfmExecViewTopComponent(DfmDocument document) {
-        this();
-    }
-    
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -63,19 +69,19 @@ public final class DfmExecViewTopComponent extends TopComponent implements Multi
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
-        this.setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 400, Short.MAX_VALUE)
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 300, Short.MAX_VALUE)
-        );
+        jScrollPane1 = new javax.swing.JScrollPane();
+        jEditorPane1 = new javax.swing.JEditorPane();
+
+        setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.LINE_AXIS));
+
+        jScrollPane1.setViewportView(jEditorPane1);
+
+        add(jScrollPane1);
     }// </editor-fold>//GEN-END:initComponents
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JEditorPane jEditorPane1;
+    private javax.swing.JScrollPane jScrollPane1;
     // End of variables declaration//GEN-END:variables
     void writeProperties(java.util.Properties p) {
         // better to version settings since initial version as advocated at
@@ -110,10 +116,11 @@ public final class DfmExecViewTopComponent extends TopComponent implements Multi
         JToolBar result = new JToolBar();
         result.addSeparator();
         result.add(Box.createRigidArea(new Dimension(5, 0)));
-        
+
         JButton runButton = result.add(new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
+
             }
         });
         runButton.setIcon(DemetraUiIcon.COMPILE_16);
@@ -163,4 +170,9 @@ public final class DfmExecViewTopComponent extends TopComponent implements Multi
         return super.preferredID();
     }
     //</editor-fold>
+
+    @Override
+    protected String getContextPath() {
+        return DfmDocumentManager.CONTEXTPATH; //To change body of generated methods, choose Tools | Templates.
+    }
 }

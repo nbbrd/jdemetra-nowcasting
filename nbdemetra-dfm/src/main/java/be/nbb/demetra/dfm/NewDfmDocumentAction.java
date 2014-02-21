@@ -6,17 +6,31 @@
 package be.nbb.demetra.dfm;
 
 import ec.nbdemetra.ui.NbComponents;
+import ec.nbdemetra.ws.WorkspaceFactory;
+import ec.nbdemetra.ws.WorkspaceItem;
 import ec.tss.Dfm.DfmDocument;
 import ec.tstoolkit.dfm.DfmModelSpec;
 import ec.tstoolkit.dfm.DfmSpec;
 import ec.tstoolkit.var.VarSpec;
+import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.Serializable;
+import java.util.Collection;
+import java.util.Iterator;
+import javax.swing.SwingUtilities;
+import org.netbeans.core.spi.multiview.CloseOperationHandler;
+import org.netbeans.core.spi.multiview.CloseOperationState;
 import org.netbeans.core.spi.multiview.MultiViewDescription;
+import org.netbeans.core.spi.multiview.MultiViewElement;
 import org.netbeans.core.spi.multiview.MultiViewFactory;
 import org.openide.awt.ActionID;
 import org.openide.awt.ActionReference;
 import org.openide.awt.ActionRegistration;
+import org.openide.util.HelpCtx;
+import org.openide.util.Lookup;
+import org.openide.util.LookupEvent;
+import org.openide.util.LookupListener;
 import org.openide.util.NbBundle.Messages;
 import org.openide.windows.TopComponent;
 
@@ -31,38 +45,112 @@ import org.openide.windows.TopComponent;
 @Messages("CTL_NewDfmDocumentAction=New DFM document")
 public final class NewDfmDocumentAction implements ActionListener {
 
-    int i = 0;
-
     @Override
     public void actionPerformed(ActionEvent e) {
-        String name = "DFM doc " + i++;
-        TopComponent c = NbComponents.findTopComponentByName(name);
-        if (c == null) {
-            DfmDocument document = newDocument(name);
-            MultiViewDescription[] descriptions = {
-                new DfmModelSpecViewTopComponent(document),
-                new DfmExecViewTopComponent(document),
-                new DfmOutputViewTopComponent(document)};
-            c = MultiViewFactory.createMultiView(descriptions, descriptions[0]);
-            c.setName(name);
-            c.open();
-        }
+        DfmDocumentManager mgr = WorkspaceFactory.getInstance().getManager(DfmDocumentManager.class);
+        WorkspaceItem<DfmDocument> doc = mgr.create(WorkspaceFactory.getInstance().getActiveWorkspace());
+        TopComponent c = createView(doc);
+        c.open();
         c.requestActive();
     }
 
-    public static DfmDocument newDocument(String name) {
-        DfmDocument result = new DfmDocument(name);
-        DfmSpec spec = new DfmSpec();
-        spec.setModelSpec(newDfmModelSpec(4, 4));
-        result.setSpecification(spec);
+    public static TopComponent createView(final WorkspaceItem<DfmDocument> doc) {
+        if (doc.isOpen())
+            return doc.getView();
+        // views
+        final DfmModelSpecViewTopComponent modelView = new DfmModelSpecViewTopComponent(doc);
+        final DfmExecViewTopComponent execView = new DfmExecViewTopComponent(doc);
+        final DfmOutputViewTopComponent outputView = new DfmOutputViewTopComponent(doc);
+
+        final TopComponent[] top = new TopComponent[1];
+        final Lookup.Result<WorkspaceFactory.Event> lookup = WorkspaceFactory.getInstance().getLookup().lookupResult(WorkspaceFactory.Event.class);
+        final LookupListener closeListener = new LookupListener() {
+
+            @Override
+            public void resultChanged(LookupEvent le) {
+                Collection<? extends WorkspaceFactory.Event> all = lookup.allInstances();
+                if (!all.isEmpty()) {
+                    Iterator<? extends WorkspaceFactory.Event> iterator = all.iterator();
+                    while (iterator.hasNext()) {
+                        WorkspaceFactory.Event ev = iterator.next();
+                        if (ev.info == WorkspaceFactory.Event.REMOVINGITEM) {
+                            WorkspaceItem<?> wdoc = ev.workspace.searchDocument(ev.id);
+                            if (wdoc.getElement() == doc.getElement()) {
+                                SwingUtilities.invokeLater(new Runnable() {
+
+                                    @Override
+                                    public void run() {
+                                        top[0].close();
+                                    }
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        lookup.addLookupListener(closeListener);
+
+        MultiViewDescription[] descriptions = {
+            new QuickAndDirtyDescription("Model", modelView),
+            new QuickAndDirtyDescription("Processing", execView),
+            new QuickAndDirtyDescription("Output", outputView),};
+
+
+        final TopComponent result = MultiViewFactory.createMultiView(descriptions, descriptions[0],
+                new CloseOperationHandler() {
+
+                    @Override
+                    public boolean resolveCloseOperation(CloseOperationState[] coss) {
+                        lookup.removeLookupListener(closeListener);
+                        doc.setView(null);
+                        return true;
+                    }
+                });
+        result.setName(doc.getDisplayName());
+        doc.setView(result);
+        
         return result;
     }
 
-    public static DfmModelSpec newDfmModelSpec(int nvars, int nlags) {
-        DfmModelSpec m = new DfmModelSpec();
-        VarSpec vs = new VarSpec();
-        vs.setSize(nvars, nlags);
-        m.setVarSpec(vs);
-        return m;
+    static class QuickAndDirtyDescription implements MultiViewDescription, Serializable {
+
+        final String name;
+        final MultiViewElement multiViewElement;
+
+        public QuickAndDirtyDescription(String name, MultiViewElement multiViewElement) {
+            this.name = name;
+            this.multiViewElement = multiViewElement;
+        }
+
+        @Override
+        public int getPersistenceType() {
+            return TopComponent.PERSISTENCE_NEVER;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return name;
+        }
+
+        @Override
+        public Image getIcon() {
+            return null;
+        }
+
+        @Override
+        public HelpCtx getHelpCtx() {
+            return null;
+        }
+
+        @Override
+        public String preferredID() {
+            return name;
+        }
+
+        @Override
+        public MultiViewElement createElement() {
+            return multiViewElement;
+        }
     }
 }

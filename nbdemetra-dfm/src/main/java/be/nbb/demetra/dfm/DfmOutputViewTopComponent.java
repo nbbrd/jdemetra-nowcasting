@@ -5,6 +5,9 @@
  */
 package be.nbb.demetra.dfm;
 
+import ec.nbdemetra.ws.WorkspaceFactory;
+import ec.nbdemetra.ws.WorkspaceItem;
+import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
 import ec.tss.Dfm.DfmDocument;
 import javax.swing.JComponent;
 import javax.swing.JToolBar;
@@ -34,18 +37,21 @@ import org.openide.util.NbBundle.Messages;
     "CTL_DfmOutputViewTopComponent=DfmOutputView Window",
     "HINT_DfmOutputViewTopComponent=This is a DfmOutputView window"
 })
-public final class DfmOutputViewTopComponent extends TopComponent implements MultiViewElement, MultiViewDescription {
+public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDocument> implements MultiViewElement, MultiViewDescription {
+
+    private static DfmDocumentManager manager() {
+        return WorkspaceFactory.getInstance().getManager(DfmDocumentManager.class);
+    }
 
     public DfmOutputViewTopComponent() {
+        this(manager().create(WorkspaceFactory.getInstance().getActiveWorkspace()));
+    }
+
+    public DfmOutputViewTopComponent(WorkspaceItem<DfmDocument> document) {
+        super(document);
         initComponents();
         setName(Bundle.CTL_DfmOutputViewTopComponent());
         setToolTipText(Bundle.HINT_DfmOutputViewTopComponent());
-
-        setDisplayName("Output");
-    }
-
-    public DfmOutputViewTopComponent(DfmDocument document) {
-        this();
     }
 
     /**
@@ -85,11 +91,13 @@ public final class DfmOutputViewTopComponent extends TopComponent implements Mul
     //<editor-fold defaultstate="collapsed" desc="MultiViewElement">
     @Override
     public void componentOpened() {
+        super.componentOpened();
         // TODO add custom code on component opening
     }
 
     @Override
     public void componentClosed() {
+        super.componentClosed();
         // TODO add custom code on component closing
     }
 
@@ -146,4 +154,9 @@ public final class DfmOutputViewTopComponent extends TopComponent implements Mul
         return super.preferredID();
     }
     //</editor-fold>    
+
+    @Override
+    protected String getContextPath() {
+        return DfmDocumentManager.CONTEXTPATH; //To change body of generated methods, choose Tools | Templates.
+    }
 }

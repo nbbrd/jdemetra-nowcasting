@@ -85,8 +85,7 @@ public final class DfmModelSpecView extends JComponent {
 
     public DfmModelSpecView() {
         this.view = new XTable();
-        this.model = NewDfmDocumentAction.newDocument("test");
-
+ 
         view.addMouseListener(new PopupListener.PopupAdapter(createMenu().getPopupMenu()));
         view.setDefaultRenderer(Transformation[].class, new TransformationRenderer());
         view.setDefaultEditor(Transformation[].class, new TransformationEditor());
@@ -129,7 +128,7 @@ public final class DfmModelSpecView extends JComponent {
 
     public void setModel(DfmDocument model) {
         DfmDocument old = this.model;
-        this.model = model != null ? model : NewDfmDocumentAction.newDocument("test");
+        this.model = model != null ? model : new DfmDocument();
         firePropertyChange(MODEL_PROPERTY, old, this.model);
     }
     //</editor-fold>
