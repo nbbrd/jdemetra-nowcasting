@@ -18,19 +18,22 @@ package be.nbb.demetra.dfm;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import ec.nbdemetra.ui.DemetraUI;
 import ec.nbdemetra.ui.awt.PopupListener;
 import ec.nbdemetra.ui.properties.ListSelection;
 import ec.tss.Dfm.DfmDocument;
 import ec.tss.DynamicTsVariable;
 import ec.tss.Ts;
 import ec.tss.TsCollection;
+import ec.tss.TsFactory;
 import ec.tss.TsInformationType;
+import ec.tss.TsMoniker;
 import ec.tss.datatransfer.TssTransferSupport;
 import ec.tstoolkit.ParameterType;
-import ec.tstoolkit.dfm.DfmModelSpec;
 import ec.tstoolkit.dfm.DynamicFactorModel.MeasurementType;
 import ec.tstoolkit.dfm.MeasurementSpec;
 import ec.tstoolkit.dfm.MeasurementSpec.Transformation;
+import ec.tstoolkit.timeseries.regression.ITsVariable;
 import ec.tstoolkit.timeseries.regression.TsVariable;
 import ec.tstoolkit.timeseries.regression.TsVariables;
 import ec.util.grid.swing.XTable;
@@ -38,6 +41,8 @@ import ec.util.various.swing.BasicSwingLauncher;
 import ec.util.various.swing.JCommand;
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.beans.Beans;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -87,8 +92,8 @@ public final class DfmModelSpecView extends JComponent {
         view.setDefaultEditor(Transformation[].class, new TransformationEditor());
         view.setDefaultEditor(MeasurementType.class, new MeasurementTypeEditor());
         view.setNoDataRenderer(new XTable.DefaultNoDataRenderer("Drop data here"));
-
         view.setTransferHandler(new DfmModelSpecViewTransferHandler());
+        view.addMouseListener(new TsMouseAdapter());
 
         addPropertyChangeListener(new PropertyChangeListener() {
             @Override
@@ -149,6 +154,10 @@ public final class DfmModelSpecView extends JComponent {
     }
 
     private final class ModelSpecModel extends AbstractTableModel {
+
+        public TsVariables getVariables() {
+            return variables;
+        }
 
         public List<MeasurementSpec> getMeasurements() {
             return model.getSpecification().getModelSpec().getMeasurements();
@@ -313,6 +322,45 @@ public final class DfmModelSpecView extends JComponent {
             return super.toAction(component)
                     .withWeakListSelectionListener(component.getSelectionModel())
                     .withWeakPropertyChangeListener(component, "tableCellEditor");
+        }
+    }
+
+    private static final class OpenTsCommand extends JCommand<XTable> {
+
+        @Override
+        public void execute(XTable component) throws Exception {
+            ModelSpecModel model = (ModelSpecModel) component.getModel();
+            int index = component.convertRowIndexToModel(component.getSelectedRows()[0]);
+            String selected = model.getMeasurements().get(index).getName();
+            ITsVariable var = model.getVariables().get(selected);
+            if (var instanceof DynamicTsVariable) {
+                TsMoniker moniker = ((DynamicTsVariable) var).getMoniker();
+                DemetraUI.getInstance().getTsAction().open(TsFactory.instance.getTs(moniker));
+            }
+        }
+
+        @Override
+        public boolean isEnabled(XTable component) {
+            return !component.isEditing() && component.getSelectedRowCount() == 1;
+        }
+
+        @Override
+        public JCommand.ActionAdapter toAction(XTable component) {
+            return super.toAction(component)
+                    .withWeakListSelectionListener(component.getSelectionModel())
+                    .withWeakPropertyChangeListener(component, "tableCellEditor");
+        }
+    }
+
+    private class TsMouseAdapter extends MouseAdapter {
+
+        private final OpenTsCommand cmd = new OpenTsCommand();
+
+        @Override
+        public void mouseClicked(MouseEvent e) {
+            if (e.getClickCount() > 1 && cmd.isEnabled(view)) {
+                cmd.executeSafely(view);
+            }
         }
     }
 
