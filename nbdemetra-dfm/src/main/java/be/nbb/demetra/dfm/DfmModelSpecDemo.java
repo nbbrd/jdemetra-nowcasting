@@ -31,26 +31,9 @@ public class DfmModelSpecDemo {
     public static DfmDocument getDemo() {
         DfmDocument result = new DfmDocument();
         for (int i = 0; i < 10; i++) {
-            result.getSpecification().getModelSpec().getMeasurements().add(newMeasurementSpec("S" + i, 4));
+            result.getSpecification().getModelSpec().getMeasurements().add(new MeasurementSpec("S" + i, 4));
         }
         return result;
     }
 
-    public static MeasurementSpec newMeasurementSpec(String name, int nvars) {
-        MeasurementSpec ms = new MeasurementSpec();
-        ms.setName(name);
-        ms.setSeriesTransformations(null);
-        ms.setFactorsTransformation(DynamicFactorModel.MeasurementType.L);
-        Parameter[] params = new Parameter[nvars];
-        for (int z = 0; z < params.length; z++) {
-            params[z] = newParameter(false);
-        }
-        ms.setCoefficient(params);
-        ms.setVariance(newParameter(false));
-        return ms;
-    }
-
-    public static Parameter newParameter(boolean selected) {
-        return new Parameter(0, selected ? ParameterType.Undefined : ParameterType.Fixed);
-    }
 }

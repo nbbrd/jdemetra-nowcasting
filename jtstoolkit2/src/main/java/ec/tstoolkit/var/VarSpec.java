@@ -133,11 +133,14 @@ public class VarSpec implements IProcSpecification, Cloneable {
         info.add(NVARS, nvars);
         info.add(NLAGS, nlags);
         info.add(INIT, init_.name());
-        Parameter[] p = vparams.storage();
+        Parameter[] p = new Parameter[vparams.size()];
+        vparams.copyTo(p);
         if (!Parameter.isDefault(p)) {
             info.add(VPARAMS, p);
         }
-        if (!Parameter.isDefault(nparams.storage())) {
+        Parameter[] n = new Parameter[nparams.size()];
+        nparams.copyTo(n);
+        if (!Parameter.isDefault(n)) {
             Parameter[] q = new Parameter[nvars * (nvars + 1) / 2];
             for (int c = 0, i = 0; c < nvars; ++c) {
                 for (int r = c; r <= nvars; ++r, ++i) {
@@ -165,15 +168,10 @@ public class VarSpec implements IProcSpecification, Cloneable {
             init_ = Initialization.valueOf(init);
         }
         Parameter[] s = info.get(VPARAMS, Parameter[].class);
-        if (s != null) {
-            Parameter[] t = vparams.storage();
-            if (t.length != s.length) {
-                return false;
-            }
-            for (int i = 0; i < t.length; ++i) {
-                t[i] = s[i];
-            }
+        if (s != null && !vparams.copyFrom(s)) {
+            return false;
         }
+
         s = info.get(NPARAMS, Parameter[].class);
         if (s != null) {
             if (s.length != nvars * (nvars + 1) / 2) {
@@ -206,8 +204,8 @@ public class VarSpec implements IProcSpecification, Cloneable {
         if (spec.nlags != nlags || spec.nvars != nvars || init_ != spec.init_) {
             return false;
         }
-        return Arrays.deepEquals(spec.nparams.storage(), nparams.storage())
-                && Arrays.deepEquals(spec.vparams.storage(), vparams.storage());
+        return spec.nparams.deepEquals(nparams)
+                && spec.vparams.deepEquals(vparams);
     }
 
     public static void fillDictionary(String prefix, Map<String, Class> dic) {

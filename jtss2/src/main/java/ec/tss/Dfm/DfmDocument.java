@@ -31,6 +31,7 @@ import ec.tstoolkit.utilities.DefaultNameValidator;
 public class DfmDocument extends ActiveDocument<DfmSpec, TsVariables, CompositeResults> implements Cloneable {
 
     public static final String DFM = "Dynamic factor model";
+    private DfmProcessingFactory processor_=new DfmProcessingFactory();
 
     public DfmDocument() {
         super(DFM);
@@ -41,7 +42,12 @@ public class DfmDocument extends ActiveDocument<DfmSpec, TsVariables, CompositeR
         super(DFM, context);
         setSpecification(new DfmSpec());
     }
+    
+    public DfmProcessingFactory getProcessor(){
+        return processor_;
+    }
 
+    @Deprecated
     public void setVariables(TsVariables vars) {
         super.setInput(vars);
     }
@@ -53,14 +59,18 @@ public class DfmDocument extends ActiveDocument<DfmSpec, TsVariables, CompositeR
 
     @Override
     protected CompositeResults recalc(DfmSpec spec, TsVariables input) {
-        return DfmProcessingFactory.instance.generateProcessing(spec, null).process(input);
+        return processor_.generateProcessing(spec, getContext()).process(input);
     }
-    
+
     @Override
     public InformationSet write(boolean verbose) {
         InformationSet info = super.write(verbose);
-        info.set(INPUT, this.getInput().write(verbose));
-        info.set(SPEC, this.getSpecification().write(verbose));
+        if (this.getInput() != null) {
+            info.set(INPUT, this.getInput().write(verbose));
+        }
+        if (this.getSpecification() != null) {
+            info.set(SPEC, this.getSpecification().write(verbose));
+        }
         return info;
     }
 
@@ -77,7 +87,7 @@ public class DfmDocument extends ActiveDocument<DfmSpec, TsVariables, CompositeR
         if (!spec.read(sinfo)) {
             return false;
         }
-       
+
         setSpecification(spec);
         InformationSet iinfo = info.getSubSet(INPUT);
         if (iinfo == null) {
@@ -91,5 +101,5 @@ public class DfmDocument extends ActiveDocument<DfmSpec, TsVariables, CompositeR
 
         return true;
     }
-    
+
 }

@@ -48,6 +48,10 @@ public class MeasurementSpec implements IProcSpecification {
     private Parameter var;
     private DynamicFactorModel.MeasurementType type= DynamicFactorModel.MeasurementType.L;
     
+    public MeasurementSpec(){
+        this(0);
+    }
+    
     public MeasurementSpec(int nfac){
         name=DEF_NAME+(++g_idx);
         coeff=Parameter.create(nfac);
@@ -55,9 +59,13 @@ public class MeasurementSpec implements IProcSpecification {
         var=new Parameter();
     }
     
-    public MeasurementSpec(){
-        this(0);
+    public MeasurementSpec(final String name, int nfac){
+        this.name=name;
+        coeff=Parameter.create(nfac);
+        transformations=new Transformation[0];
+        var=new Parameter();
     }
+    
 
     @Override
     public MeasurementSpec clone() {

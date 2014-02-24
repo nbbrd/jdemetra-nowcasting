@@ -114,6 +114,7 @@ public final class DfmModelSpecView extends JComponent {
     }
 
     private void onModelChange() {
+        // reset the document
         view.setModel(new ModelSpecModel());
         int nbrFactors = model.getSpecification().getModelSpec().getVarSpec().getEquationsCount();
         for (int i = 0; i < nbrFactors; i++) {
@@ -141,8 +142,9 @@ public final class DfmModelSpecView extends JComponent {
             variables.set(varName, o.getMoniker().isAnonymous()
                     ? new TsVariable(o.getName(), o.getTsData())
                     : new DynamicTsVariable(o.getName(), o.getMoniker(), o.getTsData()));
-            model.getSpecification().getModelSpec().getMeasurements().add(DfmModelSpecDemo.newMeasurementSpec(varName, model.getSpecification().getModelSpec().getVarSpec().getEquationsCount()));
+            model.getSpecification().getModelSpec().getMeasurements().add(new MeasurementSpec(varName, model.getSpecification().getModelSpec().getVarSpec().getEquationsCount()));
         }
+        model.setInput(variables);
         firePropertyChange(MODEL_PROPERTY, null, model);
     }
 
@@ -183,7 +185,7 @@ public final class DfmModelSpecView extends JComponent {
                 case 2:
                     return ms.getFactorsTransformation();
                 default:
-                    return ms.getCoefficients()[columnIndex - 3].getType() != null;
+                    return ms.getCoefficients()[columnIndex - 3].getType() == ParameterType.Undefined;
             }
         }
 
@@ -203,7 +205,7 @@ public final class DfmModelSpecView extends JComponent {
                     ms.setFactorsTransformation((MeasurementType) aValue);
                     break;
                 default:
-                    ms.getCoefficients()[columnIndex - 3].setType(((Boolean) aValue).booleanValue() ? ParameterType.Undefined : null);
+                    ms.getCoefficients()[columnIndex - 3].setType(((Boolean) aValue).booleanValue() ? ParameterType.Undefined : ParameterType.Fixed);
                     break;
             }
         }
