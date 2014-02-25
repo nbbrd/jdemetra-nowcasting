@@ -6,10 +6,15 @@
 package be.nbb.demetra.dfm;
 
 import ec.nbdemetra.ui.DemetraUiIcon;
+import ec.nbdemetra.ui.properties.OpenIdePropertySheetBeanEditor;
 import ec.nbdemetra.ws.WorkspaceFactory;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
 import ec.tss.Dfm.DfmDocument;
+import ec.tss.Dfm.DfmProcessingFactory;
+import ec.tstoolkit.algorithm.IProcessingHook;
+import ec.tstoolkit.algorithm.IProcessingNode;
+import ec.tstoolkit.dfm.DfmEstimationSpec;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import javax.swing.AbstractAction;
@@ -113,20 +118,28 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
 
     @Override
     public JComponent getToolbarRepresentation() {
-        JToolBar result = new JToolBar();
-        result.addSeparator();
-        result.add(Box.createRigidArea(new Dimension(5, 0)));
+        JToolBar toolBar = new JToolBar();
+        toolBar.addSeparator();
+        toolBar.add(Box.createRigidArea(new Dimension(5, 0)));
 
-        JButton runButton = result.add(new AbstractAction() {
+        JButton runButton = toolBar.add(new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-
+                run();
             }
         });
         runButton.setIcon(DemetraUiIcon.COMPILE_16);
         runButton.setDisabledIcon(ImageUtilities.createDisabledIcon(runButton.getIcon()));
 
-        return result;
+        JButton edit = toolBar.add(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                editEstimationSpec();
+            }
+        });
+        edit.setText("Specification");
+
+        return toolBar;
     }
 
     @Override
@@ -173,6 +186,34 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
 
     @Override
     protected String getContextPath() {
-        return DfmDocumentManager.CONTEXTPATH; //To change body of generated methods, choose Tools | Templates.
+        return DfmDocumentManager.CONTEXTPATH;
+    }
+
+    private void run() {
+//        NotificationDisplayer.getDefault().notify("Hello", DemetraUiIcon.BLOG_16, "world", null);
+
+        IProcessingHook<IProcessingNode, DfmProcessingFactory.EstimationInfo> hook = new IProcessingHook<IProcessingNode, DfmProcessingFactory.EstimationInfo>() {
+
+            @Override
+            public void process(IProcessingHook.HookInformation<IProcessingNode, DfmProcessingFactory.EstimationInfo> info, boolean cancancel) {
+                System.out.print(info.source.getName() + '\t');
+                System.out.print(info.message + '\t');
+                System.out.println(info.information.loglikelihood);
+            }
+        };
+        getDocument().getElement().getProcessor().register(hook);
+
+//        IProcessing<TsVariables, CompositeResults> proc = getDocument().getElement().getProcessor().generateProcessing(getDocument().getElement().getSpecification(), null);
+//        CompositeResults rslts = proc.process(getDocument().getElement().getInput());
+         getDocument().getElement().getResults();//.get(DfmProcessingFactory.DFM, DfmResults.class);
+//        System.out.println(dfm.getModel());
+//        getDocument().getElement().getProcessor().unregister(hook);
+    }
+
+    private void editEstimationSpec() {
+        DfmEstimationSpec newValue = getDocument().getElement().getSpecification().getEstimationSpec().clone();
+        if (OpenIdePropertySheetBeanEditor.editSheet(DfmSheets.onDfmEstimationSpec(newValue), "Edit spec", null)) {
+            getDocument().getElement().getSpecification().setEstimationSpec(newValue);
+        }
     }
 }
