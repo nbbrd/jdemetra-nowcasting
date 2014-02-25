@@ -12,6 +12,7 @@ import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
 import ec.tss.Dfm.DfmDocument;
 import ec.tss.Dfm.DfmProcessingFactory;
+import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.algorithm.IProcessingHook;
 import ec.tstoolkit.algorithm.IProcessingNode;
 import ec.tstoolkit.dfm.DfmEstimationSpec;
@@ -22,11 +23,13 @@ import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JToolBar;
+import javax.swing.SwingWorker;
 import org.netbeans.api.settings.ConvertAsProperties;
 import org.netbeans.core.spi.multiview.CloseOperationState;
 import org.netbeans.core.spi.multiview.MultiViewDescription;
 import org.netbeans.core.spi.multiview.MultiViewElement;
 import org.netbeans.core.spi.multiview.MultiViewElementCallback;
+import org.openide.awt.NotificationDisplayer;
 import org.openide.util.ImageUtilities;
 import org.openide.windows.TopComponent;
 import org.openide.util.NbBundle.Messages;
@@ -64,6 +67,7 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
         initComponents();
         setName(Bundle.CTL_DfmExecViewTopComponent());
         setToolTipText(Bundle.HINT_DfmExecViewTopComponent());
+        jEditorPane1.setEditable(false);
     }
 
     /**
@@ -89,15 +93,9 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
     private javax.swing.JScrollPane jScrollPane1;
     // End of variables declaration//GEN-END:variables
     void writeProperties(java.util.Properties p) {
-        // better to version settings since initial version as advocated at
-        // http://wiki.apidesign.org/wiki/PropertyFiles
-        p.setProperty("version", "1.0");
-        // TODO store your settings
     }
 
     void readProperties(java.util.Properties p) {
-        String version = p.getProperty("version");
-        // TODO read your settings according to their version
     }
 
     //<editor-fold defaultstate="collapsed" desc="MultiViewElement">
@@ -190,8 +188,20 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
     }
 
     private void run() {
-//        NotificationDisplayer.getDefault().notify("Hello", DemetraUiIcon.BLOG_16, "world", null);
+        new SwingWorker<CompositeResults, Void>() {
+            @Override
+            protected CompositeResults doInBackground() throws Exception {
+                return runInBackground();
+            }
 
+            @Override
+            protected void done() {
+                NotificationDisplayer.getDefault().notify("Long running process", DemetraUiIcon.COMPILE_16, "DONE!", null);
+            }
+        }.run();
+    }
+
+    private CompositeResults runInBackground() {
         IProcessingHook<IProcessingNode, DfmProcessingFactory.EstimationInfo> hook = new IProcessingHook<IProcessingNode, DfmProcessingFactory.EstimationInfo>() {
 
             @Override
@@ -205,7 +215,7 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
 
 //        IProcessing<TsVariables, CompositeResults> proc = getDocument().getElement().getProcessor().generateProcessing(getDocument().getElement().getSpecification(), null);
 //        CompositeResults rslts = proc.process(getDocument().getElement().getInput());
-         getDocument().getElement().getResults();//.get(DfmProcessingFactory.DFM, DfmResults.class);
+        return getDocument().getElement().getResults();//.get(DfmProcessingFactory.DFM, DfmResults.class);
 //        System.out.println(dfm.getModel());
 //        getDocument().getElement().getProcessor().unregister(hook);
     }
