@@ -19,6 +19,7 @@ package be.nbb.demetra.dfm;
 import ec.nbdemetra.ui.properties.NodePropertySetBuilder;
 import ec.tstoolkit.dfm.DfmEstimationSpec;
 import ec.tstoolkit.dfm.NumericalProcessingSpec;
+import ec.tstoolkit.timeseries.TsPeriodSelector;
 import ec.tstoolkit.var.VarSpec;
 import java.lang.reflect.InvocationTargetException;
 import org.openide.nodes.PropertySupport;
@@ -44,8 +45,8 @@ final class DfmSheets {
                 .select(spec.getPrincipalComponentsSpec(), "enabled")
                 .display("Enabled")
                 .add();
-        b.with(String.class)
-                .select("span", "TsPeriodSelector")
+        b.with(TsPeriodSelector.class)
+                .select(spec.getPrincipalComponentsSpec(), "span")
                 .display("Estimation span")
                 .add();
         b.with(String.class)
