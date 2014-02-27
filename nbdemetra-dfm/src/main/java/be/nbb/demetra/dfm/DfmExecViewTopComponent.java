@@ -7,7 +7,6 @@ package be.nbb.demetra.dfm;
 
 import ec.nbdemetra.ui.DemetraUiIcon;
 import ec.nbdemetra.ui.properties.OpenIdePropertySheetBeanEditor;
-import ec.nbdemetra.ws.WorkspaceFactory;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
 import ec.tss.Dfm.DfmDocument;
@@ -18,13 +17,12 @@ import ec.tstoolkit.algorithm.IProcessingNode;
 import ec.tstoolkit.dfm.DfmEstimationSpec;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
-import java.lang.reflect.InvocationTargetException;
+import java.util.List;
 import javax.swing.AbstractAction;
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JToolBar;
-import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import org.netbeans.api.settings.ConvertAsProperties;
 import org.netbeans.core.spi.multiview.CloseOperationState;
@@ -32,7 +30,6 @@ import org.netbeans.core.spi.multiview.MultiViewDescription;
 import org.netbeans.core.spi.multiview.MultiViewElement;
 import org.netbeans.core.spi.multiview.MultiViewElementCallback;
 import org.openide.awt.NotificationDisplayer;
-import org.openide.util.Exceptions;
 import org.openide.util.ImageUtilities;
 import org.openide.windows.TopComponent;
 import org.openide.util.NbBundle.Messages;
@@ -181,60 +178,57 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
     }
     //</editor-fold>
 
-    IProcessingHook<IProcessingNode, DfmProcessingFactory.EstimationInfo> hook = new IProcessingHook<IProcessingNode, DfmProcessingFactory.EstimationInfo>() {
-        @Override
-        public void process(final IProcessingHook.HookInformation<IProcessingNode, DfmProcessingFactory.EstimationInfo> info, boolean cancancel) {
-            SwingUtilities.invokeLater((new Runnable() {
-                @Override
-                public void run() {
-                    System.out.print(info.source.getName() + '\t');
-                    System.out.print(info.message + '\t');
-                    System.out.println(info.information.loglikelihood);
-                    StringBuilder txt = new StringBuilder();
-                    txt.append(info.source.getName()).append('\t')
-                            .append(info.message).append('\t').append(info.information.loglikelihood);
-                    txt.append("\r\n");
-                    final String msg = jEditorPane1.getText() + txt.toString();
-                    jEditorPane1.setText(msg);
-                    jEditorPane1.repaint();
-                }
-            }));
-        }
-    };
-
     @Override
     protected String getContextPath() {
         return DfmDocumentManager.CONTEXTPATH;
     }
 
     private void run() {
-        new SwingWorker<CompositeResults, Void>() {
-            @Override
-            protected CompositeResults doInBackground() throws Exception {
-                return runInBackground();
-            }
-
-            @Override
-            protected void done() {
-                NotificationDisplayer.getDefault().notify("Long running process", DemetraUiIcon.COMPILE_16, "DONE!", null);
-            }
-        }.run();
-    }
-
-    private CompositeResults runInBackground() {
-        getDocument().getElement().getProcessor().register(hook);
-//        IProcessing<TsVariables, CompositeResults> proc = getDocument().getElement().getProcessor().generateProcessing(getDocument().getElement().getSpecification(), null);
-//        CompositeResults rslts = proc.process(getDocument().getElement().getInput());
-        CompositeResults rslt = getDocument().getElement().getResults();//.get(DfmProcessingFactory.DFM, DfmResults.class);
-//        System.out.println(dfm.getModel());
-        getDocument().getElement().getProcessor().unregister(hook);
-        return rslt;
+        new SwingWorkerImpl().execute();
     }
 
     private void editEstimationSpec() {
         DfmEstimationSpec newValue = getDocument().getElement().getSpecification().getEstimationSpec().clone();
         if (OpenIdePropertySheetBeanEditor.editSheet(DfmSheets.onDfmEstimationSpec(newValue), "Edit spec", null)) {
             getDocument().getElement().getSpecification().setEstimationSpec(newValue);
+            getDocument().getElement().clear();
+        }
+    }
+
+    private final class SwingWorkerImpl extends SwingWorker<CompositeResults, IProcessingHook.HookInformation<IProcessingNode, DfmProcessingFactory.EstimationInfo>> implements IProcessingHook<IProcessingNode, DfmProcessingFactory.EstimationInfo> {
+
+        @Override
+        protected CompositeResults doInBackground() throws Exception {
+            getDocument().getElement().getProcessor().register(this);
+            CompositeResults rslt = getDocument().getElement().getResults();
+            getDocument().getElement().getProcessor().unregister(this);
+            return rslt;
+        }
+
+        @Override
+        protected void done() {
+            NotificationDisplayer.getDefault().notify("Long running process", DemetraUiIcon.COMPILE_16, "DONE!", null);
+        }
+
+        @Override
+        public void process(HookInformation<IProcessingNode, DfmProcessingFactory.EstimationInfo> info, boolean cancancel) {
+            publish(info);
+        }
+
+        @Override
+        protected void process(List<HookInformation<IProcessingNode, DfmProcessingFactory.EstimationInfo>> chunks) {
+            for (HookInformation<IProcessingNode, DfmProcessingFactory.EstimationInfo> info : chunks) {
+                System.out.print(info.source.getName() + '\t');
+                System.out.print(info.message + '\t');
+                System.out.println(info.information.loglikelihood);
+                StringBuilder txt = new StringBuilder();
+                txt.append(info.source.getName()).append('\t')
+                        .append(info.message).append('\t').append(info.information.loglikelihood);
+                txt.append("\r\n");
+                final String msg = jEditorPane1.getText() + txt.toString();
+                jEditorPane1.setText(msg);
+                jEditorPane1.repaint();
+            }
         }
     }
 }
