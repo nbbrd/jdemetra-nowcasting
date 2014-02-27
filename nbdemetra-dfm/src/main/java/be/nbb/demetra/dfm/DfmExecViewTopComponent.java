@@ -24,12 +24,14 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JToolBar;
 import javax.swing.SwingWorker;
+import org.netbeans.api.progress.ProgressHandle;
+import org.netbeans.api.progress.ProgressHandleFactory;
 import org.netbeans.api.settings.ConvertAsProperties;
 import org.netbeans.core.spi.multiview.CloseOperationState;
 import org.netbeans.core.spi.multiview.MultiViewDescription;
 import org.netbeans.core.spi.multiview.MultiViewElement;
 import org.netbeans.core.spi.multiview.MultiViewElementCallback;
-import org.openide.awt.NotificationDisplayer;
+import org.openide.util.Cancellable;
 import org.openide.util.ImageUtilities;
 import org.openide.windows.TopComponent;
 import org.openide.util.NbBundle.Messages;
@@ -184,6 +186,7 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
     }
 
     private void run() {
+        jEditorPane1.setText("");
         new SwingWorkerImpl().execute();
     }
 
@@ -197,6 +200,25 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
 
     private final class SwingWorkerImpl extends SwingWorker<CompositeResults, IProcessingHook.HookInformation<IProcessingNode, DfmProcessingFactory.EstimationInfo>> implements IProcessingHook<IProcessingNode, DfmProcessingFactory.EstimationInfo> {
 
+        private final ProgressHandle progressHandle;
+
+        public SwingWorkerImpl() {
+            this.progressHandle = ProgressHandleFactory.createHandle(getName(), new Cancellable() {
+                @Override
+                public boolean cancel() {
+                    SwingWorkerImpl.this.cancel(false);
+                    return true;
+                }
+            }, new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    DfmExecViewTopComponent.this.open();
+                    DfmExecViewTopComponent.this.requestActive();
+                }
+            });
+            progressHandle.start();
+        }
+
         @Override
         protected CompositeResults doInBackground() throws Exception {
             getDocument().getElement().getProcessor().register(this);
@@ -207,20 +229,22 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
 
         @Override
         protected void done() {
-            NotificationDisplayer.getDefault().notify("Long running process", DemetraUiIcon.COMPILE_16, "DONE!", null);
+            progressHandle.finish();
+            DfmExecViewTopComponent.this.requestAttention(true);
         }
 
         @Override
         public void process(HookInformation<IProcessingNode, DfmProcessingFactory.EstimationInfo> info, boolean cancancel) {
+            if (isCancelled()) {
+                info.cancel = true;
+            }
             publish(info);
         }
 
         @Override
         protected void process(List<HookInformation<IProcessingNode, DfmProcessingFactory.EstimationInfo>> chunks) {
             for (HookInformation<IProcessingNode, DfmProcessingFactory.EstimationInfo> info : chunks) {
-                System.out.print(info.source.getName() + '\t');
-                System.out.print(info.message + '\t');
-                System.out.println(info.information.loglikelihood);
+                progressHandle.progress(info.message);
                 StringBuilder txt = new StringBuilder();
                 txt.append(info.source.getName()).append('\t')
                         .append(info.message).append('\t').append(info.information.loglikelihood);
