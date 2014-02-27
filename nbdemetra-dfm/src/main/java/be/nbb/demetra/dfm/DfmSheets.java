@@ -42,7 +42,8 @@ final class DfmSheets {
 
     @NbBundle.Messages({
         "pcSpec.enabled.display=Enabled",
-        "pcSpec.span.display=Estimation span"
+        "pcSpec.span.display=Estimation span",
+        "pcSpec.minPartNonMissingSeries.display=Data availability (min %)"
     })
     private static void withPcSpec(PcSpec bean) {
         B.withBoolean()
@@ -53,9 +54,10 @@ final class DfmSheets {
                 .select(bean, "span")
                 .display(Bundle.pcSpec_span_display())
                 .add();
-        B.with(String.class)
-                .select("ns", "double ]0,1]")
-                .display("Data availability (min %)")
+        B.withDouble()
+                .select(bean, "minPartNonMissingSeries")
+                .display(Bundle.pcSpec_minPartNonMissingSeries_display())
+                .min(0).max(1)
                 .add();
     }
 
