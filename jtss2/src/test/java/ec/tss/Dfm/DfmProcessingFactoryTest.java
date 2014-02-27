@@ -124,6 +124,7 @@ public class DfmProcessingFactoryTest {
                 System.out.print(info.source.getName() + '\t');
                 System.out.print(info.message + '\t');
                 System.out.println(info.information.loglikelihood);
+               
             }
         };
         DfmProcessingFactory.instance.register(hook);

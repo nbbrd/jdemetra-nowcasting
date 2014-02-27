@@ -39,12 +39,8 @@ import org.openide.util.NbBundle.Messages;
 })
 public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDocument> implements MultiViewElement, MultiViewDescription {
 
-    private static DfmDocumentManager manager() {
-        return WorkspaceFactory.getInstance().getManager(DfmDocumentManager.class);
-    }
-
     public DfmOutputViewTopComponent() {
-        this(manager().create(WorkspaceFactory.getInstance().getActiveWorkspace()));
+        this(null);
     }
 
     public DfmOutputViewTopComponent(WorkspaceItem<DfmDocument> document) {

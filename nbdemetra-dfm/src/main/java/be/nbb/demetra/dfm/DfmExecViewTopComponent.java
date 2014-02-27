@@ -18,11 +18,13 @@ import ec.tstoolkit.algorithm.IProcessingNode;
 import ec.tstoolkit.dfm.DfmEstimationSpec;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
+import java.lang.reflect.InvocationTargetException;
 import javax.swing.AbstractAction;
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JToolBar;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import org.netbeans.api.settings.ConvertAsProperties;
 import org.netbeans.core.spi.multiview.CloseOperationState;
@@ -30,6 +32,7 @@ import org.netbeans.core.spi.multiview.MultiViewDescription;
 import org.netbeans.core.spi.multiview.MultiViewElement;
 import org.netbeans.core.spi.multiview.MultiViewElementCallback;
 import org.openide.awt.NotificationDisplayer;
+import org.openide.util.Exceptions;
 import org.openide.util.ImageUtilities;
 import org.openide.windows.TopComponent;
 import org.openide.util.NbBundle.Messages;
@@ -54,12 +57,8 @@ import org.openide.util.NbBundle.Messages;
 })
 public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocument> implements MultiViewElement, MultiViewDescription {
 
-    private static DfmDocumentManager manager() {
-        return WorkspaceFactory.getInstance().getManager(DfmDocumentManager.class);
-    }
-
     public DfmExecViewTopComponent() {
-        this(manager().create(WorkspaceFactory.getInstance().getActiveWorkspace()));
+        this(null);
     }
 
     public DfmExecViewTopComponent(WorkspaceItem<DfmDocument> document) {
@@ -182,6 +181,27 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
     }
     //</editor-fold>
 
+    IProcessingHook<IProcessingNode, DfmProcessingFactory.EstimationInfo> hook = new IProcessingHook<IProcessingNode, DfmProcessingFactory.EstimationInfo>() {
+        @Override
+        public void process(final IProcessingHook.HookInformation<IProcessingNode, DfmProcessingFactory.EstimationInfo> info, boolean cancancel) {
+            SwingUtilities.invokeLater((new Runnable() {
+                @Override
+                public void run() {
+                    System.out.print(info.source.getName() + '\t');
+                    System.out.print(info.message + '\t');
+                    System.out.println(info.information.loglikelihood);
+                    StringBuilder txt = new StringBuilder();
+                    txt.append(info.source.getName()).append('\t')
+                            .append(info.message).append('\t').append(info.information.loglikelihood);
+                    txt.append("\r\n");
+                    final String msg = jEditorPane1.getText() + txt.toString();
+                    jEditorPane1.setText(msg);
+                    jEditorPane1.repaint();
+                }
+            }));
+        }
+    };
+
     @Override
     protected String getContextPath() {
         return DfmDocumentManager.CONTEXTPATH;
@@ -202,22 +222,13 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
     }
 
     private CompositeResults runInBackground() {
-        IProcessingHook<IProcessingNode, DfmProcessingFactory.EstimationInfo> hook = new IProcessingHook<IProcessingNode, DfmProcessingFactory.EstimationInfo>() {
-
-            @Override
-            public void process(IProcessingHook.HookInformation<IProcessingNode, DfmProcessingFactory.EstimationInfo> info, boolean cancancel) {
-                System.out.print(info.source.getName() + '\t');
-                System.out.print(info.message + '\t');
-                System.out.println(info.information.loglikelihood);
-            }
-        };
         getDocument().getElement().getProcessor().register(hook);
-
 //        IProcessing<TsVariables, CompositeResults> proc = getDocument().getElement().getProcessor().generateProcessing(getDocument().getElement().getSpecification(), null);
 //        CompositeResults rslts = proc.process(getDocument().getElement().getInput());
-        return getDocument().getElement().getResults();//.get(DfmProcessingFactory.DFM, DfmResults.class);
+        CompositeResults rslt = getDocument().getElement().getResults();//.get(DfmProcessingFactory.DFM, DfmResults.class);
 //        System.out.println(dfm.getModel());
-//        getDocument().getElement().getProcessor().unregister(hook);
+        getDocument().getElement().getProcessor().unregister(hook);
+        return rslt;
     }
 
     private void editEstimationSpec() {

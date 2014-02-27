@@ -417,7 +417,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
                             EstimationInfo einfo = new EstimationInfo(model, pt.getLikelihood().getLogLikelihood());
                             HookInformation<IProcessingNode, EstimationInfo> hinfo = new HookInformation<>((IProcessingNode) ProcNode.this, einfo);
                             hinfo.message = info.message;
-                            DfmProcessingFactory.instance.processHooks(hinfo, cancancel);
+                            DfmProcessingFactory.this.processHooks(hinfo, cancancel);
                             if (hinfo.cancel) {
                                 info.cancel = true;
                             }
@@ -439,7 +439,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
                             EstimationInfo einfo = new EstimationInfo(model, pt.getLikelihood().getLogLikelihood());
                             HookInformation<IProcessingNode, EstimationInfo> hinfo = new HookInformation<>((IProcessingNode) ProcNode.this, einfo);
                             hinfo.message = info.message;
-                            DfmProcessingFactory.instance.processHooks(hinfo, cancancel);
+                            DfmProcessingFactory.this.processHooks(hinfo, cancancel);
                             if (hinfo.cancel) {
                                 info.cancel = true;
                             }

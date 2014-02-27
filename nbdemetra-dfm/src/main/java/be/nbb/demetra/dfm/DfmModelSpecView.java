@@ -29,6 +29,7 @@ import ec.tss.TsFactory;
 import ec.tss.TsInformationType;
 import ec.tss.TsMoniker;
 import ec.tss.datatransfer.TssTransferSupport;
+import ec.tstoolkit.Parameter;
 import ec.tstoolkit.ParameterType;
 import ec.tstoolkit.dfm.DynamicFactorModel.MeasurementType;
 import ec.tstoolkit.dfm.MeasurementSpec;
@@ -85,7 +86,7 @@ public final class DfmModelSpecView extends JComponent {
 
     public DfmModelSpecView() {
         this.view = new XTable();
- 
+
         view.addMouseListener(new PopupListener.PopupAdapter(createMenu().getPopupMenu()));
         view.setDefaultRenderer(Transformation[].class, new TransformationRenderer());
         view.setDefaultEditor(Transformation[].class, new TransformationEditor());
@@ -196,6 +197,7 @@ public final class DfmModelSpecView extends JComponent {
 
         @Override
         public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
+            model.clear();
             MeasurementSpec ms = model.getSpecification().getModelSpec().getMeasurements().get(rowIndex);
             switch (columnIndex) {
                 case 1:
@@ -293,7 +295,6 @@ public final class DfmModelSpecView extends JComponent {
         public MeasurementTypeEditor() {
             super(new JComboBox<>(new DefaultComboBoxModel<>(MeasurementType.values())));
         }
-
     }
 
     private static final class ApplyToAllCommand extends JCommand<XTable> {
@@ -307,7 +308,7 @@ public final class DfmModelSpecView extends JComponent {
                 if (o != selected) {
                     o.setSeriesTransformations(Arrays3.cloneIfNotNull(selected.getSeriesTransformations()));
                     o.setFactorsTransformation(selected.getFactorsTransformation());
-                    o.setCoefficient(Arrays3.cloneIfNotNull(selected.getCoefficients()));
+                    o.setCoefficient(Parameter.clone(selected.getCoefficients()));
                 }
             }
             model.fireTableDataChanged();

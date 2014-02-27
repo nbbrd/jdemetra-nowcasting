@@ -47,20 +47,18 @@ import org.openide.util.NbBundle.Messages;
 })
 public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<DfmDocument> implements MultiViewElement, MultiViewDescription {
 
-    private static DfmDocumentManager manager() {
-        return WorkspaceFactory.getInstance().getManager(DfmDocumentManager.class);
-    }
-
+ 
     public DfmModelSpecViewTopComponent(WorkspaceItem<DfmDocument> document) {
         super(document);
         initComponents();
         setName(Bundle.CTL_DfmModelSpecViewTopComponent());
         setToolTipText(Bundle.HINT_DfmModelSpecViewTopComponent());
+        if (document != null)
         dfmModelSpecView1.setModel(document.getElement());
     }
 
     public DfmModelSpecViewTopComponent() {
-        this(manager().create(WorkspaceFactory.getInstance().getActiveWorkspace()));
+        this(null);
     }
 
     /**
@@ -179,6 +177,7 @@ public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<Df
                     }
                     o.setCoefficient(tmp);
                     dfmModelSpecView1.setModel(null);
+                    if (getDocument() != null)
                     dfmModelSpecView1.setModel(getDocument().getElement());
                 }
             }
