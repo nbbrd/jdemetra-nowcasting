@@ -23,6 +23,7 @@ import ec.tstoolkit.dfm.NumericalProcessingSpec;
 import ec.tstoolkit.dfm.PcSpec;
 import ec.tstoolkit.timeseries.TsPeriodSelector;
 import ec.tstoolkit.var.VarSpec;
+import ec.tstoolkit.var.VarSpec.Initialization;
 import org.openide.nodes.PropertySupport;
 import org.openide.nodes.Sheet;
 import org.openide.util.NbBundle;
@@ -163,7 +164,8 @@ final class DfmSheets {
     @NbBundle.Messages({
         "varSpec.display=VAR model",
         "varSpec.nvars.display=Equations count",
-        "varSpec.nlags.display=Lags count"
+        "varSpec.nlags.display=Lags count",
+        "varSpec.initialization.display=Initialization"
     })
     public static Sheet onVarSpec(final VarSpec spec) {
         Sheet result = new Sheet();
@@ -196,6 +198,10 @@ final class DfmSheets {
                     }
                 })
                 .min(1)
+                .add();
+        B.withEnum(Initialization.class)
+                .select(spec, "initialization")
+                .display(Bundle.varSpec_initialization_display())
                 .add();
         result.put(B.build());
 
