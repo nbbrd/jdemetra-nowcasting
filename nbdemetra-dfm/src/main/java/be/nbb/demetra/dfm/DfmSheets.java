@@ -18,12 +18,14 @@ package be.nbb.demetra.dfm;
 
 import ec.nbdemetra.ui.properties.NodePropertySetBuilder;
 import ec.tstoolkit.dfm.DfmEstimationSpec;
+import ec.tstoolkit.dfm.EmSpec;
 import ec.tstoolkit.dfm.NumericalProcessingSpec;
+import ec.tstoolkit.dfm.PcSpec;
 import ec.tstoolkit.timeseries.TsPeriodSelector;
 import ec.tstoolkit.var.VarSpec;
-import java.lang.reflect.InvocationTargetException;
 import org.openide.nodes.PropertySupport;
 import org.openide.nodes.Sheet;
+import org.openide.util.NbBundle;
 
 /**
  *
@@ -35,140 +37,165 @@ final class DfmSheets {
         // static class
     }
 
-    public static Sheet onDfmEstimationSpec(DfmEstimationSpec spec) {
-        Sheet result = new Sheet();
+    // shared because methods called only in EDT
+    private static final NodePropertySetBuilder B = new NodePropertySetBuilder();
 
-        NodePropertySetBuilder b = new NodePropertySetBuilder();
-
-        b.reset("Principal components");
-        b.withBoolean()
-                .select(spec.getPrincipalComponentsSpec(), "enabled")
-                .display("Enabled")
+    @NbBundle.Messages({
+        "pcSpec.enabled.display=Enabled",
+        "pcSpec.span.display=Estimation span"
+    })
+    private static void withPcSpec(PcSpec bean) {
+        B.withBoolean()
+                .select(bean, "enabled")
+                .display(Bundle.pcSpec_enabled_display())
                 .add();
-        b.with(TsPeriodSelector.class)
-                .select(spec.getPrincipalComponentsSpec(), "span")
-                .display("Estimation span")
+        B.with(TsPeriodSelector.class)
+                .select(bean, "span")
+                .display(Bundle.pcSpec_span_display())
                 .add();
-        b.with(String.class)
+        B.with(String.class)
                 .select("ns", "double ]0,1]")
                 .display("Data availability (min %)")
                 .add();
-        result.put(b.build());
+    }
 
-        b.reset("Preliminary EM");
-        b.withBoolean()
-                .select(spec.getPreEmSpec(), "enabled")
-                .display("Enabled")
+    @NbBundle.Messages({
+        "emSpec.enabled.display=Enabled",
+        "emSpec.version.display=Version",
+        "emSpec.maxIter.display=Max iterations",
+        "emSpec.maxNumIter.display=Max numerical iterations"
+    })
+    private static void withEmSpec(EmSpec bean) {
+        B.withBoolean()
+                .select(bean, "enabled")
+                .display(Bundle.emSpec_enabled_display())
                 .add();
-        b.withInt()
-                .select(spec.getPreEmSpec(), "version")
-                .display("Version")
+        B.withInt()
+                .select(bean, "version")
+                .display(Bundle.emSpec_version_display())
                 .min(1).max(2)
                 .add();
-        b.withInt()
-                .select(spec.getPreEmSpec(), "maxIter")
-                .display("Max iterations")
+        B.withInt()
+                .select(bean, "maxIter")
+                .display(Bundle.emSpec_maxIter_display())
                 .min(1)
                 .add();
-        b.withInt()
-                .select(spec.getPreEmSpec(), "maxNumIter")
-                .display("Max numerical iterations")
+        B.withInt()
+                .select(bean, "maxNumIter")
+                .display(Bundle.emSpec_maxNumIter_display())
                 .min(1)
                 .add();
-        result.put(b.build());
+    }
 
-        b.reset("Numerical optimization");
-        b.withBoolean()
-                .select(spec.getNumericalProcessingSpec(), "enabled")
-                .display("Enabled")
+    @NbBundle.Messages({
+        "numericalProcessingSpec.enabled.display=Enabled",
+        "numericalProcessingSpec.maxIter.display=Max number iterations",
+        "numericalProcessingSpec.maxInitialIter.display=Simplified model iterations",
+        "numericalProcessingSpec.blockIterations.display=Iterations by blocks",
+        "numericalProcessingSpec.mixedEstimation.display=Mixed estimation",
+        "numericalProcessingSpec.method.display=Optimization method",
+        "numericalProcessingSpec.precision.display=Precision"
+    })
+    private static void withNumericalProcessingSpec(NumericalProcessingSpec bean) {
+        B.withBoolean()
+                .select(bean, "enabled")
+                .display(Bundle.numericalProcessingSpec_enabled_display())
                 .add();
-        b.withInt()
-                .select(spec.getNumericalProcessingSpec(), "maxIter")
-                .display("Max number iterations")
+        B.withInt()
+                .select(bean, "maxIter")
+                .display(Bundle.numericalProcessingSpec_maxIter_display())
                 .min(1)
                 .add();
-        b.withInt()
-                .select(spec.getNumericalProcessingSpec(), "maxInitialIter")
-                .display("Simplified model iterations")
+        B.withInt()
+                .select(bean, "maxInitialIter")
+                .display(Bundle.numericalProcessingSpec_maxInitialIter_display())
                 .min(0)
                 .add();
-        b.withBoolean()
-                .select(spec.getNumericalProcessingSpec(), "blockIterations")
-                .display("Iterations by blocks")
+        B.withBoolean()
+                .select(bean, "blockIterations")
+                .display(Bundle.numericalProcessingSpec_blockIterations_display())
                 .add();
-        b.withBoolean()
-                .select(spec.getNumericalProcessingSpec(), "mixedEstimation")
-                .display("Mixed estimation")
+        B.withBoolean()
+                .select(bean, "mixedEstimation")
+                .display(Bundle.numericalProcessingSpec_mixedEstimation_display())
                 .add();
-        b.withEnum(NumericalProcessingSpec.Method.class)
-                .select(spec.getNumericalProcessingSpec(), "method")
-                .display("Optimization method")
+        B.withEnum(NumericalProcessingSpec.Method.class)
+                .select(bean, "method")
+                .display(Bundle.numericalProcessingSpec_method_display())
                 .add();
-        b.withDouble()
-                .select(spec.getNumericalProcessingSpec(), "precision")
-                .display("Precision")
+        B.withDouble()
+                .select(bean, "precision")
+                .display(Bundle.numericalProcessingSpec_precision_display())
                 .min(.1)
                 .add();
-        result.put(b.build());
+    }
 
-        b.reset("Final EM");
-        b.withBoolean()
-                .select(spec.getPostEmSpec(), "enabled")
-                .display("Enabled")
-                .add();
-        b.withInt()
-                .select(spec.getPostEmSpec(), "version")
-                .display("Version")
-                .min(1).max(2)
-                .add();
-        b.withInt()
-                .select(spec.getPostEmSpec(), "maxIter")
-                .display("Max iterations")
-                .min(1)
-                .add();
-        b.withInt()
-                .select(spec.getPostEmSpec(), "maxNumIter")
-                .display("Max numerical iterations")
-                .min(1)
-                .add();
-        result.put(b.build());
+    @NbBundle.Messages({
+        "principalComponentsSpec.display=Principal components",
+        "preEmSpec.display=Preliminary EM",
+        "numericalProcessingSpec.display=Numerical optimization",
+        "postEmSpec.display=Final EM"
+    })
+    public static Sheet onDfmEstimationSpec(DfmEstimationSpec spec) {
+        Sheet result = new Sheet();
+
+        B.reset("principalComponentsSpec").display(Bundle.principalComponentsSpec_display());
+        withPcSpec(spec.getPrincipalComponentsSpec());
+        result.put(B.build());
+
+        B.reset("preEmSpec").display(Bundle.preEmSpec_display());
+        withEmSpec(spec.getPreEmSpec());
+        result.put(B.build());
+
+        B.reset("numericalProcessingSpec").display(Bundle.numericalProcessingSpec_display());
+        withNumericalProcessingSpec(spec.getNumericalProcessingSpec());
+        result.put(B.build());
+
+        B.reset("postEmSpec").display(Bundle.postEmSpec_display());
+        withEmSpec(spec.getPostEmSpec());
+        result.put(B.build());
 
         return result;
     }
 
+    @NbBundle.Messages({
+        "varSpec.display=VAR model",
+        "varSpec.nvars.display=Equations count",
+        "varSpec.nlags.display=Lags count"
+    })
     public static Sheet onVarSpec(final VarSpec spec) {
         Sheet result = new Sheet();
 
-        NodePropertySetBuilder b = new NodePropertySetBuilder();
-        b.withInt()
-                .select(new PropertySupport.ReadWrite<Integer>("nvars", Integer.class, "Equations count", null) {
+        B.reset("varSpec").display(Bundle.varSpec_display());
+        B.withInt()
+                .select(new PropertySupport.ReadWrite<Integer>("nvars", Integer.class, Bundle.varSpec_nvars_display(), null) {
                     @Override
-                    public Integer getValue() throws IllegalAccessException, InvocationTargetException {
+                    public Integer getValue() {
                         return spec.getEquationsCount();
                     }
 
                     @Override
-                    public void setValue(Integer val) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+                    public void setValue(Integer val) {
                         spec.setSize(val, spec.getLagsCount());
                     }
                 })
                 .min(1)
                 .add();
-        b.withInt()
-                .select(new PropertySupport.ReadWrite<Integer>("nlags", Integer.class, "Lags count", null) {
+        B.withInt()
+                .select(new PropertySupport.ReadWrite<Integer>("nlags", Integer.class, Bundle.varSpec_nlags_display(), null) {
                     @Override
-                    public Integer getValue() throws IllegalAccessException, InvocationTargetException {
+                    public Integer getValue() {
                         return spec.getLagsCount();
                     }
 
                     @Override
-                    public void setValue(Integer val) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+                    public void setValue(Integer val) {
                         spec.setSize(spec.getEquationsCount(), val);
                     }
                 })
                 .min(1)
                 .add();
-        result.put(b.build());
+        result.put(B.build());
 
         return result;
     }
