@@ -5,6 +5,7 @@
  */
 package be.nbb.demetra.dfm;
 
+import ec.nbdemetra.ui.DemetraUI;
 import ec.nbdemetra.ui.DemetraUiIcon;
 import ec.nbdemetra.ui.properties.OpenIdePropertySheetBeanEditor;
 import ec.nbdemetra.ws.WorkspaceItem;
@@ -15,6 +16,7 @@ import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.algorithm.IProcessingHook;
 import ec.tstoolkit.algorithm.IProcessingNode;
 import ec.tstoolkit.dfm.DfmEstimationSpec;
+import ec.util.chart.swing.SwingColorSchemeSupport;
 import ec.util.various.swing.JCommand;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
@@ -26,8 +28,14 @@ import javax.swing.AbstractAction;
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
 import javax.swing.SwingWorker;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.data.time.DynamicTimeSeriesCollection;
+import org.jfree.data.time.Second;
 import org.netbeans.api.progress.ProgressHandle;
 import org.netbeans.api.progress.ProgressHandleFactory;
 import org.netbeans.api.settings.ConvertAsProperties;
@@ -67,6 +75,7 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
         READY, STARTED, DONE, FAILED, CANCELLED
     };
     private DfmState dfmState;
+    private DynamicTimeSeriesCollection dataset;
 
     public DfmExecViewTopComponent() {
         this(null);
@@ -79,6 +88,20 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
         setToolTipText(Bundle.HINT_DfmExecViewTopComponent());
         jEditorPane1.setEditable(false);
         this.dfmState = DfmState.READY;
+
+        dataset = new DynamicTimeSeriesCollection(1, 50, new Second());
+        dataset.setTimeBase(new Second());
+        dataset.addSeries(new float[]{}, 0, "loglikelihood");
+
+        JFreeChart chart = ChartFactory.createTimeSeriesChart(null, null, null, dataset, true, true, false);
+        {
+            // colorscheme
+            SwingColorSchemeSupport colorSchemeSupport = SwingColorSchemeSupport.from(DemetraUI.getInstance().getColorScheme());
+            chart.setBackgroundPaint(colorSchemeSupport.getBackColor());
+            chart.getPlot().setBackgroundPaint(colorSchemeSupport.getPlotColor());
+        }
+        jSplitPane1.setBottomComponent(new ChartPanel(chart));
+        jSplitPane1.setDividerLocation(.5);
 
         addPropertyChangeListener(new PropertyChangeListener() {
             @Override
@@ -100,19 +123,27 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        jSplitPane1 = new javax.swing.JSplitPane();
         jScrollPane1 = new javax.swing.JScrollPane();
         jEditorPane1 = new javax.swing.JEditorPane();
 
         setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.LINE_AXIS));
 
+        jSplitPane1.setOrientation(javax.swing.JSplitPane.VERTICAL_SPLIT);
+        jSplitPane1.setResizeWeight(0.5);
+        jSplitPane1.setToolTipText(org.openide.util.NbBundle.getMessage(DfmExecViewTopComponent.class, "DfmExecViewTopComponent.jSplitPane1.toolTipText")); // NOI18N
+
         jScrollPane1.setViewportView(jEditorPane1);
 
-        add(jScrollPane1);
+        jSplitPane1.setLeftComponent(jScrollPane1);
+
+        add(jSplitPane1);
     }// </editor-fold>//GEN-END:initComponents
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JEditorPane jEditorPane1;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JSplitPane jSplitPane1;
     // End of variables declaration//GEN-END:variables
     void writeProperties(java.util.Properties p) {
     }
@@ -142,10 +173,10 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
         toolBar.addSeparator();
         toolBar.add(Box.createRigidArea(new Dimension(5, 0)));
 
-        JButton start = toolBar.add(StartCommand.INSTANCE.toAction(this));
-        start.setIcon(DemetraUiIcon.COMPILE_16);
-        start.setDisabledIcon(createDisabledIcon(start.getIcon()));
-        start.setToolTipText("Start");
+        JToggleButton startStop = (JToggleButton) toolBar.add(new JToggleButton(StartStopCommand.INSTANCE.toAction(this)));
+        startStop.setIcon(DemetraUiIcon.COMPILE_16);
+        startStop.setDisabledIcon(createDisabledIcon(startStop.getIcon()));
+        startStop.setToolTipText("Start");
 
         JButton edit = toolBar.add(EditSpecCommand.INSTANCE.toAction(this));
         edit.setIcon(DemetraUiIcon.PREFERENCES);
@@ -298,6 +329,9 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
                 final String msg = jEditorPane1.getText() + txt.toString();
                 jEditorPane1.setText(msg);
                 jEditorPane1.repaint();
+
+                dataset.advanceTime();
+                dataset.appendData(new float[]{(float) info.information.loglikelihood});
             }
         }
     }
@@ -311,18 +345,27 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
         }
     }
 
-    private static final class StartCommand extends DfmExecCommand {
+    private static final class StartStopCommand extends DfmExecCommand {
 
-        public static final StartCommand INSTANCE = new StartCommand();
+        public static final StartStopCommand INSTANCE = new StartStopCommand();
 
         @Override
         public void execute(DfmExecViewTopComponent c) throws Exception {
-            c.setDfmState(DfmState.STARTED);
+            if (c.getDfmState() == DfmState.STARTED) {
+                c.swingWorker.cancel(false);
+            } else {
+                c.setDfmState(DfmState.STARTED);
+            }
         }
 
         @Override
         public boolean isEnabled(DfmExecViewTopComponent c) {
-            return c.getDfmState() == DfmState.READY;
+            return c.getDfmState() == DfmState.READY || c.getDfmState() == DfmState.STARTED;
+        }
+
+        @Override
+        public boolean isSelected(DfmExecViewTopComponent c) {
+            return c.getDfmState() == DfmState.STARTED;
         }
     }
 
