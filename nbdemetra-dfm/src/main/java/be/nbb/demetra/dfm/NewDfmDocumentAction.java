@@ -11,6 +11,8 @@ import ec.tss.Dfm.DfmDocument;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Iterator;
@@ -51,8 +53,9 @@ public final class NewDfmDocumentAction implements ActionListener {
     }
 
     public static TopComponent createView(final WorkspaceItem<DfmDocument> doc) {
-        if (doc.isOpen())
+        if (doc.isOpen()) {
             return doc.getView();
+        }
         // views
         final DfmModelSpecViewTopComponent modelView = new DfmModelSpecViewTopComponent(doc);
         final DfmExecViewTopComponent execView = new DfmExecViewTopComponent(doc);
@@ -92,7 +95,6 @@ public final class NewDfmDocumentAction implements ActionListener {
             new QuickAndDirtyDescription("Processing", execView),
             new QuickAndDirtyDescription("Output", outputView),};
 
-
         final TopComponent result = MultiViewFactory.createMultiView(descriptions, descriptions[0],
                 new CloseOperationHandler() {
 
@@ -104,8 +106,33 @@ public final class NewDfmDocumentAction implements ActionListener {
                     }
                 });
         result.setName(doc.getDisplayName());
+        execView.addPropertyChangeListener(DfmExecViewTopComponent.DFM_STATE_PROPERTY, new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                switch ((DfmExecViewTopComponent.DfmState) evt.getNewValue()) {
+                    case CANCELLED:
+                        result.makeBusy(false);
+                        result.requestAttention(true);
+                        break;
+                    case DONE:
+                        result.makeBusy(false);
+                        result.requestAttention(true);
+                        break;
+                    case FAILED:
+                        result.makeBusy(false);
+                        result.requestAttention(true);
+                        break;
+                    case READY:
+                        result.makeBusy(false);
+                        break;
+                    case STARTED:
+                        result.makeBusy(true);
+                        break;
+                }
+            }
+        });
         doc.setView(result);
-        
+
         return result;
     }
 
