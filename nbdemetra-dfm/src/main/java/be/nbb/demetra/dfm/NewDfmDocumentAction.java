@@ -39,8 +39,8 @@ import org.openide.windows.TopComponent;
 @ActionRegistration(
         displayName = "#CTL_NewDfmDocumentAction"
 )
-@ActionReference(path = "Menu/View", position = 50)
-@Messages("CTL_NewDfmDocumentAction=New DFM document")
+@ActionReference(path = "Menu/Statistical methods/Nowcasting", position = 5000)
+@Messages("CTL_NewDfmDocumentAction=Dynamic factor model")
 public final class NewDfmDocumentAction implements ActionListener {
 
     @Override

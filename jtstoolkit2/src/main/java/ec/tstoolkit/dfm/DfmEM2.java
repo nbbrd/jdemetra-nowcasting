@@ -169,9 +169,13 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
     }
 
     @Override
-    public boolean initialize(DynamicFactorModel dfm, DfmInformationSet data) {
+    public boolean initialize(DynamicFactorModel rdfm, DfmInformationSet data) {
         this.data = data;
-        this.dfm = dfm;
+        if (rdfm.getBlockLength()==rdfm.getTransition().nlags){
+            dfm=rdfm.clone();
+            dfm.setBlockLength(rdfm.getBlockLength()+1);
+        }else
+            this.dfm=rdfm;
         modelSize = dfm.getBlockLength() * dfm.getFactorsCount();
         dataSize = data.getCurrentDomain().getLength();
         Efij = new DataBlock[modelSize * modelSize];
@@ -191,6 +195,9 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
 
         // finishing
         dfm.normalize();
+        if (rdfm != dfm){
+            rdfm.copy(dfm);
+        }
         filter(false);
         return true;
     }

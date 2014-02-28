@@ -9,8 +9,11 @@ import ec.tstoolkit.algorithm.IProcResults;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DataBlockIterator;
 import ec.tstoolkit.information.InformationMapper;
+import ec.tstoolkit.maths.matrices.EigenSystem;
 import ec.tstoolkit.maths.matrices.HouseholderR;
+import ec.tstoolkit.maths.matrices.IEigenSystem;
 import ec.tstoolkit.maths.matrices.Matrix;
+import ec.tstoolkit.maths.matrices.MatrixException;
 import ec.tstoolkit.maths.matrices.SubMatrix;
 import ec.tstoolkit.maths.matrices.SymmetricMatrix;
 import ec.tstoolkit.mssf2.DefaultTimeInvariantMultivariateSsf;
@@ -29,6 +32,8 @@ import java.util.Objects;
  * @author palatej
  */
 public class DynamicFactorModel implements Cloneable, IProcResults {
+
+    public static final double AR_DEF = .6;
 
     /**
      * The IMeasurement interface represents the behaviour of a measurement
@@ -532,7 +537,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
         if (V0_ != null) {
             for (int i = 0; i < nf_; ++i) {
                 for (int j = 0; j < nf_; ++j) {
-                    V0_.subMatrix(i*c_, (i+1)*c_, j*c_, (j+1)*c_).mul(1/(w[i]*w[j]));
+                    V0_.subMatrix(i * c_, (i + 1) * c_, j * c_, (j + 1) * c_).mul(1 / (w[i] * w[j]));
                 }
             }
         }
@@ -615,10 +620,11 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             System.arraycopy(s.coeff, 0, t.coeff, 0, s.coeff.length);
             t.var = s.var;
         }
-        if (m.V0_ != null)
-            V0_=m.V0_.clone();
-        else
-            V0_=null;
+        if (m.V0_ != null) {
+            V0_ = m.V0_.clone();
+        } else {
+            V0_ = null;
+        }
         return true;
     }
 
@@ -781,6 +787,24 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
     public void setInitialCovariance(Matrix v0) {
         V0_ = v0.clone();
         init_ = VarSpec.Initialization.UserDefined;
+    }
+
+    /**
+     *
+     * @return True if the model has been changed
+     */
+    public boolean validate() {
+        DfmMapping mapping = new DfmMapping(this);
+        if (!mapping.checkBoundaries(mapping.parameters())) {
+            // set default values for the VAR matrix
+            tdesc_.covar.set(0);
+            for (int j = 0; j < nf_; ++j) {
+                tdesc_.covar.set(j, j * tdesc_.nlags, AR_DEF);
+            }
+            return true;
+        } else {
+            return false;
+        }
     }
 
     @Override
@@ -959,14 +983,16 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             int nl = tdesc_.nlags;
             for (int i = 0, k = 0, l = 0; i < nf_; ++i) {
                 for (int j = 0; j < nl; ++j, ++k) {
-                    double r = x.get(k + 1);
+                    double r = ((k+1)%c_ != 0) ? x.get(k + 1) : 0;
                     r += tdesc_.varParams.column(l++).dot(x.extract(0, nf_, c_));
                     xtmp.set(k, r);
                 }
                 for (int j = nl; j < c_ - 1; ++j, ++k) {
                     xtmp.set(k, x.get(k + 1));
                 }
-                xtmp.set(k++, 0);
+                if (c_ > nl) {
+                    xtmp.set(k++, 0);
+                }
             }
             x.copy(xtmp);
         }

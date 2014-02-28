@@ -79,7 +79,7 @@ public class VarSpec implements IProcSpecification, Cloneable {
      */
     private Table<Parameter> nparams;
 
-    private Initialization init_ = Initialization.SteadyState;
+    private Initialization init_ = Initialization.Zero;
 
     public VarSpec() {
     }

@@ -23,6 +23,7 @@ import ec.tstoolkit.eco.RegModel;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.maths.matrices.SingularValueDecomposition;
 import ec.tstoolkit.maths.matrices.SymmetricMatrix;
+import ec.tstoolkit.mssf2.IMSsf;
 import ec.tstoolkit.pca.PrincipalComponents;
 import ec.tstoolkit.timeseries.Day;
 import ec.tstoolkit.timeseries.TsPeriodSelector;
@@ -80,6 +81,7 @@ public class PcInitializer implements IDfmInitializer {
         if (!computeLoadings(model)) {
             return false;
         }
+        model.validate();
         //model.normalize();
         return true;
     }
@@ -279,4 +281,5 @@ public class PcInitializer implements IDfmInitializer {
         sel.between(start[t], end[n - 1 - t]);
         return input.getCurrentDomain().select(sel);
     }
+
 }

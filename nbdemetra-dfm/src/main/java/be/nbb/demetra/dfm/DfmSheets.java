@@ -129,7 +129,7 @@ final class DfmSheets {
         B.withDouble()
                 .select(bean, "precision")
                 .display(Bundle.numericalProcessingSpec_precision_display())
-                .min(.1)
+                .min(1e-15)
                 .add();
     }
 
