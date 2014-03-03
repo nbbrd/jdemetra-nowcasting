@@ -6,7 +6,6 @@
 package be.nbb.demetra.dfm;
 
 import ec.nbdemetra.ui.properties.OpenIdePropertySheetBeanEditor;
-import ec.nbdemetra.ws.WorkspaceFactory;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
 import ec.tss.Dfm.DfmDocument;
@@ -109,8 +108,7 @@ public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<Df
                 editVarSpec();
             }
         });
-        VarSpec varSpec = getDocument().getElement().getSpecification().getModelSpec().getVarSpec();
-        editVarSpecButton.setText("nvars=" + varSpec.getEquationsCount() + " nlags=" + varSpec.getLagsCount());
+        editVarSpecButton.setText("Varspec");
         return toolBar;
     }
 

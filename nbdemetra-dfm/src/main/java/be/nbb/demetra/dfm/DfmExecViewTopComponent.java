@@ -16,6 +16,8 @@ import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.algorithm.IProcessingHook;
 import ec.tstoolkit.algorithm.IProcessingNode;
 import ec.tstoolkit.dfm.DfmEstimationSpec;
+import ec.util.chart.ColorScheme;
+import ec.util.chart.swing.Charts;
 import ec.util.chart.swing.SwingColorSchemeSupport;
 import ec.util.various.swing.JCommand;
 import java.awt.Dimension;
@@ -25,15 +27,14 @@ import java.beans.PropertyChangeListener;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import javax.swing.AbstractAction;
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
 import javax.swing.SwingWorker;
-import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
-import org.jfree.chart.JFreeChart;
 import org.jfree.data.time.DynamicTimeSeriesCollection;
 import org.jfree.data.time.Second;
 import org.netbeans.api.progress.ProgressHandle;
@@ -89,19 +90,9 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
         jEditorPane1.setEditable(false);
         this.dfmState = DfmState.READY;
 
-        dataset = new DynamicTimeSeriesCollection(1, 50, new Second());
+        dataset = new DynamicTimeSeriesCollection(1, 200, new Second());
         dataset.setTimeBase(new Second());
         dataset.addSeries(new float[]{}, 0, "loglikelihood");
-
-        JFreeChart chart = ChartFactory.createTimeSeriesChart(null, null, null, dataset, true, true, false);
-        {
-            // colorscheme
-            SwingColorSchemeSupport colorSchemeSupport = SwingColorSchemeSupport.from(DemetraUI.getInstance().getColorScheme());
-            chart.setBackgroundPaint(colorSchemeSupport.getBackColor());
-            chart.getPlot().setBackgroundPaint(colorSchemeSupport.getPlotColor());
-        }
-        jSplitPane1.setBottomComponent(new ChartPanel(chart));
-        jSplitPane1.setDividerLocation(.5);
 
         addPropertyChangeListener(new PropertyChangeListener() {
             @Override
@@ -123,27 +114,19 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jSplitPane1 = new javax.swing.JSplitPane();
         jScrollPane1 = new javax.swing.JScrollPane();
         jEditorPane1 = new javax.swing.JEditorPane();
 
         setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.LINE_AXIS));
 
-        jSplitPane1.setOrientation(javax.swing.JSplitPane.VERTICAL_SPLIT);
-        jSplitPane1.setResizeWeight(0.5);
-        jSplitPane1.setToolTipText(org.openide.util.NbBundle.getMessage(DfmExecViewTopComponent.class, "DfmExecViewTopComponent.jSplitPane1.toolTipText")); // NOI18N
-
         jScrollPane1.setViewportView(jEditorPane1);
 
-        jSplitPane1.setLeftComponent(jScrollPane1);
-
-        add(jSplitPane1);
+        add(jScrollPane1);
     }// </editor-fold>//GEN-END:initComponents
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JEditorPane jEditorPane1;
     private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JSplitPane jSplitPane1;
     // End of variables declaration//GEN-END:variables
     void writeProperties(java.util.Properties p) {
     }
@@ -170,13 +153,14 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
     @Override
     public JComponent getToolbarRepresentation() {
         JToolBar toolBar = new JToolBar();
+        toolBar.setFloatable(false);
         toolBar.addSeparator();
         toolBar.add(Box.createRigidArea(new Dimension(5, 0)));
 
         JToggleButton startStop = (JToggleButton) toolBar.add(new JToggleButton(StartStopCommand.INSTANCE.toAction(this)));
         startStop.setIcon(DemetraUiIcon.COMPILE_16);
         startStop.setDisabledIcon(createDisabledIcon(startStop.getIcon()));
-        startStop.setToolTipText("Start");
+        startStop.setToolTipText("Start/Stop");
 
         JButton edit = toolBar.add(EditSpecCommand.INSTANCE.toAction(this));
         edit.setIcon(DemetraUiIcon.PREFERENCES);
@@ -187,6 +171,16 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
         clear.setIcon(DemetraUiIcon.EDIT_CLEAR_16);
         clear.setDisabledIcon(createDisabledIcon(clear.getIcon()));
         clear.setToolTipText("Clear");
+
+        SwingColorSchemeSupport colorSchemeSupport = SwingColorSchemeSupport.from(DemetraUI.getInstance().getColorScheme());
+        ChartPanel sparkline = (ChartPanel) toolBar.add(Charts.avoidScaling(new ChartPanel(Charts.createSparkLineChart(null))));
+        sparkline.setPreferredSize(new Dimension(150, 16));
+        sparkline.setMaximumSize(new Dimension(150, 16));
+        sparkline.getChart().getXYPlot().setDataset(dataset);
+        sparkline.getChart().getXYPlot().getRenderer().setBasePaint(colorSchemeSupport.getLineColor(ColorScheme.KnownColor.GREEN));
+        sparkline.setBackground(colorSchemeSupport.getPlotColor());
+        sparkline.setBorder(BorderFactory.createLineBorder(colorSchemeSupport.getGridColor()));
+        sparkline.setToolTipText("loglikelihood");
 
         return toolBar;
     }
