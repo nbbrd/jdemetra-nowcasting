@@ -113,6 +113,8 @@ public class Filter<F extends ISsf> {
                 }
             }
         } else {
+            Utilities.ZM(m_ssf, m_pos, m_state.P.columns(), m_state.C);
+            m_ssf.TX(m_pos, m_state.C);
             m_state.e = 0;
         }
 
@@ -210,7 +212,6 @@ public class Filter<F extends ISsf> {
 
                 // F = ZPZ' + H
                 // m_f=m_P.quadraticForm(m_Z)+m_h;
-
                 // M = PZ'
                 // P = TPT' - (TM)*(TM)' / f + RQR' --> Symmetric
                 // A = Ta + (TM) v / f
@@ -238,7 +239,6 @@ public class Filter<F extends ISsf> {
             }
 
             // compute Ta in tmp
-
             // prod(n, m_T, m_a, m_tmp);
             // v = y(t)-Z*A
             if (m_data.hasData()) {
