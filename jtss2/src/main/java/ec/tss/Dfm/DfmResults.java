@@ -404,7 +404,7 @@ public class DfmResults implements IProcResults {
         int c_ = model.getBlockLength();
         int nlags = model.getTransition().nlags;
 
-        double[] angles = new double[r]; // initialized at zero, si the rotation
+        double[] angles = new double[ r * (r - 1) / 2]; // initialized at zero, si the rotation
         // matrix will be the identify and it will
         // not have any effect for the moment
 
