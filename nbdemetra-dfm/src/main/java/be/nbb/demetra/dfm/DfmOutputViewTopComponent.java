@@ -33,7 +33,6 @@ import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComponent;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
-import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
 import org.netbeans.api.settings.ConvertAsProperties;
 import org.netbeans.core.spi.multiview.CloseOperationState;
@@ -63,9 +62,13 @@ import org.openide.util.NbBundle.Messages;
 })
 public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDocument> implements MultiViewElement, MultiViewDescription {
 
+    private static final String ACTUAL_VISIBLE_PROPERTY = "actualVisible";
+    private static final String SIGNAL_VISIBLE_PROPERTY = "signalVisible";
     private static final String INITIAL_FACTOR_VISIBLE_PROPERTY = "initialFactorVisible";
     private static final String NOISE_VISIBLE_PROPERTY = "noiseVisible";
 
+    private boolean actualVisible;
+    private boolean signalVisible;
     private boolean initialFactorVisible;
     private boolean noiseVisible;
 
@@ -79,6 +82,8 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
         setName(Bundle.CTL_DfmOutputViewTopComponent());
         setToolTipText(Bundle.HINT_DfmOutputViewTopComponent());
 
+        this.actualVisible = true;
+        this.signalVisible = true;
         this.initialFactorVisible = true;
         this.noiseVisible = true;
 
@@ -90,48 +95,35 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
         });
 
         {
-            jTimeSeriesChart1.setSeriesRenderer(new SeriesFunction<TimeSeriesChart.RendererType>() {
+            chart.setSeriesRenderer(new SeriesFunction<TimeSeriesChart.RendererType>() {
                 @Override
                 public TimeSeriesChart.RendererType apply(int series) {
-                    return series == 0 ? TimeSeriesChart.RendererType.LINE : TimeSeriesChart.RendererType.STACKED_COLUMN;
+                    int lines = 0 + (actualVisible ? 1 : 0) + (signalVisible ? 1 : 0);
+                    return series < lines ? TimeSeriesChart.RendererType.LINE : TimeSeriesChart.RendererType.STACKED_COLUMN;
                 }
             });
-            jTimeSeriesChart1.setSeriesFormatter(new SeriesFunction<String>() {
+            chart.setSeriesFormatter(new SeriesFunction<String>() {
                 @Override
                 public String apply(int series) {
-                    return jTimeSeriesChart1.getDataset().getSeriesKey(series).toString();
+                    return chart.getDataset().getSeriesKey(series).toString();
                 }
             });
-            jTimeSeriesChart1.setObsFormatter(new ObsFunction<String>() {
+            chart.setObsFormatter(new ObsFunction<String>() {
                 @Override
                 public String apply(int series, int obs) {
-                    return jTimeSeriesChart1.getSeriesFormatter().apply(series) + " - obs " + obs;
+                    return chart.getSeriesFormatter().apply(series) + " - obs " + obs;
                 }
             });
-
-            JMenu chartMenu = new JMenu();
-            JMenu item;
-            item = new JMenu("Color scheme");
-            for (ColorScheme o : DemetraUI.getInstance().getColorSchemes()) {
-                JMenuItem subItem = item.add(new JCheckBoxMenuItem(applyColorScheme(o).toAction(jTimeSeriesChart1)));
-                subItem.setText(o.getDisplayName());
-                subItem.setIcon(new ColorSchemeIcon(o));
-            }
-            chartMenu.add(item);
-            item = new JMenu("Line thickness");
-            item.add(new JCheckBoxMenuItem(applyLineThickness(1f).toAction(jTimeSeriesChart1))).setText("Thin");
-            item.add(new JCheckBoxMenuItem(applyLineThickness(2f).toAction(jTimeSeriesChart1))).setText("Thick");
-            chartMenu.add(item);
-            jTimeSeriesChart1.setPopupMenu(chartMenu.getPopupMenu());
+            chart.setPopupMenu(createChartMenu().getPopupMenu());
         }
 
         addPropertyChangeListener(new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
                 switch (evt.getPropertyName()) {
+                    case ACTUAL_VISIBLE_PROPERTY:
+                    case SIGNAL_VISIBLE_PROPERTY:
                     case INITIAL_FACTOR_VISIBLE_PROPERTY:
-                        updateChart();
-                        break;
                     case NOISE_VISIBLE_PROPERTY:
                         updateChart();
                         break;
@@ -148,30 +140,23 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jTimeSeriesChart1 = new ec.util.chart.swing.JTimeSeriesChart();
+        chart = new ec.util.chart.swing.JTimeSeriesChart();
         jComboBox1 = new javax.swing.JComboBox();
 
         setLayout(new java.awt.BorderLayout());
-        add(jTimeSeriesChart1, java.awt.BorderLayout.CENTER);
+        add(chart, java.awt.BorderLayout.CENTER);
 
-        jComboBox1.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
         add(jComboBox1, java.awt.BorderLayout.PAGE_START);
     }// </editor-fold>//GEN-END:initComponents
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private ec.util.chart.swing.JTimeSeriesChart chart;
     private javax.swing.JComboBox jComboBox1;
-    private ec.util.chart.swing.JTimeSeriesChart jTimeSeriesChart1;
     // End of variables declaration//GEN-END:variables
     void writeProperties(java.util.Properties p) {
-        // better to version settings since initial version as advocated at
-        // http://wiki.apidesign.org/wiki/PropertyFiles
-        p.setProperty("version", "1.0");
-        // TODO store your settings
     }
 
     void readProperties(java.util.Properties p) {
-        String version = p.getProperty("version");
-        // TODO read your settings according to their version
     }
 
     //<editor-fold defaultstate="collapsed" desc="MultiViewElement">
@@ -203,14 +188,13 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
             public void actionPerformed(ActionEvent e) {
                 updateComboBox();
             }
-        }).setText("UPDATE");
+        }).setText("UPDATE (click here first)");
 
-        JToggleButton b1 = (JToggleButton) toolbar.add(new JToggleButton(InitialFactorCommand.INSTANCE.toAction(this)));
-        b1.setText("Show initial factor");
-
-        JToggleButton b2 = (JToggleButton) toolbar.add(new JToggleButton(NoiseCommand.INSTANCE.toAction(this)));
-        b2.setText("Show noise");
-
+//        JToggleButton b1 = (JToggleButton) toolbar.add(new JToggleButton(InitialFactorCommand.INSTANCE.toAction(this)));
+//        b1.setText("Show initial factor");
+//
+//        JToggleButton b2 = (JToggleButton) toolbar.add(new JToggleButton(NoiseCommand.INSTANCE.toAction(this)));
+//        b2.setText("Show noise");
         return toolbar;
     }
 
@@ -262,6 +246,26 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
     }
 
     //<editor-fold defaultstate="collapsed" desc="Getters/Setters">
+    public boolean isActualVisible() {
+        return actualVisible;
+    }
+
+    public void setActualVisible(boolean actualVisible) {
+        boolean old = this.actualVisible;
+        this.actualVisible = actualVisible;
+        firePropertyChange(ACTUAL_VISIBLE_PROPERTY, old, this.actualVisible);
+    }
+
+    public boolean isSignalVisible() {
+        return signalVisible;
+    }
+
+    public void setSignalVisible(boolean signalVisible) {
+        boolean old = this.signalVisible;
+        this.signalVisible = signalVisible;
+        firePropertyChange(SIGNAL_VISIBLE_PROPERTY, old, this.signalVisible);
+    }
+
     public boolean isInitialFactorVisible() {
         return initialFactorVisible;
     }
@@ -283,6 +287,45 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
     }
     //</editor-fold>
 
+    //<editor-fold defaultstate="collapsed" desc="Menus">
+    private JMenu createColorSchemeMenu() {
+        JMenu item = new JMenu("Color scheme");
+        for (ColorScheme o : DemetraUI.getInstance().getColorSchemes()) {
+            JMenuItem subItem = item.add(new JCheckBoxMenuItem(applyColorScheme(o).toAction(chart)));
+            subItem.setText(o.getDisplayName());
+            subItem.setIcon(new ColorSchemeIcon(o));
+        }
+        return item;
+    }
+
+    private JMenu createLineThicknessMenu() {
+        JMenu item = new JMenu("Line thickness");
+        item.add(new JCheckBoxMenuItem(applyLineThickness(1f).toAction(chart))).setText("Thin");
+        item.add(new JCheckBoxMenuItem(applyLineThickness(2f).toAction(chart))).setText("Thick");
+        return item;
+    }
+
+    private JMenu createChartMenu() {
+        JMenu menu = new JMenu();
+        JMenuItem item;
+
+        item = menu.add(new JCheckBoxMenuItem(ActualCommand.INSTANCE.toAction(this)));
+        item.setText("Show actual");
+        item = menu.add(new JCheckBoxMenuItem(SignalCommand.INSTANCE.toAction(this)));
+        item.setText("Show signal");
+        item = menu.add(new JCheckBoxMenuItem(InitialFactorCommand.INSTANCE.toAction(this)));
+        item.setText("Show initial factor");
+        item = menu.add(new JCheckBoxMenuItem(NoiseCommand.INSTANCE.toAction(this)));
+        item.setText("Show noise");
+
+        menu.addSeparator();
+        menu.add(createColorSchemeMenu());
+        menu.add(createLineThicknessMenu());
+
+        return menu;
+    }
+    //</editor-fold>
+
     private void updateComboBox() {
         DfmResults dfmResult = (DfmResults) getDocument().getElement().getResults().get("dfm");
 
@@ -294,12 +337,16 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
         DfmResults dfmResult = (DfmResults) getDocument().getElement().getResults().get("dfm");
 
         int selectedIndex = jComboBox1.getSelectedIndex();
-        TsXYDatasets.Builder b = TsXYDatasets.builder()
-                .add("Actual", dfmResult.getTheData()[selectedIndex]);
-//                .add("Signal", dfmResult.getSignal()[selectedIndex]);
+        TsXYDatasets.Builder b = TsXYDatasets.builder();
+        if (actualVisible) {
+            b.add("Actual", dfmResult.getTheData()[selectedIndex]);
+        }
+        if (signalVisible) {
+            b.add("Signal", dfmResult.getSignal()[selectedIndex]);
+        }
         TsData[][] x = dfmResult.getShocksDecomposition();
         for (int i = 0; i < x.length - 2; i++) {
-            b.add("Factor " + i, x[i][selectedIndex]);
+            b.add("F" + i, x[i][selectedIndex]);
         }
         if (initialFactorVisible) {
             b.add("Initial factor", x[x.length - 2][selectedIndex]);
@@ -308,7 +355,7 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
             b.add("Noise", x[x.length - 1][selectedIndex]);
         }
 
-        jTimeSeriesChart1.setDataset(b.build());
+        chart.setDataset(b.build());
     }
 
     private static final class InputModel extends AbstractListModel<TsData> implements ComboBoxModel<TsData> {
@@ -343,6 +390,47 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
         @Override
         public Object getSelectedItem() {
             return selectedItem;
+        }
+    }
+
+    //<editor-fold defaultstate="collapsed" desc="Commands">
+    private static final class ActualCommand extends JCommand<DfmOutputViewTopComponent> {
+
+        public static final ActualCommand INSTANCE = new ActualCommand();
+
+        @Override
+        public void execute(DfmOutputViewTopComponent component) throws Exception {
+            component.setActualVisible(!component.isActualVisible());
+        }
+
+        @Override
+        public boolean isSelected(DfmOutputViewTopComponent component) {
+            return component.isActualVisible();
+        }
+
+        @Override
+        public JCommand.ActionAdapter toAction(DfmOutputViewTopComponent component) {
+            return super.toAction(component).withWeakPropertyChangeListener(component, ACTUAL_VISIBLE_PROPERTY);
+        }
+    }
+
+    private static final class SignalCommand extends JCommand<DfmOutputViewTopComponent> {
+
+        public static final SignalCommand INSTANCE = new SignalCommand();
+
+        @Override
+        public void execute(DfmOutputViewTopComponent component) throws Exception {
+            component.setSignalVisible(!component.isSignalVisible());
+        }
+
+        @Override
+        public boolean isSelected(DfmOutputViewTopComponent component) {
+            return component.isSignalVisible();
+        }
+
+        @Override
+        public JCommand.ActionAdapter toAction(DfmOutputViewTopComponent component) {
+            return super.toAction(component).withWeakPropertyChangeListener(component, SIGNAL_VISIBLE_PROPERTY);
         }
     }
 
@@ -385,4 +473,5 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
             return super.toAction(component).withWeakPropertyChangeListener(component, NOISE_VISIBLE_PROPERTY);
         }
     }
+    //</editor-fold>
 }
