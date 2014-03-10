@@ -7,6 +7,7 @@ package be.nbb.demetra.dfm;
 
 import ec.nbdemetra.ui.DemetraUI;
 import ec.nbdemetra.ui.DemetraUiIcon;
+import ec.nbdemetra.ui.nodes.ExceptionNode;
 import ec.nbdemetra.ui.properties.OpenIdePropertySheetBeanEditor;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
@@ -297,8 +298,11 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
             } else {
                 try {
                     CompositeResults results = get();
+                    jEditorPane1.setText(jEditorPane1.getText() + "\n" + "DONE");
                     setDfmState(DfmState.DONE);
                 } catch (InterruptedException | ExecutionException ex) {
+                    jEditorPane1.setText(jEditorPane1.getText() + "\n" + "FAILED");
+                    new ExceptionNode(ex).getPreferredAction().actionPerformed(null);
                     setDfmState(DfmState.FAILED);
                 }
             }

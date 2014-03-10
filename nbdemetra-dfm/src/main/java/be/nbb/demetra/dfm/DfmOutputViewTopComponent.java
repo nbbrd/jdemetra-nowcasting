@@ -10,6 +10,7 @@ import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
 import ec.tss.Dfm.DfmDocument;
 import ec.tss.Dfm.DfmResults;
+import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.dfm.DfmInformationSet;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.ui.chart.TsXYDatasets;
@@ -378,7 +379,8 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
     }
 
     private void updateComboBox() {
-        DfmResults dfmResult = (DfmResults) getDocument().getElement().getResults().get("dfm");
+        CompositeResults tmp = getDocument().getElement().getResults();
+        DfmResults dfmResult = (DfmResults) tmp.get("dfm");
 
         jComboBox1.setModel(new InputModel(dfmResult.getInput()));
         jComboBox1.setSelectedIndex(0);
