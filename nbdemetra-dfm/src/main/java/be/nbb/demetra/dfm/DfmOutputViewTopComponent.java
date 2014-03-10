@@ -14,13 +14,17 @@ import ec.tstoolkit.dfm.DfmInformationSet;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.ui.chart.TsXYDatasets;
 import ec.util.chart.ColorScheme;
+import ec.util.chart.ColorSchemeSupport;
 import ec.util.chart.ObsFunction;
 import ec.util.chart.SeriesFunction;
 import ec.util.chart.TimeSeriesChart;
+import ec.util.chart.impl.TangoColorScheme;
 import ec.util.chart.swing.ColorSchemeIcon;
 import static ec.util.chart.swing.JTimeSeriesChartCommand.applyColorScheme;
 import static ec.util.chart.swing.JTimeSeriesChartCommand.applyLineThickness;
+import ec.util.chart.swing.SwingColorSchemeSupport;
 import ec.util.various.swing.JCommand;
+import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
@@ -98,8 +102,13 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
             chart.setSeriesRenderer(new SeriesFunction<TimeSeriesChart.RendererType>() {
                 @Override
                 public TimeSeriesChart.RendererType apply(int series) {
-                    int lines = 0 + (actualVisible ? 1 : 0) + (signalVisible ? 1 : 0);
-                    return series < lines ? TimeSeriesChart.RendererType.LINE : TimeSeriesChart.RendererType.STACKED_COLUMN;
+                    switch (getType(series)) {
+                        case ACTUAL:
+                        case SIGNAL:
+                            return TimeSeriesChart.RendererType.LINE;
+                        default:
+                            return TimeSeriesChart.RendererType.STACKED_COLUMN;
+                    }
                 }
             });
             chart.setSeriesFormatter(new SeriesFunction<String>() {
@@ -115,6 +124,27 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
                 }
             });
             chart.setPopupMenu(createChartMenu().getPopupMenu());
+            chart.setColorSchemeSupport(new SwingColorSchemeSupport() {
+                final ColorScheme colorScheme = new TangoColorScheme();
+
+                @Override
+                public ColorScheme getColorScheme() {
+                    return colorScheme;
+                }
+
+                @Override
+                public Color getLineColor(int series) {
+                    switch (getType(series)) {
+                        case ACTUAL:
+                            return getLineColor(ColorScheme.KnownColor.RED);
+                        case SIGNAL:
+                            return getLineColor(ColorScheme.KnownColor.GREEN);
+                        default:
+                            Color result = super.getLineColor(series);
+                            return SwingColorSchemeSupport.withAlpha(result, 150);
+                    }
+                }
+            });
         }
 
         addPropertyChangeListener(new PropertyChangeListener() {
@@ -325,6 +355,27 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
         return menu;
     }
     //</editor-fold>
+
+    private enum SeriesType {
+
+        ACTUAL, SIGNAL, FACTOR, NOISE
+    }
+
+    private SeriesType getType(int series) {
+        String key = (String) chart.getDataset().getSeriesKey(series);
+        switch (key) {
+            case "Actual":
+                return SeriesType.ACTUAL;
+            case "Signal":
+                return SeriesType.SIGNAL;
+            case "Initial factor":
+                return SeriesType.FACTOR;
+            case "Noise":
+                return SeriesType.NOISE;
+            default:
+                return SeriesType.FACTOR;
+        }
+    }
 
     private void updateComboBox() {
         DfmResults dfmResult = (DfmResults) getDocument().getElement().getResults().get("dfm");
