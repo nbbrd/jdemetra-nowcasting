@@ -19,9 +19,8 @@ import ec.util.chart.ColorScheme;
 import ec.util.chart.ObsFunction;
 import ec.util.chart.SeriesFunction;
 import ec.util.chart.TimeSeriesChart;
-import ec.util.chart.impl.TangoColorScheme;
 import ec.util.chart.swing.ColorSchemeIcon;
-import static ec.util.chart.swing.JTimeSeriesChartCommand.applyColorScheme;
+import static ec.util.chart.swing.JTimeSeriesChartCommand.applyColorSchemeSupport;
 import static ec.util.chart.swing.JTimeSeriesChartCommand.applyLineThickness;
 import ec.util.chart.swing.SwingColorSchemeSupport;
 import ec.util.various.swing.JCommand;
@@ -125,27 +124,7 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
                 }
             });
             chart.setPopupMenu(createChartMenu().getPopupMenu());
-            chart.setColorSchemeSupport(new SwingColorSchemeSupport() {
-                final ColorScheme colorScheme = new TangoColorScheme();
-
-                @Override
-                public ColorScheme getColorScheme() {
-                    return colorScheme;
-                }
-
-                @Override
-                public Color getLineColor(int series) {
-                    switch (getType(series)) {
-                        case ACTUAL:
-                            return getLineColor(ColorScheme.KnownColor.RED);
-                        case SIGNAL:
-                            return getLineColor(ColorScheme.KnownColor.GREEN);
-                        default:
-                            Color result = super.getLineColor(series);
-                            return SwingColorSchemeSupport.withAlpha(result, 150);
-                    }
-                }
-            });
+            chart.setColorSchemeSupport(defaultColorSchemeSupport);
         }
 
         addPropertyChangeListener(new PropertyChangeListener() {
@@ -219,12 +198,6 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
                 updateComboBox();
             }
         }).setText("UPDATE (click here first)");
-
-//        JToggleButton b1 = (JToggleButton) toolbar.add(new JToggleButton(InitialFactorCommand.INSTANCE.toAction(this)));
-//        b1.setText("Show initial factor");
-//
-//        JToggleButton b2 = (JToggleButton) toolbar.add(new JToggleButton(NoiseCommand.INSTANCE.toAction(this)));
-//        b2.setText("Show noise");
         return toolbar;
     }
 
@@ -320,8 +293,16 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
     //<editor-fold defaultstate="collapsed" desc="Menus">
     private JMenu createColorSchemeMenu() {
         JMenu item = new JMenu("Color scheme");
-        for (ColorScheme o : DemetraUI.getInstance().getColorSchemes()) {
-            JMenuItem subItem = item.add(new JCheckBoxMenuItem(applyColorScheme(o).toAction(chart)));
+        item.add(new JCheckBoxMenuItem(applyColorSchemeSupport(defaultColorSchemeSupport).toAction(chart)));
+        item.addSeparator();
+        for (final ColorScheme o : DemetraUI.getInstance().getColorSchemes()) {
+            final CustomSwingColorSchemeSupport colorSchemeSupport = new CustomSwingColorSchemeSupport() {
+                @Override
+                public ColorScheme getColorScheme() {
+                    return o;
+                }
+            };
+            JMenuItem subItem = item.add(new JCheckBoxMenuItem(applyColorSchemeSupport(colorSchemeSupport).toAction(chart)));
             subItem.setText(o.getDisplayName());
             subItem.setIcon(new ColorSchemeIcon(o));
         }
@@ -526,4 +507,30 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
         }
     }
     //</editor-fold>
+
+    private abstract class CustomSwingColorSchemeSupport extends SwingColorSchemeSupport {
+
+        @Override
+        public Color getLineColor(int series) {
+            switch (getType(series)) {
+                case ACTUAL:
+                    return getLineColor(ColorScheme.KnownColor.RED);
+                case SIGNAL:
+                    return getLineColor(ColorScheme.KnownColor.BLUE);
+                case FACTOR:
+                    return withAlpha(getLineColor(ColorScheme.KnownColor.GREEN), 50);
+                case NOISE:
+                    return withAlpha(getLineColor(ColorScheme.KnownColor.GRAY), 50);
+                default:
+                    throw new RuntimeException();
+            }
+        }
+    }
+
+    private final CustomSwingColorSchemeSupport defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
+        @Override
+        public ColorScheme getColorScheme() {
+            return DemetraUI.getInstance().getColorScheme();
+        }
+    };
 }
