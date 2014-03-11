@@ -15,7 +15,7 @@
 
     <properties>
         <netbeans.run.params.ide/>
-        <netbeans.run.params>${netbeans.run.params.ide}</netbeans.run.params>
+        <netbeans.run.params>${netbeans.run.params.ide} -J-Xms128m -J-Xmx512m -J-XX:MaxPermSize=128m</netbeans.run.params>
         <all.clusters>${project.build.directory}/${brandingToken}</all.clusters>
     </properties>
 
