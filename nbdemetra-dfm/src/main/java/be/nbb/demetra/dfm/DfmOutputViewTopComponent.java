@@ -6,11 +6,16 @@
 package be.nbb.demetra.dfm;
 
 import ec.nbdemetra.ui.DemetraUI;
+import ec.nbdemetra.ui.DemetraUiIcon;
 import ec.nbdemetra.ui.NbComponents;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
 import ec.tss.Dfm.DfmDocument;
 import ec.tss.Dfm.DfmResults;
+import ec.tss.Ts;
+import ec.tss.TsCollection;
+import ec.tss.TsFactory;
+import ec.tss.datatransfer.TssTransferSupport;
 import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.dfm.DfmInformationSet;
 import ec.tstoolkit.timeseries.simplets.TsData;
@@ -28,16 +33,22 @@ import static ec.util.chart.swing.JTimeSeriesChartCommand.saveImage;
 import ec.util.chart.swing.SwingColorSchemeSupport;
 import ec.util.various.swing.JCommand;
 import java.awt.Color;
-import java.awt.event.ActionEvent;
+import java.awt.Component;
+import java.awt.Toolkit;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import javax.swing.AbstractAction;
+import java.text.DecimalFormat;
+import java.util.Objects;
 import javax.swing.AbstractListModel;
 import javax.swing.ComboBoxModel;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.JButton;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComponent;
+import javax.swing.JList;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JToolBar;
@@ -46,6 +57,7 @@ import org.netbeans.core.spi.multiview.CloseOperationState;
 import org.netbeans.core.spi.multiview.MultiViewDescription;
 import org.netbeans.core.spi.multiview.MultiViewElement;
 import org.netbeans.core.spi.multiview.MultiViewElementCallback;
+import org.openide.util.ImageUtilities;
 import org.openide.windows.TopComponent;
 import org.openide.util.NbBundle.Messages;
 
@@ -74,25 +86,37 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
     private static final String INITIAL_FACTOR_VISIBLE_PROPERTY = "initialFactorVisible";
     private static final String NOISE_VISIBLE_PROPERTY = "noiseVisible";
 
+    private final DfmController controller;
     private boolean actualVisible;
     private boolean signalVisible;
     private boolean initialFactorVisible;
     private boolean noiseVisible;
 
     public DfmOutputViewTopComponent() {
-        this(null);
+        this(null, new DfmController());
     }
 
-    public DfmOutputViewTopComponent(WorkspaceItem<DfmDocument> document) {
+    DfmOutputViewTopComponent(WorkspaceItem<DfmDocument> document, DfmController controller) {
         super(document);
         initComponents();
         setName(Bundle.CTL_DfmOutputViewTopComponent());
         setToolTipText(Bundle.HINT_DfmOutputViewTopComponent());
 
+        this.controller = controller;
         this.actualVisible = true;
         this.signalVisible = true;
         this.initialFactorVisible = true;
         this.noiseVisible = true;
+
+        controller.addPropertyChangeListener(DfmController.DFM_STATE_PROPERTY, new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                // forward event
+                firePropertyChange(evt.getPropertyName(), evt.getOldValue(), evt.getNewValue());
+                updateComboBox();
+                updateChart();
+            }
+        });
 
         jComboBox1.addItemListener(new ItemListener() {
             @Override
@@ -100,8 +124,17 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
                 updateChart();
             }
         });
+        jComboBox1.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                setText("Var " + (index + 1));
+                return this;
+            }
+        });
 
         {
+            chart.setValueFormat(new DecimalFormat("#.###"));
             chart.setSeriesRenderer(new SeriesFunction<TimeSeriesChart.RendererType>() {
                 @Override
                 public TimeSeriesChart.RendererType apply(int series) {
@@ -123,7 +156,9 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
             chart.setObsFormatter(new ObsFunction<String>() {
                 @Override
                 public String apply(int series, int obs) {
-                    return chart.getSeriesFormatter().apply(series) + " - obs " + obs;
+                    return chart.getSeriesFormatter().apply(series)
+                            + " - " + chart.getPeriodFormat().format(chart.getDataset().getX(series, obs))
+                            + "\n" + chart.getValueFormat().format(chart.getDataset().getY(series, obs));
                 }
             });
             chart.setPopupMenu(createChartMenu().getPopupMenu());
@@ -195,12 +230,10 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
         JToolBar toolbar = NbComponents.newInnerToolbar();
         toolbar.addSeparator();
 
-        toolbar.add(new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                updateComboBox();
-            }
-        }).setText("UPDATE (click here first)");
+        JButton copy = toolbar.add(CopyCommand.INSTANCE.toAction(this));
+        copy.setIcon(DemetraUiIcon.EDIT_COPY_16);
+        copy.setDisabledIcon(ImageUtilities.createDisabledIcon(copy.getIcon()));
+
         return toolbar;
     }
 
@@ -296,7 +329,7 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
     //<editor-fold defaultstate="collapsed" desc="Menus">
     private JMenu newColorSchemeMenu() {
         JMenu item = new JMenu("Color scheme");
-        item.add(new JCheckBoxMenuItem(applyColorSchemeSupport(defaultColorSchemeSupport).toAction(chart)));
+        item.add(new JCheckBoxMenuItem(applyColorSchemeSupport(defaultColorSchemeSupport).toAction(chart))).setText("Default");
         item.addSeparator();
         for (final ColorScheme o : DemetraUI.getInstance().getColorSchemes()) {
             final CustomSwingColorSchemeSupport colorSchemeSupport = new CustomSwingColorSchemeSupport() {
@@ -323,6 +356,10 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
         JMenu menu = new JMenu();
         JMenuItem item;
 
+        item = menu.add(CopyCommand.INSTANCE.toAction(this));
+        item.setText("Copy");
+
+        menu.addSeparator();
         item = menu.add(new JCheckBoxMenuItem(ActualCommand.INSTANCE.toAction(this)));
         item.setText("Show actual");
         item = menu.add(new JCheckBoxMenuItem(SignalCommand.INSTANCE.toAction(this)));
@@ -335,6 +372,7 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
         menu.addSeparator();
         menu.add(newColorSchemeMenu());
         menu.add(newLineThicknessMenu());
+        menu.addSeparator();
         menu.add(newExportMenu());
 
         return menu;
@@ -370,37 +408,65 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
         }
     }
 
-    private void updateComboBox() {
-        CompositeResults tmp = getDocument().getElement().getResults();
-        DfmResults dfmResult = (DfmResults) tmp.get("dfm");
+    private TsCollection toCollection(DfmResults dfmResults) {
+        Objects.requireNonNull(dfmResults);
 
-        jComboBox1.setModel(new InputModel(dfmResult.getInput()));
-        jComboBox1.setSelectedIndex(0);
+        TsCollection col = TsFactory.instance.createTsCollection();
+
+        int selectedIndex = jComboBox1.getSelectedIndex();
+        if (actualVisible) {
+            col.quietAdd(TsFactory.instance.createTs("Actual", null, dfmResults.getTheData()[selectedIndex]));
+        }
+        if (signalVisible) {
+            col.quietAdd(TsFactory.instance.createTs("Signal", null, dfmResults.getSignal()[selectedIndex]));
+        }
+        TsData[][] x = dfmResults.getShocksDecomposition();
+        for (int i = 0; i < x.length - 2; i++) {
+            col.quietAdd(TsFactory.instance.createTs("F" + i, null, x[i][selectedIndex]));
+        }
+        if (initialFactorVisible) {
+            col.quietAdd(TsFactory.instance.createTs("Initial factor", null, x[x.length - 2][selectedIndex]));
+        }
+        if (noiseVisible) {
+            col.quietAdd(TsFactory.instance.createTs("Noise", null, x[x.length - 1][selectedIndex]));
+        }
+
+        return col;
+    }
+
+    private void updateComboBox() {
+        switch (controller.getDfmState()) {
+            case DONE:
+                CompositeResults tmp = getDocument().getElement().getResults();
+                DfmResults dfmResult = (DfmResults) tmp.get("dfm");
+
+                jComboBox1.setModel(new InputModel(dfmResult.getInput()));
+                jComboBox1.setSelectedIndex(0);
+                break;
+            default:
+                jComboBox1.setModel(new DefaultComboBoxModel());
+                jComboBox1.setSelectedIndex(-1);
+                break;
+        }
     }
 
     private void updateChart() {
-        DfmResults dfmResult = (DfmResults) getDocument().getElement().getResults().get("dfm");
-
-        int selectedIndex = jComboBox1.getSelectedIndex();
-        TsXYDatasets.Builder b = TsXYDatasets.builder();
-        if (actualVisible) {
-            b.add("Actual", dfmResult.getTheData()[selectedIndex]);
+        switch (controller.getDfmState()) {
+            case DONE:
+                DfmResults dfmResults = getDocument().getElement().getResults().get("dfm", DfmResults.class);
+                if (dfmResults != null) {
+                    TsXYDatasets.Builder b = TsXYDatasets.builder();
+                    for (Ts o : toCollection(dfmResults)) {
+                        b.add(o.getName(), o.getTsData());
+                    }
+                    chart.setDataset(b.build());
+                }
+                break;
+            default:
+                chart.setDataset(null);
+                chart.setNoDataMessage("No data - " + controller.getDfmState());
+                break;
         }
-        if (signalVisible) {
-            b.add("Signal", dfmResult.getSignal()[selectedIndex]);
-        }
-        TsData[][] x = dfmResult.getShocksDecomposition();
-        for (int i = 0; i < x.length - 2; i++) {
-            b.add("F" + i, x[i][selectedIndex]);
-        }
-        if (initialFactorVisible) {
-            b.add("Initial factor", x[x.length - 2][selectedIndex]);
-        }
-        if (noiseVisible) {
-            b.add("Noise", x[x.length - 1][selectedIndex]);
-        }
-
-        chart.setDataset(b.build());
     }
 
     private static final class InputModel extends AbstractListModel<TsData> implements ComboBoxModel<TsData> {
@@ -516,6 +582,27 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
         @Override
         public ActionAdapter toAction(DfmOutputViewTopComponent component) {
             return super.toAction(component).withWeakPropertyChangeListener(component, NOISE_VISIBLE_PROPERTY);
+        }
+    }
+
+    private static final class CopyCommand extends JCommand<DfmOutputViewTopComponent> {
+
+        public static final CopyCommand INSTANCE = new CopyCommand();
+
+        @Override
+        public void execute(DfmOutputViewTopComponent c) throws Exception {
+            TsCollection col = c.toCollection(c.getDocument().getElement().getResults().get("dfm", DfmResults.class));
+            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(TssTransferSupport.getInstance().fromTsCollection(col), null);
+        }
+
+        @Override
+        public boolean isEnabled(DfmOutputViewTopComponent component) {
+            return component.controller.getDfmState() == DfmController.DfmState.DONE;
+        }
+
+        @Override
+        public ActionAdapter toAction(DfmOutputViewTopComponent component) {
+            return super.toAction(component).withWeakPropertyChangeListener(component, DfmController.DFM_STATE_PROPERTY);
         }
     }
     //</editor-fold>

@@ -5,6 +5,12 @@
  */
 package be.nbb.demetra.dfm;
 
+import be.nbb.demetra.dfm.DfmController.DfmState;
+import static be.nbb.demetra.dfm.DfmController.DfmState.CANCELLED;
+import static be.nbb.demetra.dfm.DfmController.DfmState.DONE;
+import static be.nbb.demetra.dfm.DfmController.DfmState.FAILED;
+import static be.nbb.demetra.dfm.DfmController.DfmState.READY;
+import static be.nbb.demetra.dfm.DfmController.DfmState.STARTED;
 import ec.nbdemetra.ws.WorkspaceFactory;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.tss.Dfm.DfmDocument;
@@ -56,10 +62,11 @@ public final class NewDfmDocumentAction implements ActionListener {
         if (doc.isOpen()) {
             return doc.getView();
         }
+        final DfmController controller = new DfmController();
         // views
-        final DfmModelSpecViewTopComponent modelView = new DfmModelSpecViewTopComponent(doc);
-        final DfmExecViewTopComponent execView = new DfmExecViewTopComponent(doc);
-        final DfmOutputViewTopComponent outputView = new DfmOutputViewTopComponent(doc);
+        final DfmModelSpecViewTopComponent modelView = new DfmModelSpecViewTopComponent(doc, controller);
+        final DfmExecViewTopComponent execView = new DfmExecViewTopComponent(doc, controller);
+        final DfmOutputViewTopComponent outputView = new DfmOutputViewTopComponent(doc, controller);
 
         final TopComponent[] top = new TopComponent[1];
         final Lookup.Result<WorkspaceFactory.Event> lookup = WorkspaceFactory.getInstance().getLookup().lookupResult(WorkspaceFactory.Event.class);
@@ -106,10 +113,10 @@ public final class NewDfmDocumentAction implements ActionListener {
                     }
                 });
         result.setName(doc.getDisplayName());
-        execView.addPropertyChangeListener(DfmExecViewTopComponent.DFM_STATE_PROPERTY, new PropertyChangeListener() {
+        controller.addPropertyChangeListener(DfmController.DFM_STATE_PROPERTY, new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
-                switch ((DfmExecViewTopComponent.DfmState) evt.getNewValue()) {
+                switch ((DfmState) evt.getNewValue()) {
                     case CANCELLED:
                         result.makeBusy(false);
                         result.requestAttention(true);

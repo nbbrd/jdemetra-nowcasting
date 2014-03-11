@@ -5,6 +5,8 @@
  */
 package be.nbb.demetra.dfm;
 
+import static be.nbb.demetra.dfm.DfmController.DFM_STATE_PROPERTY;
+import be.nbb.demetra.dfm.DfmController.DfmState;
 import ec.nbdemetra.ui.DemetraUI;
 import ec.nbdemetra.ui.DemetraUiIcon;
 import ec.nbdemetra.ui.NbComponents;
@@ -71,41 +73,34 @@ import org.openide.util.NbBundle.Messages;
 })
 public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocument> implements MultiViewElement, MultiViewDescription {
 
-    public static final String DFM_STATE_PROPERTY = "dfmState";
-
-    public enum DfmState {
-
-        READY, STARTED, DONE, FAILED, CANCELLED
-    };
-    private DfmState dfmState;
+    private final DfmController controller;
     private DynamicTimeSeriesCollection dataset;
 
     public DfmExecViewTopComponent() {
-        this(null);
+        this(null, new DfmController());
     }
 
-    public DfmExecViewTopComponent(WorkspaceItem<DfmDocument> document) {
+    DfmExecViewTopComponent(WorkspaceItem<DfmDocument> document, DfmController controller) {
         super(document);
         initComponents();
         setName(Bundle.CTL_DfmExecViewTopComponent());
         setToolTipText(Bundle.HINT_DfmExecViewTopComponent());
+
+        this.controller = controller;
+        controller.addPropertyChangeListener(DFM_STATE_PROPERTY, new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                // forward event
+                firePropertyChange(evt.getPropertyName(), evt.getOldValue(), evt.getNewValue());
+                onDfmStateChange();
+            }
+        });
+
         jEditorPane1.setEditable(false);
-        this.dfmState = DfmState.READY;
 
         dataset = new DynamicTimeSeriesCollection(1, 200, new Second());
         dataset.setTimeBase(new Second());
         dataset.addSeries(new float[]{}, 0, "loglikelihood");
-
-        addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case DFM_STATE_PROPERTY:
-                        onDfmStateChange();
-                        break;
-                }
-            }
-        });
     }
 
     /**
@@ -233,28 +228,25 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
         return DfmDocumentManager.CONTEXTPATH;
     }
 
-    private DfmState getDfmState() {
-        return dfmState;
-    }
-
-    private void setDfmState(DfmState state) {
-        DfmState old = this.dfmState;
-        this.dfmState = state;
-        firePropertyChange(DFM_STATE_PROPERTY, old, this.dfmState);
+    private void appendText(String text) {
+        jEditorPane1.setText(jEditorPane1.getText() + text);
     }
 
     private ProgressHandle progressHandle;
     private SwingWorkerImpl swingWorker;
 
     private void onDfmStateChange() {
-        switch (dfmState) {
+        switch (controller.getDfmState()) {
             case CANCELLED:
+                appendText("\nCANCELLED");
                 progressHandle.finish();
                 break;
             case DONE:
+                appendText("\nDONE");
                 progressHandle.finish();
                 break;
             case FAILED:
+                appendText("\nFAILED");
                 progressHandle.finish();
                 break;
             case READY:
@@ -278,6 +270,9 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
                 progressHandle.start();
                 swingWorker.execute();
                 break;
+            case CANCELLING:
+                swingWorker.cancel(false);
+                break;
         }
     }
 
@@ -294,16 +289,14 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
         @Override
         protected void done() {
             if (isCancelled()) {
-                setDfmState(DfmState.CANCELLED);
+                controller.setDfmState(DfmState.CANCELLED);
             } else {
                 try {
                     CompositeResults results = get();
-                    jEditorPane1.setText(jEditorPane1.getText() + "\n" + "DONE");
-                    setDfmState(DfmState.DONE);
+                    controller.setDfmState(DfmState.DONE);
                 } catch (InterruptedException | ExecutionException ex) {
-                    jEditorPane1.setText(jEditorPane1.getText() + "\n" + "FAILED");
                     new ExceptionNode(ex).getPreferredAction().actionPerformed(null);
-                    setDfmState(DfmState.FAILED);
+                    controller.setDfmState(DfmState.FAILED);
                 }
             }
         }
@@ -324,9 +317,7 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
                 txt.append(info.source.getName()).append('\t')
                         .append(info.message).append('\t').append(info.information.loglikelihood);
                 txt.append("\r\n");
-                final String msg = jEditorPane1.getText() + txt.toString();
-                jEditorPane1.setText(msg);
-                jEditorPane1.repaint();
+                appendText(txt.toString());
 
                 dataset.advanceTime();
                 dataset.appendData(new float[]{(float) info.information.loglikelihood});
@@ -349,21 +340,21 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
 
         @Override
         public void execute(DfmExecViewTopComponent c) throws Exception {
-            if (c.getDfmState() == DfmState.STARTED) {
-                c.swingWorker.cancel(false);
+            if (c.controller.getDfmState() == DfmState.STARTED) {
+                c.controller.setDfmState(DfmState.CANCELLING);
             } else {
-                c.setDfmState(DfmState.STARTED);
+                c.controller.setDfmState(DfmState.STARTED);
             }
         }
 
         @Override
         public boolean isEnabled(DfmExecViewTopComponent c) {
-            return c.getDfmState() == DfmState.READY || c.getDfmState() == DfmState.STARTED;
+            return c.controller.getDfmState() == DfmState.READY || c.controller.getDfmState() == DfmState.STARTED;
         }
 
         @Override
         public boolean isSelected(DfmExecViewTopComponent c) {
-            return c.getDfmState() == DfmState.STARTED;
+            return c.controller.getDfmState() == DfmState.STARTED;
         }
     }
 
@@ -377,13 +368,13 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
             if (OpenIdePropertySheetBeanEditor.editSheet(DfmSheets.onDfmEstimationSpec(newValue), "Edit spec", null)) {
                 c.getDocument().getElement().getSpecification().setEstimationSpec(newValue);
                 c.getDocument().getElement().clear();
-                c.setDfmState(DfmState.READY);
+                c.controller.setDfmState(DfmState.READY);
             }
         }
 
         @Override
         public boolean isEnabled(DfmExecViewTopComponent c) {
-            return c.getDfmState() != DfmState.STARTED;
+            return c.controller.getDfmState() != DfmState.STARTED;
         }
     }
 
@@ -394,12 +385,12 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
         @Override
         public void execute(DfmExecViewTopComponent c) throws Exception {
             c.getDocument().getElement().clear();
-            c.setDfmState(DfmState.READY);
+            c.controller.setDfmState(DfmState.READY);
         }
 
         @Override
         public boolean isEnabled(DfmExecViewTopComponent c) {
-            return c.getDfmState() != DfmState.STARTED && c.getDfmState() != DfmState.READY;
+            return c.controller.getDfmState() != DfmState.STARTED && c.controller.getDfmState() != DfmState.READY;
         }
     }
     //</editor-fold>
