@@ -22,6 +22,9 @@ import ec.util.chart.TimeSeriesChart;
 import ec.util.chart.swing.ColorSchemeIcon;
 import static ec.util.chart.swing.JTimeSeriesChartCommand.applyColorSchemeSupport;
 import static ec.util.chart.swing.JTimeSeriesChartCommand.applyLineThickness;
+import static ec.util.chart.swing.JTimeSeriesChartCommand.copyImage;
+import static ec.util.chart.swing.JTimeSeriesChartCommand.printImage;
+import static ec.util.chart.swing.JTimeSeriesChartCommand.saveImage;
 import ec.util.chart.swing.SwingColorSchemeSupport;
 import ec.util.various.swing.JCommand;
 import java.awt.Color;
@@ -291,7 +294,7 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
     //</editor-fold>
 
     //<editor-fold defaultstate="collapsed" desc="Menus">
-    private JMenu createColorSchemeMenu() {
+    private JMenu newColorSchemeMenu() {
         JMenu item = new JMenu("Color scheme");
         item.add(new JCheckBoxMenuItem(applyColorSchemeSupport(defaultColorSchemeSupport).toAction(chart)));
         item.addSeparator();
@@ -309,7 +312,7 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
         return item;
     }
 
-    private JMenu createLineThicknessMenu() {
+    private JMenu newLineThicknessMenu() {
         JMenu item = new JMenu("Line thickness");
         item.add(new JCheckBoxMenuItem(applyLineThickness(1f).toAction(chart))).setText("Thin");
         item.add(new JCheckBoxMenuItem(applyLineThickness(2f).toAction(chart))).setText("Thick");
@@ -330,9 +333,18 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
         item.setText("Show noise");
 
         menu.addSeparator();
-        menu.add(createColorSchemeMenu());
-        menu.add(createLineThicknessMenu());
+        menu.add(newColorSchemeMenu());
+        menu.add(newLineThicknessMenu());
+        menu.add(newExportMenu());
 
+        return menu;
+    }
+
+    private JMenu newExportMenu() {
+        JMenu menu = new JMenu("Export image to");
+        menu.add(printImage().toAction(chart)).setText("Printer...");
+        menu.add(copyImage().toAction(chart)).setText("Clipboard");
+        menu.add(saveImage().toAction(chart)).setText("File...");
         return menu;
     }
     //</editor-fold>
@@ -518,7 +530,8 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
                 case SIGNAL:
                     return getLineColor(ColorScheme.KnownColor.BLUE);
                 case FACTOR:
-                    return withAlpha(getLineColor(ColorScheme.KnownColor.GREEN), 50);
+                    int index0 = (actualVisible ? 1 : 0) + (signalVisible ? 1 : 0);
+                    return withAlpha(super.getLineColor(series - index0), 50);
                 case NOISE:
                     return withAlpha(getLineColor(ColorScheme.KnownColor.GRAY), 50);
                 default:
