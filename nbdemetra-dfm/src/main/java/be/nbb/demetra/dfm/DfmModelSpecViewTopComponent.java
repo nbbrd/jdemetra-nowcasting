@@ -5,6 +5,7 @@
  */
 package be.nbb.demetra.dfm;
 
+import ec.nbdemetra.ui.NbComponents;
 import ec.nbdemetra.ui.properties.OpenIdePropertySheetBeanEditor;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
@@ -100,7 +101,7 @@ public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<Df
 
     @Override
     public JComponent getToolbarRepresentation() {
-        JToolBar toolBar = new JToolBar();
+        JToolBar toolBar = NbComponents.newInnerToolbar();
         toolBar.addSeparator();
         JButton editVarSpecButton = toolBar.add(new AbstractAction() {
             @Override

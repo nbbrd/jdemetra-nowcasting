@@ -6,6 +6,7 @@
 package be.nbb.demetra.dfm;
 
 import ec.nbdemetra.ui.DemetraUI;
+import ec.nbdemetra.ui.NbComponents;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
 import ec.tss.Dfm.DfmDocument;
@@ -15,7 +16,6 @@ import ec.tstoolkit.dfm.DfmInformationSet;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.ui.chart.TsXYDatasets;
 import ec.util.chart.ColorScheme;
-import ec.util.chart.ColorSchemeSupport;
 import ec.util.chart.ObsFunction;
 import ec.util.chart.SeriesFunction;
 import ec.util.chart.TimeSeriesChart;
@@ -210,8 +210,7 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
 
     @Override
     public JComponent getToolbarRepresentation() {
-        JToolBar toolbar = new JToolBar();
-        toolbar.setFloatable(false);
+        JToolBar toolbar = NbComponents.newInnerToolbar();
         toolbar.addSeparator();
 
         toolbar.add(new AbstractAction() {

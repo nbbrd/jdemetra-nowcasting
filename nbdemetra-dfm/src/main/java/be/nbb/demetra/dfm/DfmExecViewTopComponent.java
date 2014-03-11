@@ -7,6 +7,7 @@ package be.nbb.demetra.dfm;
 
 import ec.nbdemetra.ui.DemetraUI;
 import ec.nbdemetra.ui.DemetraUiIcon;
+import ec.nbdemetra.ui.NbComponents;
 import ec.nbdemetra.ui.nodes.ExceptionNode;
 import ec.nbdemetra.ui.properties.OpenIdePropertySheetBeanEditor;
 import ec.nbdemetra.ws.WorkspaceItem;
@@ -115,7 +116,7 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jScrollPane1 = new javax.swing.JScrollPane();
+        jScrollPane1 = NbComponents.newJScrollPane();
         jEditorPane1 = new javax.swing.JEditorPane();
 
         setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.LINE_AXIS));
@@ -153,8 +154,7 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
 
     @Override
     public JComponent getToolbarRepresentation() {
-        JToolBar toolBar = new JToolBar();
-        toolBar.setFloatable(false);
+        JToolBar toolBar = NbComponents.newInnerToolbar();
         toolBar.addSeparator();
         toolBar.add(Box.createRigidArea(new Dimension(5, 0)));
 

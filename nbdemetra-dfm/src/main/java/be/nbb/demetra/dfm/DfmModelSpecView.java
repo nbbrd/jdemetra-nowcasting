@@ -19,6 +19,7 @@ package be.nbb.demetra.dfm;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import ec.nbdemetra.ui.DemetraUI;
+import ec.nbdemetra.ui.NbComponents;
 import ec.nbdemetra.ui.awt.PopupListener;
 import ec.nbdemetra.ui.properties.ListSelection;
 import ec.tss.Dfm.DfmDocument;
@@ -55,7 +56,6 @@ import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JMenu;
-import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.TransferHandler;
 import static javax.swing.TransferHandler.COPY;
@@ -107,7 +107,7 @@ public final class DfmModelSpecView extends JComponent {
         });
 
         setLayout(new BorderLayout());
-        add(new JScrollPane(view), BorderLayout.CENTER);
+        add(NbComponents.newJScrollPane(view), BorderLayout.CENTER);
 
         if (Beans.isDesignTime()) {
             setModel(DfmModelSpecDemo.getDemo());
