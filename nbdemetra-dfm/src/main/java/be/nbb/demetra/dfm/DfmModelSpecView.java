@@ -42,6 +42,7 @@ import ec.util.grid.swing.XTable;
 import ec.util.various.swing.BasicSwingLauncher;
 import ec.util.various.swing.JCommand;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -51,6 +52,7 @@ import java.beans.PropertyChangeListener;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
+import javax.swing.BorderFactory;
 import javax.swing.DefaultCellEditor;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
@@ -257,6 +259,10 @@ public final class DfmModelSpecView extends JComponent {
         public TransformationEditor() {
             super(new EditorDelegate() {
                 private final ListSelection<Transformation> content = new ListSelection<>();
+
+                {
+                    content.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
+                }
 
                 @Override
                 public Component getCustomComponent() {
