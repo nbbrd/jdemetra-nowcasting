@@ -276,6 +276,10 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
         }
     }
 
+    private void reportException(Exception ex) {
+        new ExceptionNode(ex).getPreferredAction().actionPerformed(null);
+    }
+
     private final class SwingWorkerImpl extends SwingWorker<CompositeResults, IProcessingHook.HookInformation<IProcessingNode, DfmProcessingFactory.EstimationInfo>> implements IProcessingHook<IProcessingNode, DfmProcessingFactory.EstimationInfo> {
 
         @Override
@@ -295,7 +299,11 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
                     CompositeResults results = get();
                     controller.setDfmState(DfmState.DONE);
                 } catch (InterruptedException | ExecutionException ex) {
-                    new ExceptionNode(ex).getPreferredAction().actionPerformed(null);
+                    if (ex instanceof ExecutionException && ex.getCause() instanceof Exception) {
+                        reportException((Exception) ex.getCause());
+                    } else {
+                        reportException(ex);
+                    }
                     controller.setDfmState(DfmState.FAILED);
                 }
             }
