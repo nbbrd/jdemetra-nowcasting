@@ -25,13 +25,20 @@ import ec.util.chart.ObsFunction;
 import ec.util.chart.SeriesFunction;
 import ec.util.chart.TimeSeriesChart;
 import ec.util.chart.swing.ColorSchemeIcon;
+import ec.util.chart.swing.JTimeSeriesChart;
 import static ec.util.chart.swing.JTimeSeriesChartCommand.applyColorSchemeSupport;
 import static ec.util.chart.swing.JTimeSeriesChartCommand.applyLineThickness;
 import static ec.util.chart.swing.JTimeSeriesChartCommand.copyImage;
 import static ec.util.chart.swing.JTimeSeriesChartCommand.printImage;
 import static ec.util.chart.swing.JTimeSeriesChartCommand.saveImage;
 import ec.util.chart.swing.SwingColorSchemeSupport;
+import ec.util.various.swing.FontAwesome;
+import static ec.util.various.swing.FontAwesome.FA_COGS;
+import static ec.util.various.swing.FontAwesome.FA_EXCLAMATION_TRIANGLE;
+import static ec.util.various.swing.FontAwesome.FA_INFO_CIRCLE;
+import static ec.util.various.swing.FontAwesome.FA_SPINNER;
 import ec.util.various.swing.JCommand;
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Toolkit;
@@ -50,10 +57,12 @@ import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JToolBar;
+import javax.swing.SwingConstants;
 import org.netbeans.api.settings.ConvertAsProperties;
 import org.netbeans.core.spi.multiview.CloseOperationState;
 import org.netbeans.core.spi.multiview.MultiViewDescription;
@@ -89,6 +98,8 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
     private static final String NOISE_VISIBLE_PROPERTY = "noiseVisible";
 
     private final DfmController controller;
+    private final JTimeSeriesChart chart;
+    private final XLabel label;
     private boolean actualVisible;
     private boolean signalVisible;
     private boolean initialFactorVisible;
@@ -105,6 +116,8 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
         setToolTipText(Bundle.HINT_DfmOutputViewTopComponent());
 
         this.controller = controller;
+        this.chart = new JTimeSeriesChart();
+        this.label = new XLabel();
         this.actualVisible = true;
         this.signalVisible = true;
         this.initialFactorVisible = true;
@@ -167,6 +180,9 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
             chart.setColorSchemeSupport(defaultColorSchemeSupport);
         }
 
+        updateComboBox();
+        updateChart();
+
         addPropertyChangeListener(new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
@@ -190,17 +206,14 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        chart = new ec.util.chart.swing.JTimeSeriesChart();
         jComboBox1 = new javax.swing.JComboBox();
 
         setLayout(new java.awt.BorderLayout());
-        add(chart, java.awt.BorderLayout.CENTER);
 
         add(jComboBox1, java.awt.BorderLayout.PAGE_START);
     }// </editor-fold>//GEN-END:initComponents
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private ec.util.chart.swing.JTimeSeriesChart chart;
     private javax.swing.JComboBox jComboBox1;
     // End of variables declaration//GEN-END:variables
     void writeProperties(java.util.Properties p) {
@@ -463,6 +476,12 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
         }
     }
 
+    private void switchTo(Component c) {
+        removeAll();
+        add(jComboBox1, BorderLayout.NORTH);
+        add(c, BorderLayout.CENTER);
+    }
+
     private void updateChart() {
         switch (controller.getDfmState()) {
             case DONE:
@@ -473,14 +492,25 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
                         b.add(o.getName(), o.getTsData());
                     }
                     chart.setDataset(b.build());
+                    switchTo(chart);
                 } else {
-                    chart.setDataset(null);
-                    chart.setNoDataMessage("No data produced");
+                    switchTo(label.with(FA_EXCLAMATION_TRIANGLE, "No data produced"));
                 }
                 break;
-            default:
-                chart.setDataset(null);
-                chart.setNoDataMessage(controller.getDfmState().name());
+            case CANCELLED:
+                switchTo(label.with(FA_INFO_CIRCLE, "Cancelled"));
+                break;
+            case CANCELLING:
+                switchTo(label.with(FA_SPINNER, "Cancelling"));
+                break;
+            case FAILED:
+                switchTo(label.with(FA_EXCLAMATION_TRIANGLE, "Failed"));
+                break;
+            case READY:
+                switchTo(label.with(FA_COGS, "Ready"));
+                break;
+            case STARTED:
+                switchTo(label.with(FA_SPINNER, "Started"));
                 break;
         }
     }
@@ -652,4 +682,25 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
             return DemetraUI.getInstance().getColorScheme();
         }
     };
+
+    private static final class XLabel extends JLabel {
+
+        public XLabel() {
+            setOpaque(true);
+            JList resource = new JList();
+            setBackground(resource.getSelectionForeground());
+            setForeground(resource.getSelectionBackground());
+            setFont(resource.getFont().deriveFont(resource.getFont().getSize2D() * 2));
+            setHorizontalAlignment(SwingConstants.CENTER);
+            //
+            setHorizontalTextPosition(JLabel.CENTER);
+            setVerticalTextPosition(JLabel.BOTTOM);
+        }
+
+        public XLabel with(FontAwesome icon, String text) {
+            setIcon(icon.getIcon(getForeground(), getFont().getSize2D() * 2));
+            setText(text);
+            return this;
+        }
+    }
 }
