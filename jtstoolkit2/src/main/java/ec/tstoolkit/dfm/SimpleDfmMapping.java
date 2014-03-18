@@ -184,6 +184,17 @@ public class SimpleDfmMapping implements IParametricMapping<IMSsf> {
 
     @Override
     public boolean checkBoundaries(IReadDataBlock inparams) {
+        IReadDataBlock vp = vparams(inparams);
+        if (vp != null) {
+            int i0 = 0;
+            for (int i = 0; i < nb; ++i) {
+                for (int j = 0; j < nb; ++j) {
+                    if (Math.abs(vp.get(i0++)) > .99) {
+                        return false;
+                    }
+                }
+            }
+        }
         return true;
     }
 
@@ -214,7 +225,6 @@ public class SimpleDfmMapping implements IParametricMapping<IMSsf> {
 
     void validate(DynamicFactorModel model) {
         Matrix vp = model.getTransition().varParams;
-        int nl = model.getTransition().nlags;
         for (int i = 0; i < nb; ++i) {
             double r = vp.get(i, i * nl);
             if (Math.abs(r) > 1) {
