@@ -53,6 +53,10 @@
             <groupId>eu.europa.ec.joinup.sat</groupId>
             <artifactId>nbdemetra-spreadsheet</artifactId>
         </dependency>
+        <dependency>
+            <groupId>eu.europa.ec.joinup.sat</groupId>
+            <artifactId>nbdemetra-jdbc</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

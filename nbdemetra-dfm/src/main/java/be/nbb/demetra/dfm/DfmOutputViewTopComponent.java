@@ -5,6 +5,7 @@
  */
 package be.nbb.demetra.dfm;
 
+import com.google.common.base.Optional;
 import ec.nbdemetra.ui.DemetraUI;
 import ec.nbdemetra.ui.DemetraUiIcon;
 import ec.nbdemetra.ui.NbComponents;
@@ -16,7 +17,6 @@ import ec.tss.Ts;
 import ec.tss.TsCollection;
 import ec.tss.TsFactory;
 import ec.tss.datatransfer.TssTransferSupport;
-import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.dfm.DfmInformationSet;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.ui.chart.TsXYDatasets;
@@ -35,12 +35,14 @@ import ec.util.various.swing.JCommand;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Toolkit;
+import java.awt.datatransfer.Transferable;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.text.DecimalFormat;
 import java.util.Objects;
+import javax.annotation.Nonnull;
 import javax.swing.AbstractListModel;
 import javax.swing.ComboBoxModel;
 import javax.swing.DefaultComboBoxModel;
@@ -387,6 +389,11 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
     }
     //</editor-fold>
 
+    @Nonnull
+    private Optional<DfmResults> getDfmResults() {
+        return Optional.fromNullable(getDocument().getElement().getResults().get("dfm", DfmResults.class));
+    }
+
     private enum SeriesType {
 
         ACTUAL, SIGNAL, FACTOR, NOISE
@@ -437,15 +444,21 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
     private void updateComboBox() {
         switch (controller.getDfmState()) {
             case DONE:
-                CompositeResults tmp = getDocument().getElement().getResults();
-                DfmResults dfmResult = (DfmResults) tmp.get("dfm");
-
-                jComboBox1.setModel(new InputModel(dfmResult.getInput()));
-                jComboBox1.setSelectedIndex(0);
+                Optional<DfmResults> dfmResult = getDfmResults();
+                if (dfmResult.isPresent()) {
+                    jComboBox1.setModel(new InputModel(dfmResult.get().getInput()));
+                    jComboBox1.setSelectedIndex(0);
+                    jComboBox1.setEnabled(true);
+                } else {
+                    jComboBox1.setModel(new DefaultComboBoxModel());
+                    jComboBox1.setSelectedIndex(-1);
+                    jComboBox1.setEnabled(false);
+                }
                 break;
             default:
                 jComboBox1.setModel(new DefaultComboBoxModel());
                 jComboBox1.setSelectedIndex(-1);
+                jComboBox1.setEnabled(false);
                 break;
         }
     }
@@ -453,18 +466,21 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
     private void updateChart() {
         switch (controller.getDfmState()) {
             case DONE:
-                DfmResults dfmResults = getDocument().getElement().getResults().get("dfm", DfmResults.class);
-                if (dfmResults != null) {
+                Optional<DfmResults> dfmResults = getDfmResults();
+                if (dfmResults.isPresent()) {
                     TsXYDatasets.Builder b = TsXYDatasets.builder();
-                    for (Ts o : toCollection(dfmResults)) {
+                    for (Ts o : toCollection(dfmResults.get())) {
                         b.add(o.getName(), o.getTsData());
                     }
                     chart.setDataset(b.build());
+                } else {
+                    chart.setDataset(null);
+                    chart.setNoDataMessage("No data produced");
                 }
                 break;
             default:
                 chart.setDataset(null);
-                chart.setNoDataMessage("No data - " + controller.getDfmState());
+                chart.setNoDataMessage(controller.getDfmState().name());
                 break;
         }
     }
@@ -591,18 +607,21 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
 
         @Override
         public void execute(DfmOutputViewTopComponent c) throws Exception {
-            TsCollection col = c.toCollection(c.getDocument().getElement().getResults().get("dfm", DfmResults.class));
-            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(TssTransferSupport.getInstance().fromTsCollection(col), null);
+            Optional<DfmResults> dfmResults = c.getDfmResults();
+            if (dfmResults.isPresent()) {
+                Transferable t = TssTransferSupport.getInstance().fromTsCollection(c.toCollection(dfmResults.get()));
+                Toolkit.getDefaultToolkit().getSystemClipboard().setContents(t, null);
+            }
         }
 
         @Override
-        public boolean isEnabled(DfmOutputViewTopComponent component) {
-            return component.controller.getDfmState() == DfmController.DfmState.DONE;
+        public boolean isEnabled(DfmOutputViewTopComponent c) {
+            return c.controller.getDfmState() == DfmController.DfmState.DONE && c.getDfmResults().isPresent();
         }
 
         @Override
-        public ActionAdapter toAction(DfmOutputViewTopComponent component) {
-            return super.toAction(component).withWeakPropertyChangeListener(component, DfmController.DFM_STATE_PROPERTY);
+        public ActionAdapter toAction(DfmOutputViewTopComponent c) {
+            return super.toAction(c).withWeakPropertyChangeListener(c, DfmController.DFM_STATE_PROPERTY);
         }
     }
     //</editor-fold>
