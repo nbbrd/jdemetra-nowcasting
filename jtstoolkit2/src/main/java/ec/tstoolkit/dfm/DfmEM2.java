@@ -51,6 +51,7 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
     private int dataSize;
     private double ll_;
     private int numiter_ = 50;
+    private double eps_ = 1e-6;
 
     public DfmEM2(IDfmInitializer initializer) {
         this.initializer = initializer;
@@ -75,6 +76,14 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
 
     public void setCorrectingInitialVariance(boolean correct) {
         correctStart_ = correct;
+    }
+
+    public double getEpsilon() {
+        return eps_;
+    }
+
+    public void setDouble(double val) {
+        eps_ = val;
     }
 
     public int getMaxIter() {
@@ -171,11 +180,12 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
     @Override
     public boolean initialize(DynamicFactorModel rdfm, DfmInformationSet data) {
         this.data = data;
-        if (rdfm.getBlockLength()==rdfm.getTransition().nlags){
-            dfm=rdfm.clone();
-            dfm.setBlockLength(rdfm.getBlockLength()+1);
-        }else
-            this.dfm=rdfm;
+        if (rdfm.getBlockLength() == rdfm.getTransition().nlags) {
+            dfm = rdfm.clone();
+            dfm.setBlockLength(rdfm.getBlockLength() + 1);
+        } else {
+            this.dfm = rdfm;
+        }
         modelSize = dfm.getBlockLength() * dfm.getFactorsCount();
         dataSize = data.getCurrentDomain().getLength();
         Efij = new DataBlock[modelSize * modelSize];
@@ -190,12 +200,14 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
             if (!EStep()) {
                 break;
             }
-            MStep();
+            if (!MStep()) {
+                break;
+            }
         }
 
         // finishing
         dfm.normalize();
-        if (rdfm != dfm){
+        if (rdfm != dfm) {
             rdfm.copy(dfm);
         }
         filter(false);
@@ -224,6 +236,9 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
         }
         Likelihood ll = new Likelihood();
         evaluate(processor.getFilteringResults(), ll);
+        if (iter_ > 1 && Math.abs(ll_ - ll.getLogLikelihood()) < eps_) {
+            return false;
+        }
         ll_ = ll.getLogLikelihood();
         IProcessingHook.HookInformation<DfmEM2, DynamicFactorModel> hinfo
                 = new IProcessingHook.HookInformation<>(this, dfm);
@@ -242,10 +257,17 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
         ll.set(ssqerr, ldet, n);
     }
 
-    private void MStep() {
+    private boolean MStep() {
+        DynamicFactorModel tmp = dfm.clone();
         mloadings();
         if (all_) {
             mvar();
+        }
+        if (dfm.isValid()) {
+            return true;
+        } else {
+            dfm = tmp;
+            return false;
         }
     }
 
@@ -321,7 +343,11 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
                     }
                 }
             }
-            mdesc.var = ee / nobs;
+            if (ee < 0) {
+                mdesc.var = 1e-12;
+            } else {
+                mdesc.var = ee / nobs;
+            }
         }
     }
 

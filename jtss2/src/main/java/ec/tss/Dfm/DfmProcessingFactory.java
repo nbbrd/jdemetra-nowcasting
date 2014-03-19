@@ -454,6 +454,8 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
             estimator.setMaxIter(spec.getMaxIter());
             estimator.setMaxInitialIter(spec.getMaxInitialIter());
             estimator.setMaxIntermediateIter(spec.getMaxIntermediateIter());
+            estimator.setMixedMethod(spec.isMixedEstimation());
+            estimator.setUsingBlockIterations(spec.isBlockIterations());
             if (!estimator.estimate(rslts.getModel(), rslts.getInput())) {
                 return IProcessing.Status.Invalid;
             }

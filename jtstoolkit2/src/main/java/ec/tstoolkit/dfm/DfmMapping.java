@@ -288,6 +288,12 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
         if (vp == null) {
             return true;
         }
+        // s=(f0,t f1,t f2,t f0,t-1 f1,t-1 f2,t-1 ...f0,t-l+1 f1,t-l+1 f2,t-l+1)
+        //    |x00 x10 x20   
+        // T =|...
+        // T =|1   0   0
+        //    |0   1   0
+        //    |...
         Matrix Q = new Matrix(nb * nl, nb * nl);
         for (int i = 0, i0 = 0; i < nb; ++i) {
             for (int l = 0; l < nl; ++l, i0 += nb) {

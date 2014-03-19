@@ -142,8 +142,9 @@ public class DfmEstimator implements IDfmEstimator {
                 fn = new MSsfFunction(mdata, smapping, algorithm);
                 min_.minimize(fn, fn.evaluate(smapping.map(model)));
                 pt = (MSsfFunctionInstance) min_.getResult();
+                double var = pt.getLikelihood().getSigma();
                 model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
-                model.rescaleVariances(pt.getLikelihood().getSigma());
+                model.rescaleVariances(var);
             }
             if (useBlockIterations_) {
                 min_.setMaxIter(nnext_);
@@ -155,8 +156,10 @@ public class DfmEstimator implements IDfmEstimator {
                     min_.minimize(fn, fn.evaluate(mapping.map(model)));
                     niter += min_.getIterCount();
                     pt = (MSsfFunctionInstance) min_.getResult();
-                    model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
-                    model.rescaleVariances(pt.getLikelihood().getSigma());
+                    DynamicFactorModel nmodel = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
+                    double var = pt.getLikelihood().getSigma();
+                    model = nmodel;
+                    model.rescaleVariances(var);
                     model.normalize();
                     if (mixed_) {
                         DfmEM2 em = new DfmEM2(null);
@@ -170,9 +173,12 @@ public class DfmEstimator implements IDfmEstimator {
                         min_.minimize(fn, fn.evaluate(mapping.map(model)));
                         niter += min_.getIterCount();
                         pt = (MSsfFunctionInstance) min_.getResult();
-                        model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
-                        model.rescaleVariances(pt.getLikelihood().getSigma());
+                        nmodel = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
+                        var = pt.getLikelihood().getSigma();
+                        model = nmodel;
+                        model.rescaleVariances(var);
                         model.normalize();
+
                     }
                     mapping = new DfmMapping(model, false, false);
                     fn = new MSsfFunction(mdata, mapping, algorithm);
@@ -181,8 +187,10 @@ public class DfmEstimator implements IDfmEstimator {
                             && min_.getIterCount() < nnext_;
                     niter += min_.getIterCount();
                     pt = (MSsfFunctionInstance) min_.getResult();
-                    model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
-                    model.rescaleVariances(pt.getLikelihood().getSigma());
+                    nmodel = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
+                    var = pt.getLikelihood().getSigma();
+                    model = nmodel;
+                    model.rescaleVariances(var);
                     ll = pt.getLikelihood();
                     if (converged_ || niter >= maxiter_) {
                         break;
@@ -196,8 +204,9 @@ public class DfmEstimator implements IDfmEstimator {
                 setMessage(ALL);
                 converged_ = min_.minimize(fn, fn.evaluate(mapping.map(model)));
                 pt = (MSsfFunctionInstance) min_.getResult();
+                double var = pt.getLikelihood().getSigma();
                 model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
-                model.rescaleVariances(pt.getLikelihood().getSigma());
+                model.rescaleVariances(var);
                 ll = pt.getLikelihood();
             }
             return true;

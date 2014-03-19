@@ -9,9 +9,7 @@ import ec.tstoolkit.algorithm.IProcResults;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DataBlockIterator;
 import ec.tstoolkit.information.InformationMapper;
-import ec.tstoolkit.maths.matrices.EigenSystem;
 import ec.tstoolkit.maths.matrices.HouseholderR;
-import ec.tstoolkit.maths.matrices.IEigenSystem;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.maths.matrices.MatrixException;
 import ec.tstoolkit.maths.matrices.SubMatrix;
@@ -807,6 +805,21 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
         }
     }
 
+    public boolean isValid() {
+        for (MeasurementDescriptor mdesc : this.mdesc_){
+            if (mdesc.var<0)
+                return false;
+        }
+        Matrix v=this.tdesc_.covar.clone();
+        try{
+            SymmetricMatrix.lcholesky(v);
+        }catch(MatrixException err){
+            return false;
+        }
+        DfmMapping mapping = new DfmMapping(this);
+        return mapping.checkBoundaries(mapping.parameters());
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -983,7 +996,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             int nl = tdesc_.nlags;
             for (int i = 0, k = 0, l = 0; i < nf_; ++i) {
                 for (int j = 0; j < nl; ++j, ++k) {
-                    double r = ((k+1)%c_ != 0) ? x.get(k + 1) : 0;
+                    double r = ((k + 1) % c_ != 0) ? x.get(k + 1) : 0;
                     r += tdesc_.varParams.column(l++).dot(x.extract(0, nf_, c_));
                     xtmp.set(k, r);
                 }

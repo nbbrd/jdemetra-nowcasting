@@ -223,13 +223,16 @@ public class SimpleDfmMapping implements IParametricMapping<IMSsf> {
         return ParamValidation.Valid;
     }
 
-    void validate(DynamicFactorModel model) {
-        Matrix vp = model.getTransition().varParams;
+    public void validate(DynamicFactorModel model) {
+        Matrix m = model.getTransition().varParams;
+        Matrix vp = m.clone();
+        m.set(0);
         for (int i = 0; i < nb; ++i) {
             double r = vp.get(i, i * nl);
             if (Math.abs(r) > 1) {
-                vp.set(i, i * nl, Math.signum(r) * Math.min(.99, 1 / Math.abs(r)));
+                r = Math.signum(r) * Math.min(.99, 1 / Math.abs(r));
             }
+            m.set(i, i * nl, r);
         }
     }
 
