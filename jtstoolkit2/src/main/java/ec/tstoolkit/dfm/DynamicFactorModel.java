@@ -31,7 +31,7 @@ import java.util.Objects;
  */
 public class DynamicFactorModel implements Cloneable, IProcResults {
 
-    public static final double AR_DEF = .6;
+    public static final double AR_DEF = .6, C_DEF = .2;
 
     /**
      * The IMeasurement interface represents the behaviour of a measurement
@@ -329,9 +329,21 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             for (int i = 0; i < coeff.length; ++i) {
                 if (!structure.used[i]) {
                     coeff[i] = Double.NaN;
+                } else {
+                    coeff[i] = C_DEF;
                 }
             }
             this.var = 1;   // DAVID: why is equal to 1?  I think it must be initialized
+        }
+
+        public final void setDefault() {
+            for (int i = 0; i < coeff.length; ++i) {
+                if (isUsed(i)) {
+                    coeff[i] = C_DEF;
+                }
+            }
+            this.var = 1;   // DAVID: why is equal to 1?  I think it must be initialized
+
         }
 
         @Override
@@ -409,6 +421,16 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             varParams = new Matrix(nblocks, nblocks * nlags);
             covar = new Matrix(nblocks, nblocks);
             this.nlags = nlags;
+            setDefault();
+        }
+
+        public final void setDefault() {
+            covar.set(0);
+            covar.diagonal().set(1);
+            varParams.set(0);
+            for (int i = 0; i < varParams.getRowsCount(); ++i) {
+                varParams.set(i, i * nlags, AR_DEF);
+            }
         }
         /**
          * Number of lags
@@ -787,37 +809,56 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
         init_ = VarSpec.Initialization.UserDefined;
     }
 
-    /**
-     *
-     * @return True if the model has been changed
-     */
-    public boolean validate() {
-        DfmMapping mapping = new DfmMapping(this);
-        if (!mapping.checkBoundaries(mapping.parameters())) {
-            // set default values for the VAR matrix
-            tdesc_.covar.set(0);
-            for (int j = 0; j < nf_; ++j) {
-                tdesc_.covar.set(j, j * tdesc_.nlags, AR_DEF);
-            }
-            return true;
-        } else {
-            return false;
-        }
-    }
-
+//    /**
+//     *
+//     * @return True if the model has been changed
+//     */
+//    public boolean validate() {
+//        boolean rslt = false;
+//        DfmMapping mapping = new DfmMapping(this);
+//        if (!mapping.checkBoundaries(mapping.parameters())) {
+//            // set default values for the VAR matrix
+//            tdesc_.varParams.set(0);
+//            for (int j = 0; j < nf_; ++j) {
+//                tdesc_.varParams.set(j, j * tdesc_.nlags, AR_DEF);
+//            }
+//            rslt = true;
+//        }
+//
+//        Matrix v = this.tdesc_.covar.clone();
+//        try {
+//            SymmetricMatrix.lcholesky(v);
+//            return rslt;
+//        } catch (MatrixException err) {
+//            DataBlock d = v.diagonal().deepClone();
+//            this.tdesc_.covar.set(0);
+//            this.tdesc_.covar.diagonal().copy(d);
+//            return true;
+//        }
+//
+//    }
+//
     public boolean isValid() {
-        for (MeasurementDescriptor mdesc : this.mdesc_){
-            if (mdesc.var<0)
+        for (MeasurementDescriptor mdesc : this.mdesc_) {
+            if (mdesc.var < 0) {
                 return false;
+            }
         }
-        Matrix v=this.tdesc_.covar.clone();
-        try{
+        Matrix v = this.tdesc_.covar.clone();
+        try {
             SymmetricMatrix.lcholesky(v);
-        }catch(MatrixException err){
+        } catch (MatrixException err) {
             return false;
         }
         DfmMapping mapping = new DfmMapping(this);
         return mapping.checkBoundaries(mapping.parameters());
+    }
+
+    public void setDefault() {
+        tdesc_.setDefault();
+        for (MeasurementDescriptor m : this.mdesc_) {
+            m.setDefault();
+        }
     }
 
     @Override

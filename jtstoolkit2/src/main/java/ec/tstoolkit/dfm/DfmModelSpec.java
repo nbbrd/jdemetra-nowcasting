@@ -205,8 +205,11 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
                 if (Parameter.isDefined(p[i])) {
                     if (p[i].isFixed() && p[i].getValue() == 0) {
                         coeff[i] = Double.NaN;
-                    } else {
+                    } else if (p[i].getType() !=ParameterType.Undefined){
                         coeff[i] = p[i].getValue();
+                    }else{
+                        coeff[i] = DynamicFactorModel.C_DEF;
+                       
                     }
                 }
             }

@@ -143,8 +143,11 @@ public class DfmEstimator implements IDfmEstimator {
                 min_.minimize(fn, fn.evaluate(smapping.map(model)));
                 pt = (MSsfFunctionInstance) min_.getResult();
                 double var = pt.getLikelihood().getSigma();
-                model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
-                model.rescaleVariances(var);
+                DynamicFactorModel nmodel = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
+                if (nmodel.isValid()) {
+                    nmodel.rescaleVariances(var);
+                    model = nmodel;
+                }
             }
             if (useBlockIterations_) {
                 min_.setMaxIter(nnext_);

@@ -263,7 +263,7 @@ public class DfmInitializerTest {
 
         //DefaultInitializer initializer = new DefaultInitializer();
         PcInitializer initializer = new PcInitializer();
-        //initializer.initialize(model0, dfmInformationSet);
+        initializer.initialize(model0, dfmInformationSet);
 
         DynamicFactorModel model1 = model0.clone();
         DfmMonitor monitor = new DfmMonitor();

@@ -68,21 +68,22 @@ public class PcInitializer implements IDfmInitializer {
 
     @Override
     public boolean initialize(DynamicFactorModel model, DfmInformationSet input) {
+        DynamicFactorModel nmodel=model.clone();
         clear();
         if (!computeMatrix(input)) {
             return false;
         }
-        if (!computePrincipalComponents(model)) {
+        if (!computePrincipalComponents(nmodel)) {
             return false;
         }
-        if (!computeVar(model)) {
+        if (!computeVar(nmodel)) {
             return false;
         }
-        if (!computeLoadings(model)) {
+        if (!computeLoadings(nmodel)) {
             return false;
         }
-        model.validate();
-        //model.normalize();
+        if (nmodel.isValid())
+            model.copy(nmodel);
         return true;
     }
 
@@ -125,14 +126,21 @@ public class PcInitializer implements IDfmInitializer {
         int nb = model.getFactorsCount();
         pc_ = new PrincipalComponents[nb];
         for (int i = 0; i < nb; ++i) {
-            Matrix x = prepareDataForCompenent(model, i);
+            Matrix x = prepareDataForComponent(model, i);
             pc_[i] = new PrincipalComponents();
             pc_[i].process(x);
         }
         return true;
     }
 
-    private Matrix prepareDataForCompenent(DynamicFactorModel model, int cmp) {
+    /**
+     * Creates the data used for the computation of the principal components analysis
+     * @param model
+     * @param cmp The considered factor
+     * @return 
+     */
+    private Matrix prepareDataForComponent(DynamicFactorModel model, int cmp) {
+        // Keep only the concerned series
         int np = 0;
         for (DynamicFactorModel.MeasurementDescriptor desc : model.getMeasurements()) {
             if (!Double.isNaN(desc.coeff[cmp])) {
@@ -140,8 +148,9 @@ public class PcInitializer implements IDfmInitializer {
             }
         }
         Matrix m = new Matrix(datac_.getRowsCount(), np);
-        np = 0;
-        int s = 0;
+        // Copy the series and correct them by the effect of the previous factors
+        np = 0; // the position of the series in the matrix
+        int s = 0; // its position in the model
         for (DynamicFactorModel.MeasurementDescriptor desc : model.getMeasurements()) {
             if (!Double.isNaN(desc.coeff[cmp])) {
                 m.column(np).copy(datac_.column(s));
@@ -149,7 +158,7 @@ public class PcInitializer implements IDfmInitializer {
                     if (!Double.isNaN(desc.coeff[j])) {
                         SingularValueDecomposition svd = pc_[j].getSvd();
                         double l = -svd.S()[0] * svd.V().get(searchPos(model, s, j), 0);
-                        m.column(cmp).addAY(l, svd.U().column(0));
+                        m.column(np).addAY(l, svd.U().column(0));
                     }
                 }
                 ++np;

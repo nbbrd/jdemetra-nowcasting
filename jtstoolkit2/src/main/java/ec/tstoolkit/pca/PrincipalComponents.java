@@ -36,7 +36,12 @@ public class PrincipalComponents {
         clear();
         data_ = data;
         svd_=new SingularValueDecomposition();
-        svd_.decompose(data_.times(1/Math.sqrt(data.getColumnsCount()-1)));
+        Matrix ndata;
+        if (data.getColumnsCount() == 1)
+            ndata=data;
+        else
+            ndata=data.times(1/Math.sqrt(data.getColumnsCount()-1));
+        svd_.decompose(ndata);
         return svd_.isFullRank();
     }
 
