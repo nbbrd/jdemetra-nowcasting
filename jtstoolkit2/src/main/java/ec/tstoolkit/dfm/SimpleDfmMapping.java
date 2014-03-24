@@ -227,12 +227,13 @@ public class SimpleDfmMapping implements IParametricMapping<IMSsf> {
         Matrix m = model.getTransition().varParams;
         Matrix vp = m.clone();
         m.set(0);
+        int l = model.getTransition().nlags;
         for (int i = 0; i < nb; ++i) {
-            double r = vp.get(i, i * nl);
+            double r = vp.get(i, i * l);
             if (Math.abs(r) > 1) {
                 r = Math.signum(r) * Math.min(.99, 1 / Math.abs(r));
             }
-            m.set(i, i * nl, r);
+            m.set(i, i * l, r);
         }
     }
 
