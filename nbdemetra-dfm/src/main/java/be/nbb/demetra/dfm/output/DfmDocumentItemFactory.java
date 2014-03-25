@@ -21,49 +21,27 @@ import ec.tss.Dfm.DfmDocument;
 import ec.tss.Dfm.DfmResults;
 import ec.tstoolkit.utilities.DefaultInformationExtractor;
 import ec.tstoolkit.utilities.Id;
-import ec.tstoolkit.utilities.LinearId;
 import ec.ui.view.tsprocessing.ComposedProcDocumentItemFactory;
-import ec.ui.view.tsprocessing.DefaultItemUI;
 import ec.ui.view.tsprocessing.IProcDocumentView;
 import ec.ui.view.tsprocessing.ItemUI;
-import ec.ui.view.tsprocessing.ProcDocumentItemFactory;
-import javax.swing.JComponent;
-import org.openide.util.lookup.ServiceProvider;
 
 /**
  *
  * @author Philippe Charles
  */
-abstract class DfmDocumentItemFactory<I> extends ComposedProcDocumentItemFactory<DfmDocument, Optional<DfmResults>> {
+abstract class DfmDocumentItemFactory extends ComposedProcDocumentItemFactory<DfmDocument, Optional<DfmResults>> {
 
     protected DfmDocumentItemFactory(Id itemId, ItemUI<? extends IProcDocumentView<DfmDocument>, Optional<DfmResults>> itemUI) {
-        super(DfmDocument.class, itemId, Extractor.INSTANCE, itemUI);
+        super(DfmDocument.class, itemId, DfmResultsExtractor.INSTANCE, itemUI);
     }
 
-    private static final class Extractor extends DefaultInformationExtractor<DfmDocument, Optional<DfmResults>> {
+    private static final class DfmResultsExtractor extends DefaultInformationExtractor<DfmDocument, Optional<DfmResults>> {
 
-        public static final Extractor INSTANCE = new Extractor();
+        public static final DfmResultsExtractor INSTANCE = new DfmResultsExtractor();
 
         @Override
         public Optional<DfmResults> retrieve(DfmDocument source) {
             return Optional.fromNullable(source.getResults().get("dfm", DfmResults.class));
-        }
-    }
-
-    @ServiceProvider(service = ProcDocumentItemFactory.class)
-    public static class ShocksDecompositionItemFactory extends DfmDocumentItemFactory<DfmResults> {
-
-        public static final Id ID = new LinearId("ShocksDecomposition");
-
-        public ShocksDecompositionItemFactory() {
-            super(ID, new DefaultItemUI<IProcDocumentView<DfmDocument>, Optional<DfmResults>>() {
-                @Override
-                public JComponent getView(IProcDocumentView<DfmDocument> host, Optional<DfmResults> information) {
-                    ShocksDecompositionView result = new ShocksDecompositionView();
-                    result.setDfmResults(information);
-                    return result;
-                }
-            });
         }
     }
 }

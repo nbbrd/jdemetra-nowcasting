@@ -40,7 +40,6 @@ import ec.util.chart.swing.SwingColorSchemeSupport;
 import static ec.util.chart.swing.SwingColorSchemeSupport.withAlpha;
 import ec.util.various.swing.JCommand;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.ItemEvent;
@@ -49,12 +48,8 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.text.DecimalFormat;
 import java.util.Objects;
-import javax.swing.AbstractListModel;
-import javax.swing.ComboBoxModel;
 import javax.swing.DefaultComboBoxModel;
-import javax.swing.DefaultListCellRenderer;
 import javax.swing.JCheckBoxMenuItem;
-import javax.swing.JList;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 
@@ -92,15 +87,6 @@ final class ShocksDecompositionView extends javax.swing.JPanel {
             @Override
             public void itemStateChanged(ItemEvent e) {
                 updateChart();
-            }
-        });
-        comboBox.setRenderer(new DefaultListCellRenderer() {
-            @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                int varIndex = ((ShocksDecompositionView.InputModel) list.getModel()).indexOf((TsData) value);
-                setText("Var " + (varIndex + 1));
-                return this;
             }
         });
 
@@ -147,6 +133,7 @@ final class ShocksDecompositionView extends javax.swing.JPanel {
                         break;
                     case DFM_RESULTS_PROPERTY:
                         updateComboBox();
+                        updateChart();
                         break;
                 }
             }
@@ -246,18 +233,16 @@ final class ShocksDecompositionView extends javax.swing.JPanel {
 
     private void updateComboBox() {
         if (dfmResults.isPresent()) {
-            comboBox.setModel(new InputModel(dfmResults.get().getInput()));
-            comboBox.setSelectedIndex(0);
+            comboBox.setModel(toComboBoxModel(dfmResults.get().getInput()));
             comboBox.setEnabled(true);
         } else {
             comboBox.setModel(new DefaultComboBoxModel());
-            comboBox.setSelectedIndex(-1);
             comboBox.setEnabled(false);
         }
     }
 
     private void updateChart() {
-        if (dfmResults.isPresent()) {
+        if (dfmResults.isPresent() && comboBox.getSelectedIndex() != -1) {
             TsXYDatasets.Builder b = TsXYDatasets.builder();
             for (Ts o : toCollection(dfmResults.get())) {
                 b.add(o.getName(), o.getTsData());
@@ -292,27 +277,27 @@ final class ShocksDecompositionView extends javax.swing.JPanel {
     private TsCollection toCollection(DfmResults dfmResults) {
         Objects.requireNonNull(dfmResults);
 
-        TsCollection col = TsFactory.instance.createTsCollection();
+        TsCollection result = TsFactory.instance.createTsCollection();
 
         int selectedIndex = comboBox.getSelectedIndex();
         if (actualVisible) {
-            col.quietAdd(TsFactory.instance.createTs("Actual", null, dfmResults.getTheData()[selectedIndex]));
+            result.quietAdd(TsFactory.instance.createTs("Actual", null, dfmResults.getTheData()[selectedIndex]));
         }
         if (signalVisible) {
-            col.quietAdd(TsFactory.instance.createTs("Signal", null, dfmResults.getSignal()[selectedIndex]));
+            result.quietAdd(TsFactory.instance.createTs("Signal", null, dfmResults.getSignal()[selectedIndex]));
         }
         TsData[][] x = dfmResults.getShocksDecomposition();
         for (int i = 0; i < x.length - 2; i++) {
-            col.quietAdd(TsFactory.instance.createTs("F" + i, null, x[i][selectedIndex]));
+            result.quietAdd(TsFactory.instance.createTs("F" + i, null, x[i][selectedIndex]));
         }
         if (initialFactorVisible) {
-            col.quietAdd(TsFactory.instance.createTs("Initial factor", null, x[x.length - 2][selectedIndex]));
+            result.quietAdd(TsFactory.instance.createTs("Initial factor", null, x[x.length - 2][selectedIndex]));
         }
         if (noiseVisible) {
-            col.quietAdd(TsFactory.instance.createTs("Noise", null, x[x.length - 1][selectedIndex]));
+            result.quietAdd(TsFactory.instance.createTs("Noise", null, x[x.length - 1][selectedIndex]));
         }
 
-        return col;
+        return result;
     }
 
     private abstract class CustomSwingColorSchemeSupport extends SwingColorSchemeSupport {
@@ -509,47 +494,11 @@ final class ShocksDecompositionView extends javax.swing.JPanel {
     }
     //</editor-fold>
 
-    private static final class InputModel extends AbstractListModel<TsData> implements ComboBoxModel<TsData> {
-
-        private final DfmInformationSet data;
-        private TsData selectedItem;
-
-        public InputModel(DfmInformationSet data) {
-            this.data = data;
-            this.selectedItem = null;
+    private static DefaultComboBoxModel toComboBoxModel(DfmInformationSet data) {
+        DefaultComboBoxModel result = new DefaultComboBoxModel();
+        for (int i = 0; i < data.getSeriesCount(); i++) {
+            result.addElement("Var " + (i + 1));
         }
-
-        int indexOf(TsData item) {
-            for (int i = 0; i < data.getSeriesCount(); i++) {
-                if (data.series(i) == item) {
-                    return i;
-                }
-            }
-            return -1;
-        }
-
-        @Override
-        public int getSize() {
-            return data.getSeriesCount();
-        }
-
-        @Override
-        public TsData getElementAt(int index) {
-            return data.series(index);
-        }
-
-        @Override
-        public void setSelectedItem(Object anItem) {
-            if ((selectedItem != null && !selectedItem.equals(anItem))
-                    || selectedItem == null && anItem != null) {
-                selectedItem = (TsData) anItem;
-                fireContentsChanged(this, -1, -1);
-            }
-        }
-
-        @Override
-        public Object getSelectedItem() {
-            return selectedItem;
-        }
+        return result;
     }
 }
