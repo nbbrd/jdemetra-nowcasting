@@ -121,9 +121,10 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
 
     private Matrix toMatrix(DfmResults results, int selectedItem) {
         int[] horizon = {
+            1, 2, 3, 4, 5, 6, 7, 89, 10, 11, 12, 14, 16, 18,
             20, 24, 28, 32, 36, 40, 48, 60, 72, 84, 96, 120, 240, 100
         };
-        return results.getVarianceDecomposition(horizon)[selectedItem];
+        return results.getVarianceDecompositionIdx(horizon, selectedItem);
     }
 
     private static DefaultComboBoxModel toComboBoxModel(DfmInformationSet data) {
