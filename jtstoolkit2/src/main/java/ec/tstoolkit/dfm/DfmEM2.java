@@ -45,7 +45,7 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
     private final EnumMap<DynamicFactorModel.MeasurementType, DataBlock[]> G = new EnumMap<>(DynamicFactorModel.MeasurementType.class);
     private final EnumMap<DynamicFactorModel.MeasurementType, Table<DataBlock>> G2 = new EnumMap<>(DynamicFactorModel.MeasurementType.class);
     private DataBlock Efij[];
-    private int maxiter_ = 1000, iter_;
+    private int maxiter_ = 50000, iter_;
     private boolean all_ = true, correctStart_ = true;
     private int modelSize;
     private int dataSize;

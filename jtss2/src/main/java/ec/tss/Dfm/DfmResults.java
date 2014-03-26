@@ -19,6 +19,7 @@ package ec.tss.Dfm;
 import ec.tstoolkit.algorithm.IProcResults;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DataBlockStorage;
+import ec.tstoolkit.data.DescriptiveStatistics;
 import ec.tstoolkit.dfm.DfmInformationSet;
 import ec.tstoolkit.dfm.DfmProcessor;
 import ec.tstoolkit.dfm.DynamicFactorModel;
@@ -28,6 +29,7 @@ import ec.tstoolkit.information.InformationMapper;
 import ec.tstoolkit.information.InformationSet;
 import ec.tstoolkit.maths.matrices.CroutDoolittle;
 import ec.tstoolkit.maths.matrices.Matrix;
+import ec.tstoolkit.maths.matrices.SubMatrix;
 import ec.tstoolkit.maths.matrices.SymmetricMatrix;
 import ec.tstoolkit.mssf2.DefaultMultivariateSsf;
 import ec.tstoolkit.mssf2.IMSsf;
@@ -59,7 +61,11 @@ public class DfmResults implements IProcResults {
     private TsData[] theData; // one Ts for each observable
     private TsData[] smoothedSignal;  // one Ts for each observable
     private TsData[][] shockDecomposition;
-    private Matrix[] varianceDecomposition;
+    private Matrix varianceDecompositionShock;  // variables x horizons (for a give shock)
+    private Matrix varianceDecompositionIdx;     // shocks x horizon (for a given variable)
+    private Matrix irfIdx;   // shocks x horizon (for a given variable)
+    private Matrix irfShock; // variables x horizon (for a given shock)
+    private Matrix idiosyncraticCorr; // variables x horizon (for a given shock)
 
     public DfmResults(DynamicFactorModel model, DfmInformationSet input) {
         this.model = model;
@@ -74,6 +80,76 @@ public class DfmResults implements IProcResults {
         return input;
     }
 
+    /**
+     * Matrix containing the correlation (+/-) between measurement errors
+     * Pervasive correlation patterns may indicate the need to incorporate more
+     * factors. The diagonal elements are, naturally, equal to one.
+     */
+    public Matrix getIdiosyncratic() {
+        if (idiosyncraticCorr == null) {
+            calcIdiosyncratic();
+        }
+        return idiosyncraticCorr;
+    }
+
+    public void calcIdiosyncratic() {
+
+        TsData[] error = getNoise();
+        TsData ei;
+        TsData ej;
+        TsData eij;
+        DescriptiveStatistics eiDesStat;
+        DescriptiveStatistics ejDesStat;
+        DescriptiveStatistics eijDesStat;
+
+        idiosyncraticCorr = new Matrix(error.length, error.length);// N series 
+
+        double corrcoef;
+        double stdi;
+        double stdj;
+      // double test ; 
+
+       //idiosyncratic = nancorr(E)
+        //idiosyncratic = nancorr(errors)
+        for (int i = 0; i < error.length; i++) {
+
+            for (int j = 0; j < error.length; j++) {
+
+                ei = error[i];
+                ej = error[j];
+
+                if (i == j) {
+                    corrcoef = 1.0;
+                } else {
+
+                //     corrcoef = 1.0;  
+                    double sum = 0;
+                    ei.removeMean();
+                    ej.removeMean();
+                    eij = ei.times(ej);
+
+                    eiDesStat = new DescriptiveStatistics(ei);
+                    ejDesStat = new DescriptiveStatistics(ej);
+                    eijDesStat = new DescriptiveStatistics(eij);
+
+                    stdi = eiDesStat.getStdev();
+                    stdj = ejDesStat.getStdev();
+                    // test = eijDesStat.getAverage();
+                    corrcoef = eijDesStat.getAverage() / (stdi * stdj);
+
+                }
+
+                idiosyncraticCorr.set(i, j, corrcoef);
+
+            }
+
+        }
+
+    }
+
+    /**
+     * Gets the TsData (time series) of smoothed factor identified as "idx",
+     */
     public TsData getFactor(int idx) {
         if (smoothing == null) {
             calcSmoothedStates();
@@ -119,6 +195,11 @@ public class DfmResults implements IProcResults {
 
     }
 
+    /**
+     * Gets the array of TsData (time series) corresponding to the signal for
+     * all observables. The nowcasting model decomposes all observables into a
+     * signal plus an idiosyncratic noise (or measurement error) component.
+     */
     public TsData[] getSignal() {
         if (smoothedSignal == null) {
             calcSmoothedSignal(); // It is not well calculated because the signal becomes the same for all variables
@@ -126,6 +207,11 @@ public class DfmResults implements IProcResults {
         return smoothedSignal;
     }
 
+    /**
+     * Gets the array of TsData (time series) corresponding to the noise for all
+     * observables. The nowcasting model decomposes all observables into a
+     * signal plus an idiosyncratic noise (or measurement error) component.
+     */
     public TsData[] getNoise() {
         if (smoothedNoise == null) {
             calcSmoothedNoise();
@@ -149,7 +235,7 @@ public class DfmResults implements IProcResults {
         int r = model.getFactorsCount();
         int c_ = model.getBlockLength();
         int nlags = model.getTransition().nlags;
-          // arrange the factors in a notation compatible with the state-space 
+        // arrange the factors in a notation compatible with the state-space 
         // representation
         Matrix Z = new Matrix(r * c_, m_used);
         for (int i = 0; i < r * c_; i++) {
@@ -159,18 +245,14 @@ public class DfmResults implements IProcResults {
         IMSsf ssf = model.ssfRepresentation();
         int N = ssf.getVarsCount();
 
-       // List<DynamicFactorModel.MeasurementDescriptor> measurements = model.getMeasurements();
+        // List<DynamicFactorModel.MeasurementDescriptor> measurements = model.getMeasurements();
         double[][] signal = new double[N][m_used];
 
         for (int t = 0; t < m_used; t++) {
-
             DataBlock temp = Z.column(t).deepClone();
             for (int v = 0; v < N; v++) {
-
                 signal[v][t] = ssf.ZX(0, v, temp);
-
             }
-
         }
 
         TsDomain currentDomain = input.getCurrentDomain();
@@ -197,7 +279,7 @@ public class DfmResults implements IProcResults {
         int r = model.getFactorsCount();
         int c_ = model.getBlockLength();
         int nlags = model.getTransition().nlags;
-          // arrange the factors in a notation compatible with the state-space 
+        // arrange the factors in a notation compatible with the state-space 
         // representation
         Matrix Z = new Matrix(r * c_, m_used);
         for (int i = 0; i < r * c_; i++) {
@@ -207,7 +289,7 @@ public class DfmResults implements IProcResults {
         IMSsf ssf = model.ssfRepresentation();
         int N = ssf.getVarsCount();
 
-       // List<DynamicFactorModel.MeasurementDescriptor> measurements = model.getMeasurements();
+        // List<DynamicFactorModel.MeasurementDescriptor> measurements = model.getMeasurements();
         double[][] signal = new double[N][m_used];
         double[][] noise = new double[N][m_used];
         Matrix m = input.generateMatrix(null);
@@ -230,6 +312,13 @@ public class DfmResults implements IProcResults {
 
     }
 
+    /**
+     * Gets the array of TsData (time series) corresponding to the reduced form
+     * shocks that affect the factors. The nowcasting model decomposes all
+     * observables into a signal, which is driven the shocks we extract with
+     * this fuction, plus an idiosyncratic noise (or measurement error)
+     * component.
+     */
     public TsData[] getShocks() {
         if (smoothedShocks == null) {
             calcSmoothedShocks();
@@ -274,7 +363,7 @@ public class DfmResults implements IProcResults {
         Matrix A_ = model.getTransition().varParams;
         Matrix U = z.minus(A_.times(zL));
 
-     //   Matrix TESTit= U.times(U.transpose()).times(1.0/m_used);
+        //   Matrix TESTit= U.times(U.transpose()).times(1.0/m_used);
         //    Matrix QtestIt=model.getTransition().covar ;
         TsDomain currentDomain = input.getCurrentDomain();
         smoothedShocks = new TsData[r];
@@ -284,54 +373,237 @@ public class DfmResults implements IProcResults {
 
     }
 
-    public Matrix[] getVarianceDecomposition(int[] horizon) {
-        if (varianceDecomposition == null) {
-            calcVarianceDecomposition(horizon);
+    /**
+     * Forecast Errors variance decomposition, for the variable given by "v".
+     * The forecast horizon is given by the int[] horizon. The output Matrix
+     * contains the shocks accounting for that forecast error variance in the
+     * columns and the forecast horizon in the raws. Note that the first raw
+     * (position 0), should correspond with a forecast horizon larger than or
+     * equal to one.
+     */
+    public Matrix getVarianceDecompositionIdx(int[] horizon, int v) {
+
+        int r = model.getFactorsCount();
+        varianceDecompositionIdx = new Matrix(r + 1, horizon.length);
+        Matrix varDec;
+
+        for (int shock = 0; shock < r + 1; shock++) {
+
+            if (shock < r) {
+
+                varDec = getVarianceDecompositionShock(horizon, shock).clone();
+
+                for (int h = 0; h < horizon.length; h++) {
+
+                    varianceDecompositionIdx.set(shock, h, varDec.get(v, h));
+                }
+
+            } else {
+
+                for (int h = 0; h < horizon.length; h++) {
+
+                    varianceDecompositionIdx.set(shock, h, model.getMeasurements().get(v).var);
+                }
+
+            }
+
         }
-        return varianceDecomposition;
+
+        return varianceDecompositionIdx;
+
     }
 
-    public void calcVarianceDecomposition(int[] horizon) {
+    /**
+     * Part of the Forecast Errors variance, for all variables, that is
+     * explained by a given "shock". The forecast horizon is given by the int[]
+     * horizon. The output Matrix contains the reference variables in the
+     * columns and the forecast horizon in the raws. Note that the first raw
+     * (position 0), should correspond with a forecast horizon larger than or
+     * equal to one.
+     */
+    public Matrix getVarianceDecompositionShock(int[] horizon, int shock) {
 
         IMSsf ssf = model.ssfRepresentation();
         int r = model.getFactorsCount();
+        int N = model.getMeasurementsCount();
+
         int c_ = model.getBlockLength();
         Matrix Q = model.getTransition().covar.clone();
-        Matrix TQT;
-            //Matrix[] ZVZt = null;
+        Matrix C = Q.clone();
 
-        varianceDecomposition = new Matrix[horizon.length];
+        varianceDecompositionShock = new Matrix(N, horizon.length);
+
+        double[] angles = new double[r * (r - 1) / 2]; // initialized at zero, si the rotation
+
+        SymmetricMatrix.lcholesky(C);
+        Rotation rot = new Rotation(angles);
+        Matrix R = rot.getRotation();
+        Matrix B = C.times(R);
+        Matrix TQT;
+        Matrix Bss = new Matrix(r * c_, r * c_); // compatible with SS
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < r; j++) {
+                Bss.set(i * c_, j * c_, B.get(i, j));
+            }
+        }
+
+        Matrix Q_ = new Matrix(Bss.subMatrix(0, r * c_, shock * c_, shock * c_ + 1));
+           //        System.out.println("whats going on");                  
+        //        System.out.println(Q_);
+        //        System.out.print("  for shock");    
+        //        System.out.println(shock);
+
+        //Matrix[] ZVZt = null;
         for (int h = 0; h < horizon.length; h++) {
 
             if (horizon[h] == 0) {
                 System.err.println("The smallest forecast horizon is one period ahead, not zero");
             }
 
+            Matrix Sigmax;
+
             if (horizon[h] == 1) {
-                TQT = new Matrix(ssf.getStateDim(), ssf.getStateDim());
-                for (int i = 0; i < r; i++) {
-                    TQT.set(i * c_, i * c_, Q.subMatrix().get(i, i));
-                }
+
+                //  TQT = new Matrix(ssf.getStateDim(),ssf.getStateDim());    
+                Sigmax = new Matrix(r * c_, r * c_);
+                TQT = Q_.times(Q_.transpose());
+                Sigmax.add(TQT);
+               //     for (int i=0;i<r;i++){
+                //         TQT.set(i*c_, i*c_, Q.subMatrix().get(i,i));
+                //      }
 
             } else {
-                TQT = new Matrix(ssf.getStateDim(), ssf.getStateDim());
-                for (int i = 0; i < r; i++) {
-                    TQT.set(i * c_, i * c_, Q.subMatrix().get(i, i));
-                }
+                //  TQT = new Matrix(ssf.getStateDim(),ssf.getStateDim());                 
+                Sigmax = new Matrix(r * c_, r * c_);
+                TQT = Q_.times(Q_.transpose());
 
                 for (int i = 0; i < horizon[h]; i++) {           // ????    
                     ssf.TVT(0, TQT.subMatrix());
+                    Sigmax.add(TQT);
+
                 }
 
             }
 
             Matrix zvz = new Matrix(ssf.getVarsCount(), ssf.getVarsCount());
+            ssf.ZVZ(0, Sigmax.subMatrix(), zvz.subMatrix());
 
-            ssf.ZVZ(0, TQT.subMatrix(), zvz.subMatrix());
+            for (int v = 0; v < N; v++) {
+                varianceDecompositionShock.set(v, h, zvz.get(v, v));
+            }
 
-        //       ZVZt[h]=ZVZ.clone();
-            varianceDecomposition[h] = zvz.clone();
         }
+
+        return varianceDecompositionShock;
+
+    }
+
+    /**
+     * Output Matrix "r shocks" x "horizons" representing Impulse response
+     * function (IRF) for a given variables "v" in response to a "shock" of the
+     * standard size. The IRF represents the extent to which the forecasts
+     * change when each one of the shocks hits the economy. The forecast horizon
+     * is given by the int[] horizon. The output Matrix contains the shocks in
+     * the rows and the forecast horizon in the columns. Note that the first raw
+     * (position 0), should correspond with a forecast horizon larger than or
+     * equal to one.
+     */
+    public Matrix getIrfIdx(int[] horizon, int v) {
+
+        int r = model.getFactorsCount();
+        irfIdx = new Matrix(r, horizon.length);
+        Matrix irf;
+        for (int shock = 0; shock < r; shock++) {
+            irf = getIrfShock(horizon, shock).clone();
+            for (int h = 0; h < horizon.length; h++) {
+                irfIdx.set(shock, h, irf.get(v, h));
+            }
+        }
+        return irfIdx;
+    }
+
+    /**
+     * Output Matrix "N variables" x "horizons" representing Impulse response
+     * function for all variables in response to a "shock" of the standard size.
+     * It represents the extent to which the forecasts change when each one of
+     * the shocks hits the economy. The forecast horizon is given by the int[]
+     * horizon. The output Matrix contains all variables in the the rows and the
+     * forecast horizon in the columns. Note that the first col (position 0),
+     * should correspond with a forecast horizon larger than or equal to one.
+     */
+    public Matrix getIrfShock(int[] horizon, int shock) {
+
+        IMSsf ssf = model.ssfRepresentation();
+        int r = model.getFactorsCount();
+        int N = model.getMeasurementsCount();
+
+        int c_ = model.getBlockLength();
+        Matrix Q = model.getTransition().covar.clone();
+        Matrix C = Q.clone();
+
+        irfShock = new Matrix(N, horizon.length);
+
+        double[] angles = new double[r * (r - 1) / 2]; // initialized at zero, si the rotation
+
+        SymmetricMatrix.lcholesky(C);
+        Rotation rot = new Rotation(angles);
+        Matrix R = rot.getRotation();
+        Matrix B = C.times(R);
+        Matrix TQT;
+        Matrix Bss = new Matrix(r * c_, r * c_); // compatible with SS
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < r; j++) {
+                Bss.set(i * c_, j * c_, B.get(i, j));
+            }
+        }
+
+        Matrix Q_ = new Matrix(Bss.subMatrix(0, r * c_, shock * c_, shock * c_ + 1));
+
+        for (int h = 0; h < horizon.length; h++) {
+
+            if (horizon[h] == 0) {
+                System.err.println("The smallest forecast horizon is one period ahead, not zero");
+            }
+
+            Matrix Sigmax;
+
+            if (horizon[h] == 1) {
+
+              //  TQT = new Matrix(ssf.getStateDim(),ssf.getStateDim());    
+                //    Sigmax= new Matrix(r*c_, r*c_);
+                TQT = Q_.times(Q_.transpose());
+             //     Sigmax.add(TQT);
+                //     for (int i=0;i<r;i++){
+                //         TQT.set(i*c_, i*c_, Q.subMatrix().get(i,i));
+                //      }
+
+            } else {
+                  //  TQT = new Matrix(ssf.getStateDim(),ssf.getStateDim());                 
+                //    Sigmax= new Matrix(r*c_, r*c_);
+                TQT = Q_.times(Q_.transpose());
+
+                       // [h=2]  i=0-->Q ; i=1-->TQT'; 
+                // [h=3]  i=0-->Q ; i=1-->TQT'; i=2-->T(TQT')T';
+                for (int i = 0; i < horizon[h]; i++) { //      horizon[0] is always bigger than  2 (hor = 0 is nonsense and hor=1 is in the if statement ) 
+                    ssf.TVT(0, TQT.subMatrix());
+             //           Sigmax.add(TQT);
+
+                }
+
+            }
+
+            Sigmax = TQT.clone();
+            Matrix zvz = new Matrix(ssf.getVarsCount(), ssf.getVarsCount());
+
+            ssf.ZVZ(0, Sigmax.subMatrix(), zvz.subMatrix());
+
+            for (int v = 0; v < N; v++) {
+                irfShock.set(v, h, zvz.get(v, v));
+            }
+
+        }
+
+        return irfShock;
 
     }
 
@@ -353,9 +625,9 @@ public class DfmResults implements IProcResults {
         int nlags = model.getTransition().nlags;
 
         double[] angles = new double[r * (r - 1) / 2]; // initialized at zero, si the rotation
+
         // matrix will be the identify and it will
         // not have any effect for the moment
-
         // convert the TsData[] array Smoothedshocks into a matrix
         Matrix U = new Matrix(r, T);
         Matrix Ustar = new Matrix(r, T);
@@ -372,10 +644,21 @@ public class DfmResults implements IProcResults {
         // FOR THE MOMENT, I WILL JUST USE 
         Matrix C = U.times(U.transpose());
 
+        
+        
+        
         SymmetricMatrix.lcholesky(C);
-        Rotation rot = new Rotation(angles);
-        Matrix R = rot.getRotation();
-        Matrix B = C.times(R);
+        Matrix B;
+        Matrix R;
+        if (angles.length==0){
+         B = C.clone();
+        } else {
+        Rotation rot = new Rotation(angles);            
+         R = rot.getRotation();
+         B = C.times(R);
+        }
+         
+        
         Matrix Bss = new Matrix(r * c_, r * c_); // compatible with SS
         for (int i = 0; i < r; i++) {
             for (int j = 0; j < r; j++) {
@@ -383,7 +666,7 @@ public class DfmResults implements IProcResults {
             }
         }
 
-        System.out.println(R);
+     //   System.out.println(R);
 
         // Orthogonalize and rotate errors
         CroutDoolittle er = new CroutDoolittle();
@@ -490,14 +773,14 @@ public class DfmResults implements IProcResults {
             }
         }
 
-          //////////////////////////////////////////////////
+        //////////////////////////////////////////////////
         getNoise();
         TsDomain currentDomain = input.getCurrentDomain();
 
-         // TsData ts = new TsData(currentDomain.getStart(), shockDec[1][1], false);
+        // TsData ts = new TsData(currentDomain.getStart(), shockDec[1][1], false);
         shockDecomposition = new TsData[r + 2][N];// +2 because I want to incorporate initial factor and measurement errors
 
-      //  DataBlock db = new DataBlock(shockDecomposition[0][0]);
+        //  DataBlock db = new DataBlock(shockDecomposition[0][0]);
         //  db.cumul();
         for (int i = 0; i < r + 2; i++) {
 

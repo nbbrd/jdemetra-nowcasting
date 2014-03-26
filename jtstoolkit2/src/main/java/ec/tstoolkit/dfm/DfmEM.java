@@ -151,7 +151,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         oldL = null;
         conv = false;
 
-        maxiter = 100000;
+        maxiter = 30;
 
         
         eps = 1e-6;
@@ -403,7 +403,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
         // here i have to define inde3 and indicator2 and convert them to logical
         A = new Matrix(c_ * nf_, c_ * nf_);
         
-            int[] ind3 = new int[r.length];
+        int[] ind3 = new int[r.length];
         int[] indicador2 = new int[r.length];
         int[] indicador = new int[r.length];
 
@@ -436,6 +436,9 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
 
         }
 
+        
+   //     System.out.println(A);
+        
           // SHOCKS
         Q_= new Matrix(nf_, nf_);
         Q = new Matrix(c_ * nf_, c_ * nf_);
@@ -782,6 +785,8 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
 //------------------------------------*****************
 
  
+        
+         // UPDATING TRANSITION EQUATION
 
         dfm.getTransition().covar.copy(Q_);
         dfm.getTransition().varParams.copy(A_);
@@ -946,7 +951,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
                 //-->NOT NEEDED covij_sum = sumT(srslts_.componentCovar(temp2[i], temp2[j]));
                                 covij_sum =  srslts_.componentCovar(temp2[i]+1, temp2[j]+1).sum();
 
-                // incorporate smoothed initial variance 
+              // incorporate smoothed initial variance 
               //-->NOT NEEDED   covij_0 =srslts_.P(0).get(temp2[i]+1, temp2[j]+1);
               //-->NOT NEEDED   eP.set(i, j, covij_sum+covij_0);
                                 eP.set(i, j, covij_sum);
@@ -1020,7 +1025,8 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
     public boolean estimate(DynamicFactorModel dfm0, DfmInformationSet data) {
         initCalc(dfm0, data);
         calc(dfm0,data);
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return true;
+//        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override

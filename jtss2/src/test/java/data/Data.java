@@ -18,10 +18,21 @@
 package data;
 
 import ec.tstoolkit.arima.ArimaModelBuilder;
+import ec.tstoolkit.data.DataBlock;
+import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.sarima.SarimaModel;
 import ec.tstoolkit.sarima.SarimaModelBuilder;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
+import ec.tstoolkit.utilities.Tokenizer;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -30,6 +41,88 @@ import java.util.List;
  * @author Jean Palate
  */
 public class Data {
+    public static Matrix readMatrix(String file) {
+        BufferedReader reader = null;
+        try {
+            reader = new BufferedReader(new FileReader(file));
+            return readMatrix(reader);
+        } catch (FileNotFoundException ex) {
+            return null;
+        } finally {
+            try {
+                reader.close();
+            } catch (IOException ex) {
+            }
+        }
+    }
+
+    public static Matrix readMatrix(Class cl, String resources) {
+        InputStream stream = cl.getResourceAsStream(resources);
+        return Data.readMatrix(stream);
+    }
+
+    public static Matrix readMatrix(InputStream stream) {
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
+            return readMatrix(reader);
+        } finally {
+            try {
+                stream.close();
+            } catch (IOException ex) {
+            }
+        }
+    }
+
+    public static Matrix readMatrix(BufferedReader reader) {
+        try {
+            ArrayList<double[]> data = new ArrayList<>();
+            DecimalFormat fmt = (DecimalFormat) DecimalFormat.getNumberInstance();
+            char comma;
+            if (fmt.getDecimalFormatSymbols().getDecimalSeparator() == ',') {
+                comma = ';';
+            } else {
+                comma = ',';
+            }
+
+            String s = reader.readLine();
+            while (s != null) {
+                Tokenizer tokenizer = new Tokenizer(s, comma);
+                ArrayList<Double> row = new ArrayList<>();
+                while (tokenizer.hasNextToken()) {
+                    String n = tokenizer.nextToken().trim();
+                    if (n.isEmpty()) {
+                        row.add(Double.NaN);
+                    } else {
+                        row.add(Double.parseDouble(n));
+                    }
+                }
+                double[] x = new double[row.size()];
+                for (int i = 0; i < x.length; ++i) {
+                    x[i] = row.get(i);
+                }
+                data.add(x);
+                s = reader.readLine();
+            }
+            int nrows = data.size();
+            int ncols = 0;
+            for (int i = 0; i < nrows; ++i) {
+                int nc = data.get(i).length;
+                if (nc > ncols) {
+                    ncols = nc;
+                }
+            }
+            Matrix M = new Matrix(nrows, ncols);
+            M.set(Double.NaN);
+            for (int i = 0; i < nrows; ++i) {
+                M.row(i).copy(new DataBlock(data.get(i)));
+            }
+            return M;
+        } catch (IOException err) {
+            return null;
+        } catch (NumberFormatException err) {
+            return null;
+        }
+    }
 
     private static final double[] g_exports = {
         9568.3, 9920.3, 11353.5, 9247.5, 10114.2, 10763.1, 8456.1, 8071.6, 10328, 10551.4, 10186.1, 8821.6,
