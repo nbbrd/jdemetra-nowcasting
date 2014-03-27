@@ -35,7 +35,7 @@ import ec.tstoolkit.mssf2.IMSsf;
  */
 public class DfmMapping implements IParametricMapping<IMSsf> {
 
-    static final double EPS = Math.sqrt(2.220446e-16);
+    static final double EPS = 1e-5;// Math.sqrt(2.220446e-16);
 
     private final DynamicFactorModel template;
     // [0, nml[ loadings
@@ -313,7 +313,7 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
 
     @Override
     public double epsilon(IReadDataBlock inparams, int idx) {
-        return inparams.get(idx)>0 ? -EPS : EPS;
+        return inparams.get(idx)>EPS ? -EPS : EPS;
     }
 
     @Override

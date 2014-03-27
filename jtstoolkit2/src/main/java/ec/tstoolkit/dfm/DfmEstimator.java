@@ -45,6 +45,7 @@ public class DfmEstimator implements IDfmEstimator {
     private int nstart_ = 15, nnext_ = 5;
     private TsDomain idom_;
     private boolean useBlockIterations_ = true, mixed_ = true;
+    private Likelihood ll_;
 
     public DfmEstimator() {
         min_ = new ProxyMinimizer(new LevenbergMarquardtMethod());
@@ -119,10 +120,8 @@ public class DfmEstimator implements IDfmEstimator {
     }
 
     @Override
-    public boolean estimate(final DynamicFactorModel dfm, DfmInformationSet input
-    ) {
+    public boolean estimate(final DynamicFactorModel dfm, DfmInformationSet input) {
         converged_ = false;
-        Likelihood ll = null;
         Matrix m = input.generateMatrix(idom_);
         MSsfAlgorithm algorithm = new MSsfAlgorithm();
         IMSsfData mdata = new MultivariateSsfData(m.subMatrix().transpose(), null);
@@ -133,7 +132,6 @@ public class DfmEstimator implements IDfmEstimator {
         DynamicFactorModel model = dfm.clone();
         model.normalize();
         try {
-
             if (nstart_ > 0) {
                 setMessage(SIMPLIFIED);
                 min_.setMaxIter(nstart_);
@@ -194,7 +192,7 @@ public class DfmEstimator implements IDfmEstimator {
                     var = pt.getLikelihood().getSigma();
                     model = nmodel;
                     model.rescaleVariances(var);
-                    ll = pt.getLikelihood();
+                    ll_ = pt.getLikelihood();
                     if (converged_ || niter >= maxiter_) {
                         break;
                     }
@@ -210,7 +208,7 @@ public class DfmEstimator implements IDfmEstimator {
                 double var = pt.getLikelihood().getSigma();
                 model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
                 model.rescaleVariances(var);
-                ll = pt.getLikelihood();
+                ll_ = pt.getLikelihood();
             }
             return true;
         } catch (Exception err) {
@@ -223,11 +221,43 @@ public class DfmEstimator implements IDfmEstimator {
 
     @Override
     public Matrix getHessian() {
-        return min_.getCurvature();
+        Matrix h=min_.getCurvature();
+        if (h != null && ! isLogLikelihood()){
+             // we have to correct the hessian 
+            int ndf=ll_.getN()-h.getRowsCount();
+            return h.times(.5*ndf/min_.getObjective());
+        }else
+            return h;
     }
 
     @Override
     public DataBlock getGradient() {
-        return new DataBlock(min_.getGradient());
+        DataBlock grad=new DataBlock(min_.getGradient());
+        // the 
+        if (! isLogLikelihood()){
+            // we have to correct the gradient 
+            int ndf=ll_.getN()-grad.getLength();
+            grad.mul(-.5*ndf/min_.getObjective());
+        }
+        else
+            grad.chs();
+        return grad;
+    }
+
+    public double getObjective() {
+        return min_.getObjective();
+    }
+
+    public Likelihood geLikelihood() {
+        return ll_;
+    }
+
+    public boolean isLogLikelihood() {
+        MSsfAlgorithm algorithm = new MSsfAlgorithm();
+        if (min_ instanceof ProxyMinimizer) {
+            return false;
+        } else {
+            return !algorithm.isUsingSsq();
+        }
     }
 }

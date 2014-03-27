@@ -282,15 +282,16 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
                 if (rslts == null) {
                     return IProcessing.Status.Unprocessed;
                 }
+                DfmInformationSet actualData = rslts.getInput().actualData();
                 PcInitializer initializer = new PcInitializer();
                 if (spec.getSpan().getType() != PeriodSelectorType.All) {
-                    TsDomain cur = rslts.getInput().getCurrentDomain();
+                    TsDomain cur = actualData.getCurrentDomain();
                     cur = cur.select(spec.getSpan());
                     initializer.setEstimationDomain(cur);
                 } else {
                     initializer.setNonMissingThreshold(spec.getMinPartNonMissingSeries());
                 }
-                if (!initializer.initialize(rslts.getModel(), rslts.getInput())) {
+                if (!initializer.initialize(rslts.getModel(), actualData)) {
                     return IProcessing.Status.Invalid;
                 }
                 return IProcessing.Status.Valid;
@@ -345,6 +346,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
             if (rslts == null) {
                 return IProcessing.Status.Unprocessed;
             }
+            DfmInformationSet actualData = rslts.getInput().actualData();
             IDfmInitializer initializer;
             if (spec.getVersion() == EmSpec.DEF_VERSION) {
                 DfmEM2 em = new DfmEM2(null);
@@ -372,7 +374,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
                 em.setMaxIter(spec.getMaxIter());
                 initializer = em;
             }
-            if (!initializer.initialize(rslts.getModel(), rslts.getInput())) {
+            if (!initializer.initialize(rslts.getModel(), actualData)) {
                 return IProcessing.Status.Invalid;
             }
             return IProcessing.Status.Valid;
@@ -404,6 +406,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
             if (rslts == null) {
                 return IProcessing.Status.Unprocessed;
             }
+            DfmInformationSet actualData = rslts.getInput().actualData();
             DfmEstimator estimator;
             if (spec.getMethod() == NumericalProcessingSpec.Method.LevenbergMarquardt) {
                 LevenbergMarquardtMethod lm = new LevenbergMarquardtMethod();
@@ -456,8 +459,12 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
             estimator.setMaxIntermediateIter(spec.getMaxIntermediateIter());
             estimator.setMixedMethod(spec.isMixedEstimation());
             estimator.setUsingBlockIterations(spec.isBlockIterations());
-            if (!estimator.estimate(rslts.getModel(), rslts.getInput())) {
+            if (!estimator.estimate(rslts.getModel(), actualData)) {
                 return IProcessing.Status.Invalid;
+            }else{
+                rslts.setScore(estimator.getGradient());
+                rslts.setObservedInformation(estimator.getHessian());
+                rslts.setLikelihood(estimator.geLikelihood());
             }
             return IProcessing.Status.Valid;
         }

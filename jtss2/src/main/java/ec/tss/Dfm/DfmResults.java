@@ -51,8 +51,8 @@ public class DfmResults implements IProcResults {
     private final DfmInformationSet input;
     // optimization (if any)
     private Likelihood likelihood;
-    private Matrix hessian;
-    private double[] gradient;
+    private Matrix information; // D2(log likelihood)
+    private DataBlock score; // D1(log likelihood) 
     // smoothing/filtering
     private MSmoothingResults smoothing;
     private MFilteringResults filtering;
@@ -80,6 +80,30 @@ public class DfmResults implements IProcResults {
         return input;
     }
 
+    public Matrix getObservedInformation() {
+        return information;
+    }
+
+    public DataBlock getScore() {
+        return score;
+    }
+
+    public Likelihood getLikelihood() {
+        return likelihood;
+    }
+
+    public void setObservedInformation(Matrix i) {
+        information = i;
+    }
+
+    public void setScore(DataBlock s) {
+        score = s;
+    }
+    
+     public void setLikelihood(Likelihood ll) {
+        likelihood=ll;
+    }
+   
     /**
      * Matrix containing the correlation (+/-) between measurement errors
      * Pervasive correlation patterns may indicate the need to incorporate more

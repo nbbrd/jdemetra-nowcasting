@@ -17,6 +17,7 @@
 package ec.tstoolkit.dfm;
 
 import ec.tstoolkit.maths.matrices.Matrix;
+import ec.tstoolkit.timeseries.Day;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDataTable;
 import ec.tstoolkit.timeseries.simplets.TsDataTableInfo;
@@ -39,6 +40,21 @@ public class DfmInformationSet {
         }
     }
 
+    public DfmInformationSet actualData() {
+        TsData[] ndata = new TsData[table_.getSeriesCount()];
+        for (int i = 0; i < ndata.length; ++i) {
+            ndata[i] = table_.series(i).cleanExtremities();
+        }
+        return new DfmInformationSet(ndata);
+    }
+
+    public DfmInformationSet extendTo(final Day end) {
+        TsData[] ndata = new TsData[table_.getSeriesCount()];
+        for (int i = 0; i < ndata.length; ++i) {
+            ndata[i] = table_.series(i).extendTo(end);
+        }
+        return new DfmInformationSet(ndata);
+    }
     /**
      *
      * @return
@@ -46,9 +62,18 @@ public class DfmInformationSet {
     public TsDomain getCurrentDomain() {
         return table_.getDomain();
     }
-    
-    public int getSeriesCount(){
+
+    public int getSeriesCount() {
         return table_.getSeriesCount();
+    }
+
+    public int getDataCount() {
+        int n = 0;
+        for (int i = 0; i < table_.getSeriesCount(); ++i) {
+            TsData series = table_.series(i);
+            n += series.getObsCount();
+        }
+        return n;
     }
 
     /**

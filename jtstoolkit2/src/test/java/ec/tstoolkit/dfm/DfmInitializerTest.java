@@ -22,6 +22,8 @@ import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DescriptiveStatistics;
 import ec.tstoolkit.eco.Likelihood;
 import ec.tstoolkit.maths.matrices.Matrix;
+import ec.tstoolkit.maths.matrices.MatrixException;
+import ec.tstoolkit.maths.matrices.SymmetricMatrix;
 import ec.tstoolkit.maths.realfunctions.IFunctionInstance;
 import ec.tstoolkit.maths.realfunctions.ISsqFunctionInstance;
 import ec.tstoolkit.maths.realfunctions.ProxyMinimizer;
@@ -299,10 +301,20 @@ public class DfmInitializerTest {
 //        v0.diagonal().set(1e3);
 //        model0.setInitialCovariance(v0);
         monitor.setEstimator(estimator);
-        estimator.setMaxInitialIter(0);
-        //estimator.setMixedMethod(true);
-        estimator.setMaxIter(200);
-        //monitor.process(model0, s);
+        //       estimator.setMaxInitialIter(0);
+        estimator.setMixedMethod(false);
+        estimator.setMaxIter(1000);
+        monitor.process(model0, s);
+        System.out.println("******************");
+        System.out.println(estimator.getGradient());
+        System.out.println("******************");
+        Matrix H = estimator.getHessian();
+        try {
+            SymmetricMatrix.lcholesky(H);
+            System.out.println(H.diagonal());
+        } catch (MatrixException err) {
+
+        }
         //DfmEM em = new DfmEM();
         DfmEM2 em = new DfmEM2(null);
         //em.setCorrectingInitialVariance(false);
@@ -319,7 +331,7 @@ public class DfmInitializerTest {
             }
         };
         em.register(emhook);
-        em.initialize(model0, dfmInformationSet);
+        //em.initialize(model0, dfmInformationSet);
 
     }
 }
