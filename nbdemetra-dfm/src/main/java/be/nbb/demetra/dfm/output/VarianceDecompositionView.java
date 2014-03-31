@@ -15,11 +15,21 @@ import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
 import ec.ui.chart.TsXYDatasets;
+import ec.util.chart.SeriesFunction;
+import ec.util.chart.TimeSeriesChart;
 import ec.util.various.swing.JCommand;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Transferable;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.text.DateFormat;
+import java.text.DecimalFormat;
+import java.text.FieldPosition;
+import java.text.ParsePosition;
+import java.util.Calendar;
+import java.util.Date;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
@@ -32,6 +42,10 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
 
     public static final String DFM_RESULTS_PROPERTY = "dfmResults";
 
+    private final int[] horizon = {
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18,
+        20, 24, 28, 32, 36, 40, 48, 60, 72, 84, 96, 120, 240, 1000
+    };
     private Optional<DfmResults> dfmResults;
 
     /**
@@ -42,7 +56,38 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
 
         this.dfmResults = Optional.absent();
 
+        comboBox.addItemListener(new ItemListener() {
+            @Override
+            public void itemStateChanged(ItemEvent e) {
+                updateChart();
+            }
+        });
+        
         chart.setPopupMenu(createChartMenu().getPopupMenu());
+        chart.setSeriesRenderer(SeriesFunction.always(TimeSeriesChart.RendererType.STACKED_COLUMN));
+        chart.setSeriesFormatter(new SeriesFunction<String>() {
+            @Override
+            public String apply(int series) {
+                return chart.getDataset().getSeriesKey(series).toString();
+            }
+        });
+        chart.setValueFormat(new DecimalFormat("#.###"));
+        chart.setPeriodFormat(new DateFormat() {
+            final Calendar cal = Calendar.getInstance();
+
+            @Override
+            public StringBuffer format(Date date, StringBuffer toAppendTo, FieldPosition fieldPosition) {
+                cal.setTime(date);
+                int year = cal.get(Calendar.YEAR);
+                int index = year - 2000;
+                return index >= 0 && index < horizon.length ? toAppendTo.append(horizon[index]) : toAppendTo;
+            }
+
+            @Override
+            public Date parse(String source, ParsePosition pos) {
+                throw new UnsupportedOperationException("Not supported yet.");
+            }
+        });
 
         addPropertyChangeListener(new PropertyChangeListener() {
             @Override
@@ -107,11 +152,11 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
 
     private void updateChart() {
         if (dfmResults.isPresent() && comboBox.getSelectedIndex() != -1) {
-            TsPeriod start = new TsPeriod(TsFrequency.Yearly);
+            TsPeriod start = new TsPeriod(TsFrequency.Yearly, 2000, 0);
             TsXYDatasets.Builder b = TsXYDatasets.builder();
             int i = 0;
             for (DataBlock o : toMatrix(dfmResults.get(), comboBox.getSelectedIndex()).rowList()) {
-                b.add("" + i++, new TsData(start, o.getData(), true));
+                b.add("F" + i++, new TsData(start, o.getData(), true));
             }
             chart.setDataset(b.build());
         } else {
@@ -120,10 +165,6 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
     }
 
     private Matrix toMatrix(DfmResults results, int selectedItem) {
-        int[] horizon = {
-            1, 2, 3, 4, 5, 6, 7, 89, 10, 11, 12, 14, 16, 18,
-            20, 24, 28, 32, 36, 40, 48, 60, 72, 84, 96, 120, 240, 100
-        };
         return results.getVarianceDecompositionIdx(horizon, selectedItem);
     }
 
