@@ -62,7 +62,7 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
                 updateChart();
             }
         });
-        
+
         chart.setPopupMenu(createChartMenu().getPopupMenu());
         chart.setSeriesRenderer(SeriesFunction.always(TimeSeriesChart.RendererType.STACKED_COLUMN));
         chart.setSeriesFormatter(new SeriesFunction<String>() {
@@ -74,13 +74,17 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
         chart.setValueFormat(new DecimalFormat("#.###"));
         chart.setPeriodFormat(new DateFormat() {
             final Calendar cal = Calendar.getInstance();
+            final DecimalFormat f = new DecimalFormat("0000");
 
             @Override
             public StringBuffer format(Date date, StringBuffer toAppendTo, FieldPosition fieldPosition) {
                 cal.setTime(date);
                 int year = cal.get(Calendar.YEAR);
                 int index = year - 2000;
-                return index >= 0 && index < horizon.length ? toAppendTo.append(horizon[index]) : toAppendTo;
+                if (index >= 0 && index < horizon.length) {
+                    return toAppendTo.append(f.format(horizon[index]));
+                }
+                return toAppendTo.append(index);
             }
 
             @Override
@@ -152,11 +156,14 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
 
     private void updateChart() {
         if (dfmResults.isPresent() && comboBox.getSelectedIndex() != -1) {
+            Matrix matrix = toMatrix(dfmResults.get(), comboBox.getSelectedIndex());
             TsPeriod start = new TsPeriod(TsFrequency.Yearly, 2000, 0);
             TsXYDatasets.Builder b = TsXYDatasets.builder();
             int i = 0;
-            for (DataBlock o : toMatrix(dfmResults.get(), comboBox.getSelectedIndex()).rowList()) {
-                b.add("F" + i++, new TsData(start, o.getData(), true));
+            for (DataBlock o : matrix.rowList()) {
+                double[] data = new double[o.getLength()];
+                o.copyTo(data, 0);
+                b.add(i == matrix.getRowsCount() - 1 ? "Noise" : ("F" + i++), new TsData(start, data, true));
             }
             chart.setDataset(b.build());
         } else {
