@@ -39,7 +39,7 @@ import javax.swing.JMenuItem;
  *
  * @author charphi
  */
-final class VarianceDecompositionView extends javax.swing.JPanel {
+final class IrfView extends javax.swing.JPanel {
 
     public static final String DFM_RESULTS_PROPERTY = "dfmResults";
 
@@ -52,7 +52,7 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
     /**
      * Creates new form VarianceDecompositionView
      */
-    public VarianceDecompositionView() {
+    public IrfView() {
         initComponents();
 
         this.dfmResults = Optional.absent();
@@ -65,7 +65,7 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
         });
 
         chart.setPopupMenu(createChartMenu().getPopupMenu());
-        chart.setSeriesRenderer(SeriesFunction.always(TimeSeriesChart.RendererType.STACKED_COLUMN));
+        chart.setSeriesRenderer(SeriesFunction.always(TimeSeriesChart.RendererType.LINE));
         chart.setSeriesFormatter(new SeriesFunction<String>() {
             @Override
             public String apply(int series) {
@@ -172,7 +172,7 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
             for (DataBlock o : matrix.rowList()) {
                 double[] data = new double[o.getLength()];
                 o.copyTo(data, 0);
-                b.add(i == matrix.getRowsCount() - 1 ? "Noise" : ("F" + i++), new TsData(start, data, true));
+                b.add(("F" + i++), new TsData(start, data, true));
             }
             chart.setDataset(b.build());
         } else {
@@ -181,7 +181,7 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
     }
 
     private Matrix toMatrix(DfmResults results, int selectedItem) {
-        return results.getVarianceDecompositionIdx(horizon, selectedItem);
+        return results.getIrfIdx(horizon, selectedItem);
     }
 
     private static DefaultComboBoxModel toComboBoxModel(DfmInformationSet data) {
@@ -202,12 +202,12 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
         return menu;
     }
 
-    private static final class CopyCommand extends JCommand<VarianceDecompositionView> {
+    private static final class CopyCommand extends JCommand<IrfView> {
 
         public static final CopyCommand INSTANCE = new CopyCommand();
 
         @Override
-        public void execute(VarianceDecompositionView c) throws Exception {
+        public void execute(IrfView c) throws Exception {
             Optional<DfmResults> dfmResults = c.getDfmResults();
             if (dfmResults.isPresent()) {
                 Transferable t = TssTransferSupport.getInstance().fromMatrix(c.toMatrix(dfmResults.get(), c.comboBox.getSelectedIndex()));
@@ -216,12 +216,12 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
         }
 
         @Override
-        public boolean isEnabled(VarianceDecompositionView c) {
+        public boolean isEnabled(IrfView c) {
             return c.getDfmResults().isPresent();
         }
 
         @Override
-        public JCommand.ActionAdapter toAction(VarianceDecompositionView c) {
+        public JCommand.ActionAdapter toAction(IrfView c) {
             return super.toAction(c).withWeakPropertyChangeListener(c, DFM_RESULTS_PROPERTY);
         }
     }
