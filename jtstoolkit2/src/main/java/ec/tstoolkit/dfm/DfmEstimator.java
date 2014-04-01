@@ -18,6 +18,8 @@ package ec.tstoolkit.dfm;
 
 import ec.tstoolkit.algorithm.IProcessingHookProvider;
 import ec.tstoolkit.data.DataBlock;
+import ec.tstoolkit.data.DataBlockIterator;
+import ec.tstoolkit.data.IReadDataBlock;
 import ec.tstoolkit.eco.Likelihood;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.maths.realfunctions.IFunctionMinimizer;
@@ -46,6 +48,7 @@ public class DfmEstimator implements IDfmEstimator {
     private TsDomain idom_;
     private boolean useBlockIterations_ = true, mixed_ = true;
     private Likelihood ll_;
+    private DataBlock factors_;
 
     public DfmEstimator() {
         min_ = new ProxyMinimizer(new LevenbergMarquardtMethod());
@@ -190,9 +193,9 @@ public class DfmEstimator implements IDfmEstimator {
                     pt = (MSsfFunctionInstance) min_.getResult();
                     nmodel = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
                     var = pt.getLikelihood().getSigma();
-                    model = nmodel;
-                    model.rescaleVariances(var);
                     ll_ = pt.getLikelihood();
+                    model = nmodel.clone();
+                    model.rescaleVariances(var);
                     if (converged_ || niter >= maxiter_) {
                         break;
                     }
@@ -206,7 +209,7 @@ public class DfmEstimator implements IDfmEstimator {
                 converged_ = min_.minimize(fn, fn.evaluate(mapping.map(model)));
                 pt = (MSsfFunctionInstance) min_.getResult();
                 double var = pt.getLikelihood().getSigma();
-                model = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
+                model = ((DynamicFactorModel.Ssf) pt.ssf).getModel().clone();
                 model.rescaleVariances(var);
                 ll_ = pt.getLikelihood();
             }
@@ -216,31 +219,47 @@ public class DfmEstimator implements IDfmEstimator {
         } finally {
             model.normalize();
             dfm.copy(model);
+            DfmMapping fmapping = new DfmMapping(model);
+            IReadDataBlock mp = fmapping.parameters();
+            IReadDataBlock up = min_.getResult().getParameters();
+            factors_ = new DataBlock(mp.getLength());
+            for (int i = 0; i < factors_.getLength(); ++i) {
+                factors_.set(i, mp.get(i) / up.get(i));
+            }
         }
     }
 
     @Override
     public Matrix getHessian() {
-        Matrix h=min_.getCurvature();
-        if (h != null && ! isLogLikelihood()){
-             // we have to correct the hessian 
-            int ndf=ll_.getN()-h.getRowsCount();
-            return h.times(.5*ndf/min_.getObjective());
-        }else
-            return h;
+        Matrix h = min_.getCurvature();
+        if (h != null && !isLogLikelihood()) {
+            // we have to correct the hessian 
+            int ndf = ll_.getN() - h.getRowsCount();
+            h = h.times(.5 * ndf / min_.getObjective());
+        }
+        DataBlockIterator rows=h.rows(), cols=h.columns();
+        DataBlock row=rows.getData(), col=cols.getData();
+        do{
+            row.mul(factors_);
+        }while (rows.next());
+        do{
+            col.mul(factors_);
+        }while (cols.next());
+        return h;
     }
 
     @Override
     public DataBlock getGradient() {
-        DataBlock grad=new DataBlock(min_.getGradient());
+        DataBlock grad = new DataBlock(min_.getGradient());
         // the 
-        if (! isLogLikelihood()){
+        if (!isLogLikelihood()) {
             // we have to correct the gradient 
-            int ndf=ll_.getN()-grad.getLength();
-            grad.mul(-.5*ndf/min_.getObjective());
-        }
-        else
+            int ndf = ll_.getN() - grad.getLength();
+            grad.mul(-.5 * ndf / min_.getObjective());
+        } else {
             grad.chs();
+        }
+        grad.mul(factors_);
         return grad;
     }
 

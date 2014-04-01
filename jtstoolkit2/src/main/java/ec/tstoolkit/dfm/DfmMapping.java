@@ -303,7 +303,7 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
         }
         Q.subDiagonal(-nb).set(1);
         IEigenSystem es=EigenSystem.create(Q, false);
-        return es.getEigenValues(1)[0].abs() < .99;
+        return es.getEigenValues(1)[0].abs() < .999;
         }
         catch (MatrixException err){
             return false;

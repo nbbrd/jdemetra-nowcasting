@@ -20,6 +20,7 @@ import data.Data;
 import ec.tstoolkit.algorithm.IProcessingHook;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DescriptiveStatistics;
+import ec.tstoolkit.dfm.DynamicFactorModel.TransitionDescriptor;
 import ec.tstoolkit.eco.Likelihood;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.maths.matrices.MatrixException;
@@ -261,11 +262,12 @@ public class DfmInitializerTest {
         }
         DynamicFactorModel model0 = dmodel.clone();
         model0.normalize();
+ //       model0.setTransition(new TransitionDescriptor(3, 1));
         DfmInformationSet dfmInformationSet = new DfmInformationSet(s);
 
         //DefaultInitializer initializer = new DefaultInitializer();
         PcInitializer initializer = new PcInitializer();
-        initializer.initialize(model0, dfmInformationSet);
+ //       initializer.initialize(model0, dfmInformationSet);
 
         DynamicFactorModel model1 = model0.clone();
         DfmMonitor monitor = new DfmMonitor();
@@ -301,24 +303,29 @@ public class DfmInitializerTest {
 //        v0.diagonal().set(1e3);
 //        model0.setInitialCovariance(v0);
         monitor.setEstimator(estimator);
-        //       estimator.setMaxInitialIter(0);
+               estimator.setMaxInitialIter(0);
         estimator.setMixedMethod(false);
-        estimator.setMaxIter(1000);
+//        estimator.setUsingBlockIterations(false);
+        estimator.setMaxIter(500);
         monitor.process(model0, s);
+        System.out.println("******************");
+        System.out.println(new DfmMapping(model0).parameters());
         System.out.println("******************");
         System.out.println(estimator.getGradient());
         System.out.println("******************");
         Matrix H = estimator.getHessian();
         try {
-            SymmetricMatrix.lcholesky(H);
-            System.out.println(H.diagonal());
+            H = SymmetricMatrix.inverse(H);
+            DataBlock stde = new DataBlock(H.diagonal());
+            stde.sqrt();
+            System.out.println(stde);
         } catch (MatrixException err) {
 
         }
         //DfmEM em = new DfmEM();
         DfmEM2 em = new DfmEM2(null);
         //em.setCorrectingInitialVariance(false);
-        em.setMaxIter(2000);
+        em.setMaxIter(500);
         IProcessingHook<DfmEM2, DynamicFactorModel> emhook = new IProcessingHook<DfmEM2, DynamicFactorModel>() {
 
             @Override
