@@ -155,7 +155,7 @@ public class VarSpec implements IProcSpecification, Cloneable {
     @Override
     public boolean read(InformationSet info) {
         if (info == null) {
-            return false;
+            return true;
         }
         Integer nv = info.get(NVARS, Integer.class);
         Integer nl = info.get(NLAGS, Integer.class);

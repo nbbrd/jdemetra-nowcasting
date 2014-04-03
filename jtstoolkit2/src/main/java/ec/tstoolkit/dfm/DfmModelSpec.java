@@ -90,16 +90,16 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
     @Override
     public boolean read(InformationSet info) {
         if (info == null) {
-            return false;
+            return true;
         }
         vspec = new VarSpec();
-        if (vspec.read(info.getSubSet(VSPEC))) {
+        if (!vspec.read(info.getSubSet(VSPEC))) {
             return false;
         }
         mspecs.clear();
         List<Information<InformationSet>> sel = info.select(MSPEC + "*", InformationSet.class);
         for (Information<InformationSet> m : sel) {
-            MeasurementSpec x = new MeasurementSpec();
+            MeasurementSpec x = new MeasurementSpec(vspec.getEquationsCount());
             if (x.read(m.value)) {
                 mspecs.add(x);
             }

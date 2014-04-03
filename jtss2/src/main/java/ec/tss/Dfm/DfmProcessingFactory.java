@@ -352,6 +352,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
                 DfmEM2 em = new DfmEM2(null);
                 em.setMaxIter(spec.getMaxIter());
                 em.setCorrectingInitialVariance(end);
+                em.setEpsilon(spec.getPrecision());
                 initializer = em;
                 if (DfmProcessingFactory.this.hasHooks()) {
                     hook = new IProcessingHook<DfmEM2, DynamicFactorModel>() {
@@ -458,6 +459,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
             estimator.setMaxInitialIter(spec.getMaxInitialIter());
             estimator.setMaxIntermediateIter(spec.getMaxIntermediateIter());
             estimator.setMixedMethod(spec.isMixedEstimation());
+            estimator.setIndependentVarShocks(spec.isIndependentVarShocks());
             estimator.setUsingBlockIterations(spec.isBlockIterations());
             if (!estimator.estimate(rslts.getModel(), actualData)) {
                 return IProcessing.Status.Invalid;

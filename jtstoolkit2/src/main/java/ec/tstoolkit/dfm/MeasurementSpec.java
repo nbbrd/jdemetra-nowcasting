@@ -37,35 +37,34 @@ public class MeasurementSpec implements IProcSpecification {
         DiffY
     }
 
-    public static final String NAME = "name", SERIESTRANSFORMATIONS = "stransformations", 
+    public static final String NAME = "name", SERIESTRANSFORMATIONS = "stransformations",
             COEFF = "coeff", VAR = "var", FACTORTRANSFORMATION = "ftransformation",
-            MEAN="mean", STDEV="stdev", DEF_NAME="var";
-    private static volatile int g_idx=0;
+            MEAN = "mean", STDEV = "stdev", DEF_NAME = "var";
+    private static volatile int g_idx = 0;
     private String name;
     private Transformation[] transformations;
-    private double mean=Double.NaN, stdev=Double.NaN;
+    private double mean = Double.NaN, stdev = Double.NaN;
     private Parameter[] coeff;
     private Parameter var;
-    private DynamicFactorModel.MeasurementType type= DynamicFactorModel.MeasurementType.L;
-    
-    public MeasurementSpec(){
+    private DynamicFactorModel.MeasurementType type = DynamicFactorModel.MeasurementType.L;
+
+    public MeasurementSpec() {
         this(0);
     }
-    
-    public MeasurementSpec(int nfac){
-        name=DEF_NAME+(++g_idx);
-        coeff=Parameter.create(nfac);
-        transformations=new Transformation[0];
-        var=new Parameter();
+
+    public MeasurementSpec(int nfac) {
+        name = DEF_NAME + (++g_idx);
+        coeff = Parameter.create(nfac);
+        transformations = new Transformation[0];
+        var = new Parameter();
     }
-    
-    public MeasurementSpec(final String name, int nfac){
-        this.name=name;
-        coeff=Parameter.create(nfac);
-        transformations=new Transformation[0];
-        var=new Parameter();
+
+    public MeasurementSpec(final String name, int nfac) {
+        this.name = name;
+        coeff = Parameter.create(nfac);
+        transformations = new Transformation[0];
+        var = new Parameter();
     }
-    
 
     @Override
     public MeasurementSpec clone() {
@@ -90,16 +89,18 @@ public class MeasurementSpec implements IProcSpecification {
     public InformationSet write(boolean verbose) {
         InformationSet info = new InformationSet();
         info.set(NAME, name);
-        if (Parameter.isDefined(coeff)) {
+        if (!Parameter.isDefault(coeff)) {
             info.set(COEFF, coeff);
         }
-        if (Parameter.isDefined(var)) {
+        if (!Parameter.isDefault(var)) {
             info.set(VAR, var);
         }
-        if (! Double.isNaN(mean))
+        if (!Double.isNaN(mean)) {
             info.set(MEAN, mean);
-        if (! Double.isNaN(stdev))
+        }
+        if (!Double.isNaN(stdev)) {
             info.set(STDEV, stdev);
+        }
         if (transformations != null) {
             String[] t = new String[transformations.length];
             for (int i = 0; i < t.length; ++i) {
@@ -114,17 +115,27 @@ public class MeasurementSpec implements IProcSpecification {
     @Override
     public boolean read(InformationSet info) {
         if (info == null) {
-            return false;
+            return true;
         }
         name = info.get(NAME, String.class);
-        coeff = info.get(COEFF, Parameter[].class);
-        var = info.get(VAR, Parameter.class);
-        Double d=info.get(MEAN, Double.class);
-        if (d != null)
-            mean=d;
-        d=info.get(STDEV, Double.class);
-        if (d != null)
-            stdev=d;
+        if (name == null)
+            return false;
+        Parameter[] c = info.get(COEFF, Parameter[].class);
+        if (c != null) {
+            coeff = c;
+        }
+        Parameter v = info.get(VAR, Parameter.class);
+        if (v != null) {
+            var = v;
+        }
+        Double d = info.get(MEAN, Double.class);
+        if (d != null) {
+            mean = d;
+        }
+        d = info.get(STDEV, Double.class);
+        if (d != null) {
+            stdev = d;
+        }
         String[] tr = info.get(SERIESTRANSFORMATIONS, String[].class);
         if (tr != null) {
             transformations = new Transformation[tr.length];
@@ -162,24 +173,23 @@ public class MeasurementSpec implements IProcSpecification {
     public void setSeriesTransformations(Transformation[] tr) {
         this.transformations = tr;
     }
-    
-    public double getMean(){
+
+    public double getMean() {
         return mean;
     }
 
-    public void setMean(double mean){
-        this.mean=mean;
+    public void setMean(double mean) {
+        this.mean = mean;
     }
-    
-    public double getStdev(){
+
+    public double getStdev() {
         return stdev;
     }
 
-    public void setStdev(double e){
-        this.stdev=e;
+    public void setStdev(double e) {
+        this.stdev = e;
     }
-    
-    
+
     /**
      * @return the var
      */
@@ -207,13 +217,13 @@ public class MeasurementSpec implements IProcSpecification {
     public void setFactorsTransformation(DynamicFactorModel.MeasurementType type) {
         this.type = type;
     }
-    
-    public String getName(){
+
+    public String getName() {
         return name;
     }
-    
-    public void setName(String name){
-        this.name=name;
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     @Override
@@ -232,7 +242,7 @@ public class MeasurementSpec implements IProcSpecification {
     public boolean equals(MeasurementSpec spec) {
         return type == spec.type && var.equals(spec.var) && Arrays.deepEquals(coeff, spec.coeff)
                 && Arrays.equals(transformations, spec.transformations)
-                && mean==spec.mean && stdev == spec.stdev;
+                && mean == spec.mean && stdev == spec.stdev;
     }
 
     public static void fillDictionary(String prefix, Map<String, Class> dic) {

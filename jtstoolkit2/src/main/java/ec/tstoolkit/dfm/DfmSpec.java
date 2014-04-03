@@ -84,12 +84,12 @@ public class DfmSpec implements IProcSpecification, Cloneable {
     @Override
     public boolean read(InformationSet info) {
         if (info == null) {
+            return true;
+        }
+        if (!model_.read(info.getSubSet(MSPEC))) {
             return false;
         }
-        if (model_.read(info.getSubSet(MSPEC))) {
-            return false;
-        }
-        if (estimation_.read(info.getSubSet(ESPEC))) {
+        if (!estimation_.read(info.getSubSet(ESPEC))) {
             return false;
         }
         if (!sa_.read(info.getSubSet(SASPEC))) {

@@ -82,7 +82,7 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
         return eps_;
     }
 
-    public void setDouble(double val) {
+    public void setEpsilon(double val) {
         eps_ = val;
     }
 
