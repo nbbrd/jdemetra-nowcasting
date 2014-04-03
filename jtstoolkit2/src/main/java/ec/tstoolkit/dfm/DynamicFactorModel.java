@@ -10,6 +10,7 @@ import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DataBlockIterator;
 import ec.tstoolkit.information.InformationMapper;
 import ec.tstoolkit.maths.matrices.HouseholderR;
+import ec.tstoolkit.maths.matrices.LowerTriangularMatrix;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.maths.matrices.MatrixException;
 import ec.tstoolkit.maths.matrices.SubMatrix;
@@ -446,6 +447,34 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
          * Covariance matrix of the innovations
          */
         public final Matrix covar;
+
+        /**
+         * Gets the matrix of the var parameters corresponding to a given lag
+         *
+         * @param lag The lag in the var equation. Should belong to [1, nlags]
+         * @return A new matrix is returned
+         */
+        public Matrix getA(int lag) {
+            int n = varParams.getRowsCount();
+            Matrix a = new Matrix(n, n);
+            for (int i = 0, j = lag - 1; i < n; ++i, j += nlags) {
+                a.column(i).copy(varParams.column(j));
+            }
+            return a;
+        }
+
+        /**
+         * Sets the matrix of the var parameters corresponding to a given lag
+         *
+         * @param lag The lag in the var equation. Should belong to [1, nlags]
+         * @param a The matrix
+         */
+        public void setA(int lag, Matrix a) {
+            int n = varParams.getRowsCount();
+            for (int i = 0, j = lag - 1; i < n; ++i, j += nlags) {
+                varParams.column(j).copy(a.column(i));
+            }
+        }
     }
 
     /**
@@ -593,6 +622,86 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
                 }
             }
         }
+    }
+
+    /**
+     * Rescale the model so that the variance of the transition is I. The method
+     * pre-multiplies the factor by the inverse of the Cholesky factor of the
+     * covariance matrix of the transition innovations. The different
+     * coefficients are updated accordingly
+     *
+     * @throws A DfmException is thrown when the loadings are not compatible
+     * with the triangular transformation implied by Cholesky
+     */
+    public void lnormalize() {
+        if (tdesc_.covar.subMatrix().isIdentity())
+            return;
+        Matrix L = tdesc_.covar.clone();
+        SymmetricMatrix.lcholesky(L);
+        // L contains the Cholesky factor
+
+        // transform the loadings
+        // y = C*f + e <-> y = (C*L)*L^-1*f+e
+        // B = C*L
+        // loadings
+        for (MeasurementDescriptor desc : mdesc_) {
+            double[] c = desc.coeff.clone();
+            for (int i = 0; i < desc.coeff.length; ++i) {
+                double z = 0;
+                boolean nd = false;
+                for (int j = i; j < desc.coeff.length; ++j) {
+                    if (!Double.isNaN(c[j])) {
+                        if (nd) {
+                            throw new DfmException("Unsupported model");
+                        }
+                        z += c[j] * L.get(j, i);
+                    } else {
+                        nd = true;
+                    }
+                }
+                if (!Double.isNaN(desc.coeff[i])) {
+                    desc.coeff[i] = z;
+                }
+            }
+        }
+        // transform the var
+        // f(t) = A f(t-1) + u(t)
+        //L^-1*f(t) = L^-1*A*L*L^-1* f(t-1) + e(t)
+        // C=L^-1*A*L <-> LC=AL
+        for (int i = 1; i <= tdesc_.nlags; ++i) {
+            Matrix A = tdesc_.getA(i);
+            SubMatrix a = A.subMatrix();
+            // AL
+            LowerTriangularMatrix.lmul(L, a);
+            // LC = (AL)
+            LowerTriangularMatrix.rsolve(L, a);
+            tdesc_.setA(i, A);
+        }
+        tdesc_.covar.set(0);
+        tdesc_.covar.diagonal().set(1);
+        if (V0_ != null) {
+            // L^-1*V*L^-1' =W <-> L(WL')=V <-> LX=V, WL'=X or LW'=X'
+            Matrix V0 = new Matrix(nf_ * c_, nf_ * c_);
+            for (int i = 0; i < c_; ++i) {
+                for (int j = 0; j <c_; ++j) {
+                    Matrix t = new Matrix(nf_, nf_);
+                    for (int k = 0; k < nf_; ++k) {
+                        for (int l = 0; l < nf_; ++l) {
+                            t.set(k, l, V0_.get(k * c_ + i, l * c_ + j));
+                        }
+                    }
+                    LowerTriangularMatrix.rsolve(L, t.subMatrix());
+                    LowerTriangularMatrix.rsolve(L, t.subMatrix().transpose());
+                    for (int k = 0; k < nf_; ++k) {
+                        for (int l = 0; l < nf_; ++l) {
+                            V0.set(k * c_ + i, l * c_ + j, t.get(k, l));
+                        }
+                    }
+                }
+            }
+            V0_=V0;
+        }
+
     }
 
     @Override

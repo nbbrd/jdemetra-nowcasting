@@ -25,7 +25,6 @@ import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.maths.matrices.EigenSystem;
 import ec.tstoolkit.maths.matrices.MatrixException;
 import ec.tstoolkit.maths.matrices.SymmetricMatrix;
-import ec.tstoolkit.maths.realfunctions.IParametricMapping;
 import ec.tstoolkit.maths.realfunctions.ParamValidation;
 import ec.tstoolkit.mssf2.IMSsf;
 
@@ -33,9 +32,9 @@ import ec.tstoolkit.mssf2.IMSsf;
  *
  * @author Jean Palate
  */
-public class DfmMapping implements IParametricMapping<IMSsf> {
+public class DfmMapping implements IDfmMapping {
 
-    static final double EPS = 1e-5;// Math.sqrt(2.220446e-16);
+    static final double EPS = 1e-5;
 
     private final DynamicFactorModel template;
     // [0, nml[ loadings
@@ -195,6 +194,7 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
         return p;
     }
 
+    @Override
     public IReadDataBlock parameters() {
         return map(template);
     }
@@ -243,6 +243,7 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
         return map(m);
     }
 
+    @Override
     public IReadDataBlock map(DynamicFactorModel m) {
         // copy to p
         DataBlock p = new DataBlock(np);
@@ -303,7 +304,7 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
         }
         Q.subDiagonal(-nb).set(1);
         IEigenSystem es=EigenSystem.create(Q, false);
-        return es.getEigenValues(1)[0].abs() < .999;
+        return es.getEigenValues(1)[0].abs() < .99;
         }
         catch (MatrixException err){
             return false;
@@ -313,7 +314,7 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
 
     @Override
     public double epsilon(IReadDataBlock inparams, int idx) {
-        return inparams.get(idx)>EPS ? -EPS : EPS;
+        return inparams.get(idx)>0 ? -EPS : EPS;
     }
 
     @Override
@@ -333,25 +334,7 @@ public class DfmMapping implements IParametricMapping<IMSsf> {
 
     @Override
     public ParamValidation validate(IDataBlock ioparams) {
-//        IReadDataBlock vp = vparams(ioparams);
-//        if (vp == null) {
-//            return ParamValidation.Valid;
-//        }
-//        Matrix Q = new Matrix(nb * nl, nb * nl);
-//        for (int i = 0, i0 = 0; i < nb; ++i) {
-//            for (int l = 0; l < nl; ++l, i0 += nb) {
-//                DataBlock c = Q.column(l * nb + i).range(0, nb);
-//                c.copy(vp.rextract(i0, nb));
-//            }
-//        }
-//        Q.subDiagonal(-nb).set(1);
-//        IEigenSystem es = EigenSystem.create(Q, false);
-//        if (es.getEigenValues(1)[0].abs() < 1) {
-//            return ParamValidation.Valid;
-//        } else {
-//            return ParamValidation.Invalid;
-//        }
-        return ParamValidation.Valid;
+        return checkBoundaries(ioparams) ? ParamValidation.Valid : ParamValidation.Invalid;
     }
     
     @Override

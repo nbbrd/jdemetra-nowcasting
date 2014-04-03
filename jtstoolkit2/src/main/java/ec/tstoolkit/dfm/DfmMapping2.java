@@ -20,10 +20,11 @@ import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.IDataBlock;
 import ec.tstoolkit.data.IReadDataBlock;
 import ec.tstoolkit.dfm.DynamicFactorModel.MeasurementDescriptor;
+import ec.tstoolkit.maths.matrices.EigenSystem;
+import ec.tstoolkit.maths.matrices.IEigenSystem;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.maths.matrices.MatrixException;
-import ec.tstoolkit.maths.matrices.SymmetricMatrix;
-import ec.tstoolkit.maths.realfunctions.IParametricMapping;
+import static ec.tstoolkit.maths.realfunctions.IParametersDomain.PARAM;
 import ec.tstoolkit.maths.realfunctions.ParamValidation;
 import ec.tstoolkit.mssf2.IMSsf;
 
@@ -31,17 +32,20 @@ import ec.tstoolkit.mssf2.IMSsf;
  *
  * @author Jean Palate
  */
-public class DfmMapping2 implements IParametricMapping<IMSsf> {
+public class DfmMapping2 implements IDfmMapping {
+
+    static final double EPS = 1e-5;
 
     private final DynamicFactorModel template;
     // [0, nml[ loadings
     // [nml, nml+nm[ meas. variance (square roots)
     // [nml+nm, nml+nm+nb*nb*nl[ var parameters 
-    // [nml+nb*nb*nl+nm, nml+nb*nb*nl+nm+nb*(nb-1)/2[ trans. covariance (cholesky factor), by row 
+    // trans. covariance = I
     private final int np;
     private final int nml, nm, nb, nl;
     private final int l0, mv0, v0;
-    private double lmax = 5;
+    private final int ivmax;
+    private final double vmax;
 
     private IReadDataBlock loadings(IReadDataBlock p) {
         return l0 < 0 ? null : p.rextract(l0, nml);
@@ -73,39 +77,51 @@ public class DfmMapping2 implements IParametricMapping<IMSsf> {
 
     public DfmMapping2(DynamicFactorModel model, final boolean mfixed, final boolean tfixed) {
         template = model.clone();
-        template.normalize();
-        template.getTransition().covar.set(0);
-        template.getTransition().covar.diagonal().set(1);
         nb = template.getFactorsCount();
         nl = template.getTransition().nlags;
-        nm = template.getMeasurementsCount();
         // measurement: all loadings, all var
         // vparams
         // covar
-        int p = 0;
+        int p;
         if (mfixed) {
             nml = 0;
+            nm = 0;
             l0 = -1;
             mv0 = -1;
+            v0 = 0;
+            ivmax = -1;
+            vmax = 0;
+            p = nb * nb * nl;
         } else {
-            int n = 0;
+            int n = 0, m = 0;
+            int iv = -1;
+            double v = 0;
             for (MeasurementDescriptor desc : template.getMeasurements()) {
-                for (int j = 0; j < nb; ++j) {
-                    if (!Double.isNaN(desc.coeff[j])) {
+                if (desc.var > v) {
+                    v = desc.var;
+                    iv = m;
+                }
+                for (int i = 0; i < nb; ++i) {
+                    if (!Double.isNaN(desc.coeff[i])) {
                         ++n;
                     }
                 }
+                ++m;
             }
-            nml = n;
             l0 = 0;
+            ivmax = iv;
+            vmax = v;
+            nm = template.getMeasurementsCount() - 1;
+            nml = n;
             mv0 = nml;
-            p += nml + nm;
-        }
-        if (tfixed) {
-            v0 = -1;
-        } else {
-            v0 = p;
-            p += nl * nb * nb;
+            p = nm + nml;
+            if (tfixed) {
+                v0 = -1;
+            } else {
+                //         p = tv0 + nb;
+                v0 = p;
+                p += nb * nb * nl;
+            }
         }
         np = p;
 
@@ -121,6 +137,11 @@ public class DfmMapping2 implements IParametricMapping<IMSsf> {
     }
 
     @Override
+    public IReadDataBlock parameters() {
+        return map(template);
+    }
+
+    @Override
     public IMSsf map(IReadDataBlock p) {
         DynamicFactorModel m = template.clone();
         IReadDataBlock l = loadings(p);
@@ -129,19 +150,22 @@ public class DfmMapping2 implements IParametricMapping<IMSsf> {
         if (l != null) {
             int n = 0;
             for (MeasurementDescriptor desc : m.getMeasurements()) {
-                for (int j = 0; j < nb; ++j) {
-                    if (!Double.isNaN(desc.coeff[j])) {
-                        desc.coeff[j] = l.get(i0++);
+                for (int k = 0; k < nb; ++k) {
+                    if (!Double.isNaN(desc.coeff[k])) {
+                        desc.coeff[k] = l.get(i0++);
                     }
                 }
-                double x = mv.get(j0++);
-                desc.var = x * x;
+                if (n == ivmax) {
+                    desc.var = vmax;
+                } else {
+                    double x = mv.get(j0++);
+                    desc.var = x * x;
+                }
                 ++n;
             }
         }
         IReadDataBlock vp = vparams(p);
         if (vp != null) {
-            Matrix v = m.getTransition().covar;
             Matrix t = m.getTransition().varParams;
             vp.copyTo(t.internalStorage(), 0);
         }
@@ -155,6 +179,7 @@ public class DfmMapping2 implements IParametricMapping<IMSsf> {
         return map(m);
     }
 
+    @Override
     public IReadDataBlock map(DynamicFactorModel m) {
         // copy to p
         DataBlock p = new DataBlock(np);
@@ -162,24 +187,21 @@ public class DfmMapping2 implements IParametricMapping<IMSsf> {
         DataBlock mv = mvars(p);
         int i0 = 0, j0 = 0;
         if (l != null) {
+             int n = 0;
             for (MeasurementDescriptor desc : m.getMeasurements()) {
-                for (int j = 0; j < nb; ++j) {
-                    if (!Double.isNaN(desc.coeff[j])) {
-                        l.set(i0++, desc.coeff[j]);
+                for (int k = 0; k < nb; ++k) {
+                    if (!Double.isNaN(desc.coeff[k])) {
+                        l.set(i0++, desc.coeff[k]);
                     }
                 }
-                mv.set(j0++, Math.sqrt(desc.var));
+                if (n != ivmax) {
+                    mv.set(j0++, Math.sqrt(desc.var));
+                }
+                ++n;
             }
         }
         DataBlock vp = vparams(p);
         if (vp != null) {
-//            Matrix v = m.getTransition().covar.clone();
-//            SymmetricMatrix.lcholesky(v);
-//            i0 = 0;
-//            for (int i = 0; i < nb; ++i) {
-//                tv.extract(i0, i+1).copy(v.row(i).range(0, i + 1));
-//                i0 += i + 1;
-//            }
             Matrix t = m.getTransition().varParams;
             vp.copyFrom(t.internalStorage(), 0);
         }
@@ -188,12 +210,37 @@ public class DfmMapping2 implements IParametricMapping<IMSsf> {
 
     @Override
     public boolean checkBoundaries(IReadDataBlock inparams) {
-        return true;
+        // check the stability of VAR
+        try {
+            IReadDataBlock vp = vparams(inparams);
+            if (vp == null) {
+                return true;
+            }
+            // s=(f0,t f1,t f2,t f0,t-1 f1,t-1 f2,t-1 ...f0,t-l+1 f1,t-l+1 f2,t-l+1)
+            //    |x00 x10 x20   
+            // T =|...
+            // T =|1   0   0
+            //    |0   1   0
+            //    |...
+            Matrix Q = new Matrix(nb * nl, nb * nl);
+            for (int i = 0, i0 = 0; i < nb; ++i) {
+                for (int l = 0; l < nl; ++l, i0 += nb) {
+                    DataBlock c = Q.column(l * nb + i).range(0, nb);
+                    c.copy(vp.rextract(i0, nb));
+                }
+            }
+            Q.subDiagonal(-nb).set(1);
+            IEigenSystem es = EigenSystem.create(Q, false);
+            return es.getEigenValues(1)[0].abs() < .99;
+        } catch (MatrixException err) {
+            return false;
+        }
+//        return true;
     }
 
     @Override
     public double epsilon(IReadDataBlock inparams, int idx) {
-        return 1e-6;
+        return inparams.get(idx) > 0 ? -EPS : EPS;
     }
 
     @Override
@@ -213,11 +260,11 @@ public class DfmMapping2 implements IParametricMapping<IMSsf> {
 
     @Override
     public ParamValidation validate(IDataBlock ioparams) {
-        return ParamValidation.Valid;
+        return checkBoundaries(ioparams) ? ParamValidation.Valid : ParamValidation.Invalid;
     }
-    
+
     @Override
     public String getDescription(int idx) {
-         return PARAM+idx; 
+        return PARAM + idx;
     }
 }

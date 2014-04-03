@@ -22,13 +22,13 @@ public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
 
     public static final int DEF_VERSION = 2, DEF_MAXITER = 1000, DEF_MAXSITER = 15,
             DEF_NITER = 5;
-    public static final Boolean DEF_BLOCK = true, DEF_MIXED=true;
+    public static final Boolean DEF_BLOCK = true, DEF_MIXED=true, DEF_IVAR=true;
     public static final String ENABLED = "enabled", MAXITER = "maxiter", MAXSITER = "maxsiter", NITER = "niter", 
-            BLOCKITER = "blockiter", METHOD="method", EPS = "eps", MIXED="mixed";
+            BLOCKITER = "blockiter", METHOD="method", EPS = "eps", MIXED="mixed", IVAR="ivar";
     public static final double DEF_EPS = 1e-9;
     private boolean enabled_;
     private int maxiter_ = DEF_MAXITER, maxsiter_ = DEF_MAXSITER, niter_ = DEF_NITER;
-    private boolean block_ = DEF_BLOCK, mixed_=DEF_MIXED;
+    private boolean block_ = DEF_BLOCK, mixed_=DEF_MIXED, ivar_=DEF_IVAR;
     private double eps_ = DEF_EPS;
     private Method method_ = Method.LevenbergMarquardt;
 
@@ -80,6 +80,14 @@ public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
         mixed_=b;
     }
 
+    public boolean isIndependentVarShocks(){
+        return ivar_;
+    }
+    
+    public void setIndependentVarShocks(boolean b){
+        ivar_=b;
+    }
+
     public Method getMethod(){
         return method_;
     }
@@ -115,6 +123,9 @@ public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
         if (mixed_ != DEF_MIXED || verbose) {
             info.set(MIXED, mixed_);
         }
+        if (mixed_ != DEF_IVAR || verbose) {
+            info.set(IVAR, ivar_);
+        }
         if (eps_ != DEF_EPS || verbose) {
             info.set(EPS, eps_);
         }
@@ -148,6 +159,10 @@ public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
         if (mixed != null) {
             mixed_ = mixed;
         }
+        Boolean ivar = info.get(IVAR, Boolean.class);
+        if (ivar != null) {
+            ivar_ = ivar;
+        }
         Integer ni = info.get(MAXITER, Integer.class);
         if (ni != null) {
             maxiter_ = ni;
@@ -176,7 +191,8 @@ public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
     }
 
     public boolean equals(NumericalProcessingSpec obj) {
-        return obj.enabled_ == enabled_ && obj.block_ == block_ && obj.mixed_ == mixed_ && obj.eps_ == eps_ && obj.method_ == method_
+        return obj.enabled_ == enabled_ && obj.block_ == block_ && obj.mixed_ == mixed_
+                && obj.ivar_== ivar_ && obj.eps_ == eps_ && obj.method_ == method_
                 && obj.maxiter_ == maxiter_ && obj.maxsiter_ == obj.maxsiter_ && obj.niter_ == niter_;
     }
 
@@ -198,6 +214,7 @@ public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
         dic.put(InformationSet.item(prefix, NITER), Integer.class);
         dic.put(InformationSet.item(prefix, BLOCKITER), Boolean.class);
         dic.put(InformationSet.item(prefix, MIXED), Boolean.class);
+        dic.put(InformationSet.item(prefix, IVAR), Boolean.class);
         dic.put(InformationSet.item(prefix, EPS), Double.class);
         dic.put(InformationSet.item(prefix, METHOD), String.class);
     }

@@ -43,6 +43,7 @@ public class DfmEstimator implements IDfmEstimator {
             MSTEP = "Optimizing measurements", VSTEP = "Optimizing Var model", ALL = "Optimizing all parameters";
     private int maxiter_ = 500;
     private boolean converged_;
+    private boolean vunits_;
     private final IFunctionMinimizer min_;
     private int nstart_ = 15, nnext_ = 5;
     private TsDomain idom_;
@@ -106,6 +107,14 @@ public class DfmEstimator implements IDfmEstimator {
         mixed_ = b;
     }
 
+    public boolean isIndependentVarShocks() {
+        return this.vunits_;
+    }
+
+    public void setIndependentVarShocks(boolean iv) {
+        this.vunits_ = iv;
+    }
+
     public boolean hasConverged() {
         return converged_;
     }
@@ -122,18 +131,33 @@ public class DfmEstimator implements IDfmEstimator {
         }
     }
 
+    private void normalize(DynamicFactorModel model) {
+        if (vunits_) {
+            model.lnormalize();
+        } else {
+            model.normalize();
+        }
+    }
+    
+    private IDfmMapping mapping(DynamicFactorModel model, boolean mf, boolean vf) {
+        if (vunits_)
+            return new DfmMapping2(model, mf, vf);
+        else
+            return new DfmMapping(model, mf, vf);
+    }
+
     @Override
     public boolean estimate(final DynamicFactorModel dfm, DfmInformationSet input) {
         converged_ = false;
         Matrix m = input.generateMatrix(idom_);
         MSsfAlgorithm algorithm = new MSsfAlgorithm();
         IMSsfData mdata = new MultivariateSsfData(m.subMatrix().transpose(), null);
-        DfmMapping mapping;
         MSsfFunction fn;
+        IDfmMapping mapping;
         MSsfFunctionInstance pt;
         int niter = 0;
         DynamicFactorModel model = dfm.clone();
-        model.normalize();
+        normalize(model);
         try {
             if (nstart_ > 0) {
                 setMessage(SIMPLIFIED);
@@ -153,8 +177,8 @@ public class DfmEstimator implements IDfmEstimator {
             if (useBlockIterations_) {
                 min_.setMaxIter(nnext_);
                 while (true) {
-                    model.normalize();
-                    mapping = new DfmMapping(model, true, false);
+                    normalize(model);
+                    mapping =mapping(model, true, false);
                     fn = new MSsfFunction(mdata, mapping, algorithm);
                     setMessage(VSTEP);
                     min_.minimize(fn, fn.evaluate(mapping.map(model)));
@@ -164,14 +188,14 @@ public class DfmEstimator implements IDfmEstimator {
                     double var = pt.getLikelihood().getSigma();
                     model = nmodel;
                     model.rescaleVariances(var);
-                    model.normalize();
+                    normalize(model);
                     if (mixed_) {
                         DfmEM2 em = new DfmEM2(null);
                         em.setEstimateVar(false);
                         em.setMaxIter(nnext_);
                         em.initialize(model, input);
                     } else {
-                        mapping = new DfmMapping(model, false, true);
+                        mapping = mapping(model, false, true);
                         fn = new MSsfFunction(mdata, mapping, algorithm);
                         setMessage(MSTEP);
                         min_.minimize(fn, fn.evaluate(mapping.map(model)));
@@ -181,10 +205,10 @@ public class DfmEstimator implements IDfmEstimator {
                         var = pt.getLikelihood().getSigma();
                         model = nmodel;
                         model.rescaleVariances(var);
-                        model.normalize();
+                        normalize(model);
 
                     }
-                    mapping = new DfmMapping(model, false, false);
+                    mapping = mapping(model, false, false);
                     fn = new MSsfFunction(mdata, mapping, algorithm);
                     setMessage(ALL);
                     converged_ = min_.minimize(fn, fn.evaluate(mapping.map(model)))
@@ -193,16 +217,17 @@ public class DfmEstimator implements IDfmEstimator {
                     pt = (MSsfFunctionInstance) min_.getResult();
                     nmodel = ((DynamicFactorModel.Ssf) pt.ssf).getModel();
                     var = pt.getLikelihood().getSigma();
+                    boolean stop = ll_ != null && Math.abs(ll_.getLogLikelihood() - pt.getLikelihood().getLogLikelihood()) < 1e-9;
                     ll_ = pt.getLikelihood();
                     model = nmodel.clone();
                     model.rescaleVariances(var);
-                    if (converged_ || niter >= maxiter_) {
+                    if (converged_ || niter >= maxiter_ || stop) {
                         break;
                     }
                 }
             } else {
-                model.normalize();
-                mapping = new DfmMapping(model, false, false);
+                normalize(model);
+                mapping =mapping(model, false, false);
                 fn = new MSsfFunction(mdata, mapping, algorithm);
                 min_.setMaxIter(maxiter_);
                 setMessage(ALL);
@@ -217,9 +242,9 @@ public class DfmEstimator implements IDfmEstimator {
         } catch (Exception err) {
             return false;
         } finally {
-            model.normalize();
+            normalize(model);
             dfm.copy(model);
-            DfmMapping fmapping = new DfmMapping(model);
+            IDfmMapping fmapping = mapping(model, false, false);
             IReadDataBlock mp = fmapping.parameters();
             IReadDataBlock up = min_.getResult().getParameters();
             factors_ = new DataBlock(mp.getLength());
@@ -237,14 +262,14 @@ public class DfmEstimator implements IDfmEstimator {
             int ndf = ll_.getN() - h.getRowsCount();
             h = h.times(.5 * ndf / min_.getObjective());
         }
-        DataBlockIterator rows=h.rows(), cols=h.columns();
-        DataBlock row=rows.getData(), col=cols.getData();
-        do{
+        DataBlockIterator rows = h.rows(), cols = h.columns();
+        DataBlock row = rows.getData(), col = cols.getData();
+        do {
             row.mul(factors_);
-        }while (rows.next());
-        do{
+        } while (rows.next());
+        do {
             col.mul(factors_);
-        }while (cols.next());
+        } while (cols.next());
         return h;
     }
 

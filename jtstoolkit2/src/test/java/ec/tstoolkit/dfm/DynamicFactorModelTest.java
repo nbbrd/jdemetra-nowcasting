@@ -323,12 +323,12 @@ public class DynamicFactorModelTest {
         filter.process(tmp.ssfRepresentation(), new MultivariateSsfData(dd.subMatrix(), null), results);
         evaluate(results, ll);
         System.out.println("test3");
-         System.out.println(ll.getLogLikelihood());
+        System.out.println(ll.getLogLikelihood());
         System.out.println(tmp);
         DynamicFactorModel md = tmp.clone();
         md.rescaleVariances(ll.getSigma());
-        md.normalize();
-       results = new MPredictionErrorDecomposition(true);
+        md.lnormalize();
+        results = new MPredictionErrorDecomposition(true);
         filter.process(md.ssfRepresentation(), new MultivariateSsfData(dd.subMatrix(), null), results);
         evaluate(results, ll);
         //}
@@ -474,7 +474,21 @@ public class DynamicFactorModelTest {
         System.out.println(x);
     }
 
-    @Test
+     @Test
+    public void testMapping2() {
+        DynamicFactorModel tmp=dmodel.clone();
+        tmp.lnormalize();
+        DfmMapping2 mapping = new DfmMapping2(tmp);
+        DfmMapping2 mapping1 = new DfmMapping2(tmp, true, false);
+        DfmMapping2 mapping2 = new DfmMapping2(tmp, false, true);
+        DataBlock x = new DataBlock(mapping.map(tmp.ssfRepresentation()));
+         System.out.println("Mapping 2");
+       System.out.println(x);
+        DynamicFactorModel m = ((DynamicFactorModel.Ssf) mapping.map(mapping.map(tmp.ssfRepresentation()))).getModel();
+        x = new DataBlock(mapping.map(m.ssfRepresentation()));
+        System.out.println(x);
+    }
+   //@Test
     public void testMeasurements() {
         HashSet<MeasurementStructure> set = new HashSet<>();
         for (MeasurementDescriptor mdesc : dmodel.getMeasurements()) {

@@ -94,6 +94,7 @@ final class DfmSheets {
         "numericalProcessingSpec.enabled.display=Enabled",
         "numericalProcessingSpec.maxIter.display=Max number iterations",
         "numericalProcessingSpec.maxInitialIter.display=Simplified model iterations",
+        "numericalProcessingSpec.independentShocks.display=Independent VAR shocks",
         "numericalProcessingSpec.blockIterations.display=Iterations by blocks",
         "numericalProcessingSpec.mixedEstimation.display=Mixed estimation",
         "numericalProcessingSpec.method.display=Optimization method",
@@ -113,6 +114,10 @@ final class DfmSheets {
                 .select(bean, "maxInitialIter")
                 .display(Bundle.numericalProcessingSpec_maxInitialIter_display())
                 .min(0)
+                .add();
+        B.withBoolean()
+                .select(bean, "independentVarShocks")
+                .display(Bundle.numericalProcessingSpec_independentShocks_display())
                 .add();
         B.withBoolean()
                 .select(bean, "blockIterations")
