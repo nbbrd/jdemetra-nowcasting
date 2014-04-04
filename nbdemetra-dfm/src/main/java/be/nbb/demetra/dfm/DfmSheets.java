@@ -66,7 +66,8 @@ final class DfmSheets {
         "emSpec.enabled.display=Enabled",
         "emSpec.version.display=Version",
         "emSpec.maxIter.display=Max iterations",
-        "emSpec.maxNumIter.display=Max numerical iterations"
+        "emSpec.maxNumIter.display=Max numerical iterations",
+        "emSpec.precision.display=Precision"
     })
     private static void withEmSpec(EmSpec bean) {
         B.withBoolean()
@@ -88,12 +89,18 @@ final class DfmSheets {
                 .display(Bundle.emSpec_maxNumIter_display())
                 .min(1)
                 .add();
-    }
+         B.withDouble()
+                .select(bean, "precision")
+                .display(Bundle.emSpec_precision_display())
+                .min(0)
+                .add();
+ }
 
     @NbBundle.Messages({
         "numericalProcessingSpec.enabled.display=Enabled",
         "numericalProcessingSpec.maxIter.display=Max number iterations",
         "numericalProcessingSpec.maxInitialIter.display=Simplified model iterations",
+       "numericalProcessingSpec.maxStepIter.display=Max number iterations in optimization by block",
         "numericalProcessingSpec.independentShocks.display=Independent VAR shocks",
         "numericalProcessingSpec.blockIterations.display=Iterations by blocks",
         "numericalProcessingSpec.mixedEstimation.display=Mixed estimation",
@@ -108,6 +115,11 @@ final class DfmSheets {
         B.withInt()
                 .select(bean, "maxIter")
                 .display(Bundle.numericalProcessingSpec_maxIter_display())
+                .min(1)
+                .add();
+        B.withInt()
+                .select(bean, "maxIntermediateIter")
+                .display(Bundle.numericalProcessingSpec_maxStepIter_display())
                 .min(1)
                 .add();
         B.withInt()
