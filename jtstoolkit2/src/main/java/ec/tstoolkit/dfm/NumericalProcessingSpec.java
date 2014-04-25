@@ -22,7 +22,7 @@ public class NumericalProcessingSpec implements IProcSpecification, Cloneable {
 
     public static final int DEF_VERSION = 2, DEF_MAXITER = 1000, DEF_MAXSITER = 15,
             DEF_NITER = 5;
-    public static final Boolean DEF_BLOCK = true, DEF_MIXED=true, DEF_IVAR=true;
+    public static final Boolean DEF_BLOCK = true, DEF_MIXED=true, DEF_IVAR=false;
     public static final String ENABLED = "enabled", MAXITER = "maxiter", MAXSITER = "maxsiter", NITER = "niter", 
             BLOCKITER = "blockiter", METHOD="method", EPS = "eps", MIXED="mixed", IVAR="ivar";
     public static final double DEF_EPS = 1e-9;

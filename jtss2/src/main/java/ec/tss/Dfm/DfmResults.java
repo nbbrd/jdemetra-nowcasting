@@ -66,6 +66,7 @@ public class DfmResults implements IProcResults {
     private Matrix irfIdx;   // shocks x horizon (for a given variable)
     private Matrix irfShock; // variables x horizon (for a given shock)
     private Matrix idiosyncraticCorr; // variables x horizon (for a given shock)
+    private TsData[] smoothedSignalUncertainty;
 
     public DfmResults(DynamicFactorModel model, DfmInformationSet input) {
         this.model = model;
@@ -99,11 +100,11 @@ public class DfmResults implements IProcResults {
     public void setScore(DataBlock s) {
         score = s;
     }
-    
-     public void setLikelihood(Likelihood ll) {
-        likelihood=ll;
+
+    public void setLikelihood(Likelihood ll) {
+        likelihood = ll;
     }
-   
+
     /**
      * Matrix containing the correlation (+/-) between measurement errors
      * Pervasive correlation patterns may indicate the need to incorporate more
@@ -133,7 +134,7 @@ public class DfmResults implements IProcResults {
         double stdj;
       // double test ; 
 
-       //idiosyncratic = nancorr(E)
+        //idiosyncratic = nancorr(E)
         //idiosyncratic = nancorr(errors)
         for (int i = 0; i < error.length; i++) {
 
@@ -146,7 +147,7 @@ public class DfmResults implements IProcResults {
                     corrcoef = 1.0;
                 } else {
 
-                //     corrcoef = 1.0;  
+                    //     corrcoef = 1.0;  
                     double sum = 0;
                     ei.removeMean();
                     ej.removeMean();
@@ -492,7 +493,7 @@ public class DfmResults implements IProcResults {
                 Sigmax = new Matrix(r * c_, r * c_);
                 TQT = Q_.times(Q_.transpose());
                 Sigmax.add(TQT);
-               //     for (int i=0;i<r;i++){
+                //     for (int i=0;i<r;i++){
                 //         TQT.set(i*c_, i*c_, Q.subMatrix().get(i,i));
                 //      }
 
@@ -593,24 +594,24 @@ public class DfmResults implements IProcResults {
 
             if (horizon[h] == 1) {
 
-              //  TQT = new Matrix(ssf.getStateDim(),ssf.getStateDim());    
+                //  TQT = new Matrix(ssf.getStateDim(),ssf.getStateDim());    
                 //    Sigmax= new Matrix(r*c_, r*c_);
                 TQT = Q_.times(Q_.transpose());
-             //     Sigmax.add(TQT);
+                //     Sigmax.add(TQT);
                 //     for (int i=0;i<r;i++){
                 //         TQT.set(i*c_, i*c_, Q.subMatrix().get(i,i));
                 //      }
 
             } else {
-                  //  TQT = new Matrix(ssf.getStateDim(),ssf.getStateDim());                 
+                //  TQT = new Matrix(ssf.getStateDim(),ssf.getStateDim());                 
                 //    Sigmax= new Matrix(r*c_, r*c_);
                 TQT = Q_.times(Q_.transpose());
 
-                       // [h=2]  i=0-->Q ; i=1-->TQT'; 
+                // [h=2]  i=0-->Q ; i=1-->TQT'; 
                 // [h=3]  i=0-->Q ; i=1-->TQT'; i=2-->T(TQT')T';
                 for (int i = 0; i < horizon[h]; i++) { //      horizon[0] is always bigger than  2 (hor = 0 is nonsense and hor=1 is in the if statement ) 
                     ssf.TVT(0, TQT.subMatrix());
-             //           Sigmax.add(TQT);
+                    //           Sigmax.add(TQT);
 
                 }
 
@@ -668,21 +669,17 @@ public class DfmResults implements IProcResults {
         // FOR THE MOMENT, I WILL JUST USE 
         Matrix C = U.times(U.transpose());
 
-        
-        
-        
         SymmetricMatrix.lcholesky(C);
         Matrix B;
         Matrix R;
-        if (angles.length==0){
-         B = C.clone();
+        if (angles.length == 0) {
+            B = C.clone();
         } else {
-        Rotation rot = new Rotation(angles);            
-         R = rot.getRotation();
-         B = C.times(R);
+            Rotation rot = new Rotation(angles);
+            R = rot.getRotation();
+            B = C.times(R);
         }
-         
-        
+
         Matrix Bss = new Matrix(r * c_, r * c_); // compatible with SS
         for (int i = 0; i < r; i++) {
             for (int j = 0; j < r; j++) {
@@ -691,7 +688,6 @@ public class DfmResults implements IProcResults {
         }
 
      //   System.out.println(R);
-
         // Orthogonalize and rotate errors
         CroutDoolittle er = new CroutDoolittle();
         er.decompose(B);
@@ -823,6 +819,61 @@ public class DfmResults implements IProcResults {
 
             }
         }
+    }
+    
+
+    public TsData[] getSignalUncertainty() {
+        if (smoothedSignalUncertainty == null) {
+            calcSmoothedSignalUncertainty(); // It is not well calculated because the signal becomes the same for all variables
+        }
+        return smoothedSignalUncertainty;
+    }
+
+    public void calcSmoothedSignalUncertainty() {
+
+        if (smoothing == null) {
+            calcSmoothedStates();
+        }
+
+        DataBlockStorage m_a = smoothing.getSmoothedStates();
+
+        if (m_a == null) {
+            throw new Error("smoothed states are null");
+        }
+
+        int m_used = m_a.getCurrentSize();
+        int r = model.getFactorsCount();
+        int c_ = model.getBlockLength();
+        int nlags = model.getTransition().nlags;
+
+        //Matrix Z = new Matrix(r * c_, m_used);
+        //for (int i = 0; i < r * c_; i++) {
+        //    Z.row(i).copy(m_a.item(i));
+        // }
+        IMSsf ssf = model.ssfRepresentation();
+        int N = ssf.getVarsCount();
+
+        double[][] signalUncertainty = new double[N][m_used];
+
+        for (int t = 0; t < m_used; t++) {
+//            DataBlock temp = Z.column(t).deepClone();
+            Matrix temp = new Matrix(smoothing.P(t));
+
+            for (int v = 0; v < N; v++) {
+                Matrix zvz = new Matrix(r * c_, r * c_);
+                ssf.ZVZ(0, temp.subMatrix(), zvz.subMatrix());
+
+                signalUncertainty[v][t] = zvz.get(v, v);
+                System.out.println(signalUncertainty[v][t]);
+            }
+        }
+
+        TsDomain currentDomain = input.getCurrentDomain();
+        smoothedSignalUncertainty = new TsData[N];
+        for (int v = 0; v < N; v++) {
+            smoothedSignalUncertainty[v] = new TsData(currentDomain.getStart(), signalUncertainty[v], false);
+        }
+
     }
 
     @Override
