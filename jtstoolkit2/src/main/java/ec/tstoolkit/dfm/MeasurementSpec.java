@@ -27,7 +27,7 @@ import java.util.Objects;
  *
  * @author Jean Palate
  */
-public class MeasurementSpec implements IProcSpecification {
+public class MeasurementSpec implements IProcSpecification, Cloneable {
 
     public static enum Transformation {
 

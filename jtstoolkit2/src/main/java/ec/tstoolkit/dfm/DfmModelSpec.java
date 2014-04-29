@@ -43,7 +43,7 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
 
     public static final String VSPEC = "var", MSPEC = "measurement", MSPECS = "measurement*";
     private VarSpec vspec;
-    private final List<MeasurementSpec> mspecs = new ArrayList<>();
+    private  List<MeasurementSpec> mspecs = new ArrayList<>();
 
     public DfmModelSpec(){
         vspec=new VarSpec();
@@ -67,6 +67,7 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
         try {
             DfmModelSpec spec = (DfmModelSpec) super.clone();
             spec.vspec = vspec.clone();
+            spec.mspecs=new ArrayList<>();
             for (MeasurementSpec mspec : mspecs) {
                 spec.mspecs.add(mspec.clone());
             }
