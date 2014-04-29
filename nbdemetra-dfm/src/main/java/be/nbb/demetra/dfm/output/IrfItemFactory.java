@@ -40,7 +40,7 @@ public class IrfItemFactory extends DfmDocumentItemFactory {
     }
 
     private static Id newId() {
-        return new LinearId("Irf");
+        return new LinearId("Impulse response functions");
     }
 
     private static ItemUI<IProcDocumentView<DfmDocument>, Optional<DfmResults>> newItemUI() {

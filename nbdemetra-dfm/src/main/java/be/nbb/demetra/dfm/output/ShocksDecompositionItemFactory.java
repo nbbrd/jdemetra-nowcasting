@@ -40,7 +40,7 @@ public class ShocksDecompositionItemFactory extends DfmDocumentItemFactory {
     }
 
     private static Id newId() {
-        return new LinearId("ShocksDecomposition");
+        return new LinearId("Shocks Decomposition");
     }
 
     private static ItemUI<IProcDocumentView<DfmDocument>, Optional<DfmResults>> newItemUI() {

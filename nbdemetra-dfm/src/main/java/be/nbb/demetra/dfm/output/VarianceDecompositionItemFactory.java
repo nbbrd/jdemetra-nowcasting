@@ -40,7 +40,7 @@ public class VarianceDecompositionItemFactory extends DfmDocumentItemFactory {
     }
 
     private static Id newId() {
-        return new LinearId("VarianceDecomposition");
+        return new LinearId("Variance Decomposition");
     }
 
     private static ItemUI<IProcDocumentView<DfmDocument>, Optional<DfmResults>> newItemUI() {

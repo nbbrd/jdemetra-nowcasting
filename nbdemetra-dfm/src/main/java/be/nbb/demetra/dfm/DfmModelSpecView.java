@@ -32,6 +32,7 @@ import ec.tss.TsMoniker;
 import ec.tss.datatransfer.TssTransferSupport;
 import ec.tstoolkit.Parameter;
 import ec.tstoolkit.ParameterType;
+import ec.tstoolkit.dfm.DfmSpec;
 import ec.tstoolkit.dfm.DynamicFactorModel.MeasurementType;
 import ec.tstoolkit.dfm.MeasurementSpec;
 import ec.tstoolkit.dfm.MeasurementSpec.Transformation;
@@ -140,14 +141,16 @@ public final class DfmModelSpecView extends JComponent {
     private final TsVariables variables = new TsVariables();
 
     public void appendTsVariables(TsCollection col) {
+        DfmSpec spec = model.getSpecification().clone();
         for (Ts o : col) {
             String varName = variables.nextName();
             variables.set(varName, o.getMoniker().isAnonymous()
                     ? new TsVariable(o.getName(), o.getTsData())
                     : new DynamicTsVariable(o.getName(), o.getMoniker(), o.getTsData()));
-            model.getSpecification().getModelSpec().getMeasurements().add(new MeasurementSpec(varName, model.getSpecification().getModelSpec().getVarSpec().getEquationsCount()));
+            spec.getModelSpec().getMeasurements().add(new MeasurementSpec(varName, spec.getModelSpec().getVarSpec().getEquationsCount()));
         }
         model.setInput(variables);
+        model.setSpecification(spec);
         firePropertyChange(MODEL_PROPERTY, null, model);
     }
 
@@ -199,8 +202,8 @@ public final class DfmModelSpecView extends JComponent {
 
         @Override
         public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
-            model.clear();
-            MeasurementSpec ms = model.getSpecification().getModelSpec().getMeasurements().get(rowIndex);
+            DfmSpec spec = model.getSpecification().clone();
+            MeasurementSpec ms = spec.getModelSpec().getMeasurements().get(rowIndex);
             switch (columnIndex) {
                 case 1:
                     ms.setSeriesTransformations((Transformation[]) aValue);
@@ -212,6 +215,7 @@ public final class DfmModelSpecView extends JComponent {
                     ms.getCoefficients()[columnIndex - 3].setType(((Boolean) aValue).booleanValue() ? ParameterType.Undefined : ParameterType.Fixed);
                     break;
             }
+            model.setSpecification(spec);
         }
 
         @Override

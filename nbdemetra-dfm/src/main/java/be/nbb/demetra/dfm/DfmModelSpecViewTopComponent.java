@@ -104,10 +104,12 @@ public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<Df
     //<editor-fold defaultstate="collapsed" desc="MultiViewElement">
     @Override
     public void componentOpened() {
+        super.componentOpened();
     }
 
     @Override
     public void componentClosed() {
+        super.componentClosed();
     }
 
     @Override

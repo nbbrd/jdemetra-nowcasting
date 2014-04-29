@@ -68,50 +68,12 @@ public final class NewDfmDocumentAction implements ActionListener {
         final DfmExecViewTopComponent execView = new DfmExecViewTopComponent(doc, controller);
         final DfmOutputViewTopComponent outputView = new DfmOutputViewTopComponent(doc, controller);
 
-        final TopComponent[] top = new TopComponent[1];
-        final Lookup.Result<WorkspaceFactory.Event> lookup = WorkspaceFactory.getInstance().getLookup().lookupResult(WorkspaceFactory.Event.class);
-        final LookupListener closeListener = new LookupListener() {
-
-            @Override
-            public void resultChanged(LookupEvent le) {
-                Collection<? extends WorkspaceFactory.Event> all = lookup.allInstances();
-                if (!all.isEmpty()) {
-                    Iterator<? extends WorkspaceFactory.Event> iterator = all.iterator();
-                    while (iterator.hasNext()) {
-                        WorkspaceFactory.Event ev = iterator.next();
-                        if (ev.info == WorkspaceFactory.Event.REMOVINGITEM) {
-                            WorkspaceItem<?> wdoc = ev.workspace.searchDocument(ev.id);
-                            if (wdoc.getElement() == doc.getElement()) {
-                                SwingUtilities.invokeLater(new Runnable() {
-
-                                    @Override
-                                    public void run() {
-                                        top[0].close();
-                                    }
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-        };
-        lookup.addLookupListener(closeListener);
-
-        MultiViewDescription[] descriptions = {
+         MultiViewDescription[] descriptions = {
             new QuickAndDirtyDescription("Model", modelView),
             new QuickAndDirtyDescription("Processing", execView),
             new QuickAndDirtyDescription("Output", outputView),};
 
-        final TopComponent result = MultiViewFactory.createMultiView(descriptions, descriptions[0],
-                new CloseOperationHandler() {
-
-                    @Override
-                    public boolean resolveCloseOperation(CloseOperationState[] coss) {
-                        lookup.removeLookupListener(closeListener);
-                        doc.setView(null);
-                        return true;
-                    }
-                });
+        final TopComponent result = MultiViewFactory.createMultiView(descriptions, descriptions[0]);
         result.setName(doc.getDisplayName());
         controller.addPropertyChangeListener(DfmController.DFM_STATE_PROPERTY, new PropertyChangeListener() {
             @Override
@@ -139,7 +101,6 @@ public final class NewDfmDocumentAction implements ActionListener {
             }
         });
         doc.setView(result);
-
         return result;
     }
 
