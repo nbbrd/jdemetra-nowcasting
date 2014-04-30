@@ -17,6 +17,9 @@
 package ec.tss.Dfm;
 
 import ec.satoolkit.GenericSaProcessingFactory;
+import ec.tss.Ts;
+import ec.tss.TsInformationType;
+import ec.tss.TsStatus;
 import ec.tss.sa.SaManager;
 import ec.tstoolkit.algorithm.AlgorithmDescriptor;
 import ec.tstoolkit.algorithm.CompositeResults;
@@ -30,7 +33,6 @@ import ec.tstoolkit.algorithm.MultiTsData;
 import ec.tstoolkit.algorithm.ProcessingContext;
 import ec.tstoolkit.algorithm.ProcessingHookProvider;
 import ec.tstoolkit.algorithm.SequentialProcessing;
-import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DescriptiveStatistics;
 import ec.tstoolkit.dfm.DefaultInitializer;
 import ec.tstoolkit.dfm.DfmEM;
@@ -54,11 +56,8 @@ import ec.tstoolkit.maths.realfunctions.riso.LbfgsMinimizer;
 import ec.tstoolkit.modelling.ModellingDictionary;
 import ec.tstoolkit.mssf2.MSsfFunctionInstance;
 import ec.tstoolkit.timeseries.PeriodSelectorType;
-import ec.tstoolkit.timeseries.regression.ITsVariable;
-import ec.tstoolkit.timeseries.regression.TsVariables;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDomain;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +66,8 @@ import java.util.Map;
  *
  * @author Jean Palate
  */
-public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode, DfmProcessingFactory.EstimationInfo> implements IProcessingFactory<DfmSpec, TsVariables, CompositeResults> {
+public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode, DfmProcessingFactory.EstimationInfo> 
+implements IProcessingFactory<DfmSpec, TsData[], CompositeResults> {
 
     public static class EstimationInfo {
 
@@ -100,7 +100,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
     }
 
     @Override
-    public IProcessing<TsVariables, CompositeResults> generateProcessing(DfmSpec spec, ProcessingContext context) {
+    public IProcessing<TsData[], CompositeResults> generateProcessing(DfmSpec spec, ProcessingContext context) {
         return create(spec, context);
     }
 
@@ -116,7 +116,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
-    private SequentialProcessing<TsVariables> create(DfmSpec spec, ProcessingContext context) {
+    private SequentialProcessing<TsData[]> create(DfmSpec spec, ProcessingContext context) {
         SequentialProcessing processing = new SequentialProcessing();
         addInitialStep(spec, processing);
         addPcStep(spec, context, processing);
@@ -175,8 +175,8 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
         processing.add(createFinalStep(spec));
     }
 
-    private IProcessingNode<TsVariables> createInitialStep(final DfmSpec spec) {
-        return new IProcessingNode<TsVariables>() {
+    private IProcessingNode<TsData[]> createInitialStep(final DfmSpec spec) {
+        return new IProcessingNode<TsData[]>() {
 
             @Override
             public String getName() {
@@ -189,22 +189,15 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
             }
 
             @Override
-            public IProcessing.Status process(TsVariables input, Map<String, IProcResults> results, InformationSet info) {
+            public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results, InformationSet info) {
                 List<MeasurementSpec> measurements = spec.getModelSpec().getMeasurements();
                 TsData[] sc = new TsData[measurements.size()];
                 int k = 0;
                 for (MeasurementSpec ms : measurements) {
-                    ITsVariable var = input.get(ms.getName());
-                    if (var == null || var.getDim() > 1) {
+                    TsData s = input[k].clone();
+                    if (s == null) {
                         return IProcessing.Status.Invalid;
                     }
-                    TsDomain curdom = var.getDefinitionDomain();
-                    if (curdom == null) {
-                        return IProcessing.Status.Invalid;
-                    }
-                    DataBlock data = new DataBlock(curdom.getLength());
-                    var.data(curdom, Collections.singletonList(data), 0);
-                    TsData s = new TsData(curdom.getStart(), data.getData(), false);
                     MeasurementSpec.Transformation[] st = ms.getSeriesTransformations();
                     if (st != null) {
                         for (int i = 0; i < st.length; ++i) {
@@ -264,7 +257,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
     }
 
     private static IProcessingNode createPcStep(final PcSpec spec) {
-        return new IProcessingNode<TsVariables>() {
+        return new IProcessingNode<TsData[]>() {
 
             @Override
             public String getName() {
@@ -277,7 +270,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
             }
 
             @Override
-            public IProcessing.Status process(TsVariables input, Map<String, IProcResults> results, InformationSet info) {
+            public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results, InformationSet info) {
                 DfmResults rslts = (DfmResults) results.get(DFM);
                 if (rslts == null) {
                     return IProcessing.Status.Unprocessed;
@@ -299,8 +292,8 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
         };
     }
 
-    private IProcessingNode<TsVariables> createFinalStep(final DfmSpec spec) {
-        return new IProcessingNode<TsVariables>() {
+    private IProcessingNode<TsData[]> createFinalStep(final DfmSpec spec) {
+        return new IProcessingNode<TsData[]>() {
 
             @Override
             public String getName() {
@@ -313,13 +306,13 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
             }
 
             @Override
-            public IProcessing.Status process(TsVariables input, Map<String, IProcResults> results, InformationSet info) {
+            public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results, InformationSet info) {
                 return IProcessing.Status.Valid;
             }
         };
     }
 
-    private class EmNode implements IProcessingNode<TsVariables> {
+    private class EmNode implements IProcessingNode<TsData[]> {
 
         private final boolean end;
         private final EmSpec spec;
@@ -341,7 +334,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
         IProcessingHook hook;
 
         @Override
-        public IProcessing.Status process(TsVariables input, Map<String, IProcResults> results, InformationSet info) {
+        public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results, InformationSet info) {
             DfmResults rslts = (DfmResults) results.get(DFM);
             if (rslts == null) {
                 return IProcessing.Status.Unprocessed;
@@ -382,7 +375,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
         }
     };
 
-    private class ProcNode implements IProcessingNode<TsVariables> {
+    private class ProcNode implements IProcessingNode<TsData[]> {
 
         private final NumericalProcessingSpec spec;
 
@@ -402,7 +395,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
         IProcessingHook hook;
 
         @Override
-        public IProcessing.Status process(TsVariables input, Map<String, IProcResults> results, InformationSet info) {
+        public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results, InformationSet info) {
             DfmResults rslts = (DfmResults) results.get(DFM);
             if (rslts == null) {
                 return IProcessing.Status.Unprocessed;
@@ -463,7 +456,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
             estimator.setUsingBlockIterations(spec.isBlockIterations());
             if (!estimator.estimate(rslts.getModel(), actualData)) {
                 return IProcessing.Status.Invalid;
-            }else{
+            } else {
                 rslts.setScore(estimator.getGradient());
                 rslts.setObservedInformation(estimator.getHessian());
                 rslts.setLikelihood(estimator.geLikelihood());

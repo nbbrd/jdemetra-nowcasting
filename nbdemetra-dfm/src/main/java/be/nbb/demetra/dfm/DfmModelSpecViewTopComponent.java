@@ -12,6 +12,7 @@ import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
 import ec.tss.Dfm.DfmDocument;
 import ec.tstoolkit.Parameter;
+import ec.tstoolkit.dfm.DfmSpec;
 import ec.tstoolkit.dfm.MeasurementSpec;
 import ec.tstoolkit.var.VarSpec;
 import ec.util.various.swing.JCommand;
@@ -185,13 +186,15 @@ public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<Df
         
         @Override
         public void execute(DfmModelSpecViewTopComponent c) throws Exception {
-            VarSpec oldValue = c.getDocument().getElement().getSpecification().getModelSpec().getVarSpec();
-            VarSpec newValue = oldValue.clone();
+            DfmDocument doc = c.getDocument().getElement();
+            DfmSpec oldspec = doc.getSpecification();
+            DfmSpec newspec=oldspec.clone();
+            VarSpec oldValue =oldspec.getModelSpec().getVarSpec();
+            VarSpec newValue = newspec.getModelSpec().getVarSpec();
             if (OpenIdePropertySheetBeanEditor.editSheet(DfmSheets.onVarSpec(newValue), "Edit var spec", null)) {
-                c.getDocument().getElement().getSpecification().getModelSpec().setVarSpec(newValue);
                 int diff = newValue.getEquationsCount() - oldValue.getEquationsCount();
                 if (diff != 0) {
-                    for (MeasurementSpec o : c.getDocument().getElement().getSpecification().getModelSpec().getMeasurements()) {
+                    for (MeasurementSpec o : newspec.getModelSpec().getMeasurements()) {
                         Parameter[] tmp = Arrays.copyOf(o.getCoefficients(), newValue.getEquationsCount());
                         if (diff > 0) {
                             for (int i = 0; i < diff; i++) {
@@ -199,13 +202,11 @@ public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<Df
                             }
                         }
                         o.setCoefficient(tmp);
-                        c.dfmModelSpecView1.setModel(null);
-                        if (c.getDocument() != null) {
-                            c.dfmModelSpecView1.setModel(c.getDocument().getElement());
-                        }
-                    }
+                   }
                 }
-            }
+                doc.setSpecification(newspec);  
+                c.dfmModelSpecView1.updateModel();
+             }
         }
         
         @Override

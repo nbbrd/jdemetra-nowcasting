@@ -37,11 +37,10 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
         DiffY
     }
 
-    public static final String NAME = "name", SERIESTRANSFORMATIONS = "stransformations",
+    public static final String SERIESTRANSFORMATIONS = "stransformations",
             COEFF = "coeff", VAR = "var", FACTORTRANSFORMATION = "ftransformation",
             MEAN = "mean", STDEV = "stdev", DEF_NAME = "var";
     private static volatile int g_idx = 0;
-    private String name;
     private Transformation[] transformations;
     private double mean = Double.NaN, stdev = Double.NaN;
     private Parameter[] coeff;
@@ -53,14 +52,12 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
     }
 
     public MeasurementSpec(int nfac) {
-        name = DEF_NAME + (++g_idx);
         coeff = Parameter.create(nfac);
         transformations = new Transformation[0];
         var = new Parameter();
     }
 
     public MeasurementSpec(final String name, int nfac) {
-        this.name = name;
         coeff = Parameter.create(nfac);
         transformations = new Transformation[0];
         var = new Parameter();
@@ -88,7 +85,6 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
     @Override
     public InformationSet write(boolean verbose) {
         InformationSet info = new InformationSet();
-        info.set(NAME, name);
         if (!Parameter.isDefault(coeff)) {
             info.set(COEFF, coeff);
         }
@@ -117,9 +113,6 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
         if (info == null) {
             return true;
         }
-        name = info.get(NAME, String.class);
-        if (name == null)
-            return false;
         Parameter[] c = info.get(COEFF, Parameter[].class);
         if (c != null) {
             coeff = c;
@@ -172,6 +165,8 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
 
     public void setSeriesTransformations(Transformation[] tr) {
         this.transformations = tr;
+        this.mean=Double.NaN;
+        this.stdev=Double.NaN;
     }
 
     public double getMean() {
@@ -218,14 +213,6 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
         this.type = type;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
     @Override
     public boolean equals(Object obj) {
         return this == obj || (obj instanceof MeasurementSpec && equals((MeasurementSpec) obj));
@@ -246,7 +233,6 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
     }
 
     public static void fillDictionary(String prefix, Map<String, Class> dic) {
-        dic.put(InformationSet.item(prefix, NAME), String.class);
         dic.put(InformationSet.item(prefix, SERIESTRANSFORMATIONS), String[].class);
         dic.put(InformationSet.item(prefix, FACTORTRANSFORMATION), String.class);
         dic.put(InformationSet.item(prefix, MEAN), Double.class);

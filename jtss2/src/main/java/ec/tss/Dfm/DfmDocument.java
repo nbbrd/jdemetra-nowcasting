@@ -17,6 +17,7 @@
 package ec.tss.Dfm;
 
 import ec.tss.documents.ActiveDocument;
+import ec.tss.documents.MultiTsDocument;
 import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.algorithm.ProcessingContext;
 import ec.tstoolkit.dfm.DfmSpec;
@@ -28,78 +29,22 @@ import ec.tstoolkit.utilities.DefaultNameValidator;
  *
  * @author Jean Palate
  */
-public class DfmDocument extends ActiveDocument<DfmSpec, TsVariables, CompositeResults> implements Cloneable {
-
-    public static final String DFM = "Dynamic factor model";
-    private DfmProcessingFactory processor_=new DfmProcessingFactory();
+public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> implements Cloneable {
 
     public DfmDocument() {
-        super(DFM);
+        super(new DfmProcessingFactory(), null);
         setSpecification(new DfmSpec());
     }
 
     public DfmDocument(ProcessingContext context) {
-        super(DFM, context);
+        super(new DfmProcessingFactory(), context);
         setSpecification(new DfmSpec());
     }
     
-    public DfmProcessingFactory getProcessor(){
-        return processor_;
+    public DfmDocument clone(){
+        DfmDocument doc=(DfmDocument) super.clone();
+        doc.factory_=new DfmProcessingFactory();
+        return doc;
     }
-
-    @Deprecated
-    public void setVariables(TsVariables vars) {
-        super.setInput(vars);
-    }
-
-    @Override
-    public DfmDocument clone() {
-        return (DfmDocument) super.clone();
-    }
-
-    @Override
-    protected CompositeResults recalc(DfmSpec spec, TsVariables input) {
-        return processor_.generateProcessing(spec, getContext()).process(input);
-    }
-
-    @Override
-    public InformationSet write(boolean verbose) {
-        InformationSet info = super.write(verbose);
-        if (this.getInput() != null) {
-            info.set(INPUT, this.getInput().write(verbose));
-        }
-        if (this.getSpecification() != null) {
-            info.set(SPEC, this.getSpecification().write(verbose));
-        }
-        return info;
-    }
-
-    @Override
-    public boolean read(InformationSet info) {
-        if (!super.read(info)) {
-            return false;
-        }
-        InformationSet sinfo = info.getSubSet(SPEC);
-        if (sinfo == null) {
-            return false;
-        }
-        DfmSpec spec = new DfmSpec();
-        if (!spec.read(sinfo)) {
-            return false;
-        }
-
-        setSpecification(spec);
-        InformationSet iinfo = info.getSubSet(INPUT);
-        if (iinfo == null) {
-            return false;
-        }
-        TsVariables var = new TsVariables("s", new DefaultNameValidator("+-*=.;"));
-        if (!var.read(iinfo)) {
-            return false;
-        }
-        this.setInput(var);
-
-        return true;
-    }
-
+    
 }

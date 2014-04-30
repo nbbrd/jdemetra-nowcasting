@@ -17,9 +17,12 @@ import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
 import ec.tss.Dfm.DfmDocument;
 import ec.tss.Dfm.DfmProcessingFactory;
 import ec.tstoolkit.algorithm.CompositeResults;
+import ec.tstoolkit.algorithm.IProcessingFactory;
 import ec.tstoolkit.algorithm.IProcessingHook;
 import ec.tstoolkit.algorithm.IProcessingNode;
 import ec.tstoolkit.dfm.DfmEstimationSpec;
+import ec.tstoolkit.dfm.DfmSpec;
+import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.util.chart.ColorScheme;
 import ec.util.chart.swing.Charts;
 import ec.util.chart.swing.SwingColorSchemeSupport;
@@ -284,9 +287,10 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
 
         @Override
         protected CompositeResults doInBackground() throws Exception {
-            getDocument().getElement().getProcessor().register(this);
+            DfmProcessingFactory processor = (DfmProcessingFactory) getDocument().getElement().getProcessor();
+            processor.register(this);
             CompositeResults rslt = getDocument().getElement().getResults();
-            getDocument().getElement().getProcessor().unregister(this);
+            processor.unregister(this);
             return rslt;
         }
 

@@ -132,24 +132,28 @@ public final class DfmModelSpecView extends JComponent {
     }
 
     public void setModel(DfmDocument model) {
+        if (this.model == model)
+            return;
         DfmDocument old = this.model;
         this.model = model != null ? model : new DfmDocument();
+        variables.replace(model.getInput());
         firePropertyChange(MODEL_PROPERTY, old, this.model);
+    }
+    
+    public void updateModel(){
+        firePropertyChange(MODEL_PROPERTY, null, this.model);
     }
     //</editor-fold>
 
-    private final TsVariables variables = new TsVariables();
+    private final TsCollection variables = TsFactory.instance.createTsCollection();
 
     public void appendTsVariables(TsCollection col) {
         DfmSpec spec = model.getSpecification().clone();
         for (Ts o : col) {
-            String varName = variables.nextName();
-            variables.set(varName, o.getMoniker().isAnonymous()
-                    ? new TsVariable(o.getName(), o.getTsData())
-                    : new DynamicTsVariable(o.getName(), o.getMoniker(), o.getTsData()));
-            spec.getModelSpec().getMeasurements().add(new MeasurementSpec(varName, spec.getModelSpec().getVarSpec().getEquationsCount()));
+            variables.add(o);
+            spec.getModelSpec().getMeasurements().add(new MeasurementSpec(o.getName(), spec.getModelSpec().getVarSpec().getEquationsCount()));
         }
-        model.setInput(variables);
+        model.setInput(variables.toArray());
         model.setSpecification(spec);
         firePropertyChange(MODEL_PROPERTY, null, model);
     }
@@ -162,8 +166,8 @@ public final class DfmModelSpecView extends JComponent {
 
     private final class ModelSpecModel extends AbstractTableModel {
 
-        public TsVariables getVariables() {
-            return variables;
+        public Ts[] getVariables() {
+            return variables.toArray();
         }
 
         public List<MeasurementSpec> getMeasurements() {
@@ -185,7 +189,7 @@ public final class DfmModelSpecView extends JComponent {
             MeasurementSpec ms = model.getSpecification().getModelSpec().getMeasurements().get(rowIndex);
             switch (columnIndex) {
                 case 0:
-                    return ms.getName();
+                    return variables.get(rowIndex).getName();
                 case 1:
                     return ms.getSeriesTransformations();
                 case 2:
@@ -343,12 +347,9 @@ public final class DfmModelSpecView extends JComponent {
         public void execute(XTable component) throws Exception {
             ModelSpecModel model = (ModelSpecModel) component.getModel();
             int index = component.convertRowIndexToModel(component.getSelectedRows()[0]);
-            String selected = model.getMeasurements().get(index).getName();
-            ITsVariable var = model.getVariables().get(selected);
-            if (var instanceof DynamicTsVariable) {
-                TsMoniker moniker = ((DynamicTsVariable) var).getMoniker();
-                DemetraUI.getInstance().getTsAction().open(TsFactory.instance.getTs(moniker));
-            }
+            Ts cur = model.getVariables()[index];
+            String selected = cur.getName();
+            DemetraUI.getInstance().getTsAction().open(cur);
         }
 
         @Override

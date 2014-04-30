@@ -39,6 +39,8 @@ import ec.tstoolkit.timeseries.regression.TsVariables;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.tstoolkit.var.VarSpec;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -48,13 +50,13 @@ import static org.junit.Assert.*;
  */
 public class DfmProcessingFactoryTest {
 
-    static final TsVariables vars;
+    static final List<TsData>vars;
     static final DfmSpec spec;
 
     static {
         SaManager.instance.add(new TramoSeatsProcessor());
         SaManager.instance.add(new X13Processor());
-        vars = new TsVariables();
+        vars = new ArrayList<>();
         spec = new DfmSpec();
         DfmEstimationSpec espec = new DfmEstimationSpec();
         spec.setEstimationSpec(espec);
@@ -67,29 +69,26 @@ public class DfmProcessingFactoryTest {
 //       espec.getNumericalProcessingSpec().setMethod(NumericalProcessingSpec.Method.Lbfgs);
 //        espec.getNumericalProcessingSpec().setEnabled(false);
         espec.getNumericalProcessingSpec().setMaxIter(500);
-        vars.set("m1", new TsVariable(data.Data.M1));
-        vars.set("m2", new TsVariable(data.Data.M2));
-        vars.set("m3", new TsVariable(data.Data.M3.changeFrequency(TsFrequency.Quarterly, TsAggregationType.Sum, true)));
+        vars.add(data.Data.M1);
+        vars.add(data.Data.M2);
+        vars.add(data.Data.M3.changeFrequency(TsFrequency.Quarterly, TsAggregationType.Sum, true));
         DfmModelSpec mspec = new DfmModelSpec();
         VarSpec vspec = new VarSpec();
         vspec.setSize(1, 1);
         MeasurementSpec mvspec = new MeasurementSpec();
-        mvspec.setName("m1");
         mvspec.setSeriesTransformations(new Transformation[]{Transformation.Sa, Transformation.Diff1});
         mvspec.setCoefficient(new Parameter[]{new Parameter()});
         mvspec.setFactorsTransformation(DynamicFactorModel.MeasurementType.L);
         mspec.getMeasurements().add(mvspec);
 
         mvspec = new MeasurementSpec();
-        mvspec.setName("m2");
         mvspec.setSeriesTransformations(new Transformation[]{Transformation.Sa, Transformation.Diff1});
         mvspec.setCoefficient(new Parameter[]{new Parameter()});
         mvspec.setFactorsTransformation(DynamicFactorModel.MeasurementType.L);
         mspec.getMeasurements().add(mvspec);
 
         mvspec = new MeasurementSpec();
-        mvspec.setName("m3");
-        mvspec.setSeriesTransformations(new Transformation[]{Transformation.Sa, Transformation.Diff1});
+         mvspec.setSeriesTransformations(new Transformation[]{Transformation.Sa, Transformation.Diff1});
         mvspec.setCoefficient(new Parameter[]{new Parameter()});
         mvspec.setFactorsTransformation(DynamicFactorModel.MeasurementType.CD);
         mspec.getMeasurements().add(mvspec);
@@ -107,8 +106,8 @@ public class DfmProcessingFactoryTest {
     public void testInitialStep() {
 
         ProcessingContext context = new ProcessingContext();
-        IProcessing<TsVariables, CompositeResults> proc = DfmProcessingFactory.instance.generateProcessing(spec, context);
-        CompositeResults rslts = proc.process(vars);
+        IProcessing<TsData[], CompositeResults> proc = DfmProcessingFactory.instance.generateProcessing(spec, context);
+        CompositeResults rslts = proc.process(vars.toArray(new TsData[vars.size()]));
         TsData v1 = rslts.getData("inputc.var1", TsData.class);
         TsData v2 = rslts.getData("inputc.var2", TsData.class);
         TsData v3 = rslts.getData("inputc.var3", TsData.class);
@@ -129,8 +128,8 @@ public class DfmProcessingFactoryTest {
         };
         DfmProcessingFactory.instance.register(hook);
 
-        IProcessing<TsVariables, CompositeResults> proc = DfmProcessingFactory.instance.generateProcessing(spec, null);
-        CompositeResults rslts = proc.process(vars);
+        IProcessing<TsData[], CompositeResults> proc = DfmProcessingFactory.instance.generateProcessing(spec, null);
+        CompositeResults rslts = proc.process(vars.toArray(new TsData[vars.size()]));
         DfmResults dfm = rslts.get(DfmProcessingFactory.DFM, DfmResults.class);
         System.out.println(dfm.getModel());
         DfmProcessingFactory.instance.unregister(hook);
