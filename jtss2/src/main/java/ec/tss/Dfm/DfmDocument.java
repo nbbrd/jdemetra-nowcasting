@@ -16,6 +16,7 @@
  */
 package ec.tss.Dfm;
 
+import ec.tss.Ts;
 import ec.tss.documents.ActiveDocument;
 import ec.tss.documents.MultiTsDocument;
 import ec.tstoolkit.algorithm.CompositeResults;
@@ -30,21 +31,44 @@ import ec.tstoolkit.utilities.DefaultNameValidator;
  * @author Jean Palate
  */
 public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> implements Cloneable {
-
+    
     public DfmDocument() {
         super(new DfmProcessingFactory(), null);
         setSpecification(new DfmSpec());
     }
-
+    
     public DfmDocument(ProcessingContext context) {
         super(new DfmProcessingFactory(), context);
         setSpecification(new DfmSpec());
     }
     
-    public DfmDocument clone(){
-        DfmDocument doc=(DfmDocument) super.clone();
-        doc.factory_=new DfmProcessingFactory();
+    public DfmDocument clone() {
+        DfmDocument doc = (DfmDocument) super.clone();
+        doc.factory_ = new DfmProcessingFactory();
         return doc;
     }
     
+    public DfmResults getDfmResults() {
+        CompositeResults rslts = getResults();
+        if (rslts == null) {
+            return null;
+        } else {
+            return rslts.get(DfmProcessingFactory.DFM, DfmResults.class);
+        }
+    }
+    
+    protected CompositeResults recalc(DfmSpec spec, Ts[] input) {
+        CompositeResults rslts = super.recalc(spec, input);
+        if (rslts != null) {
+            DfmResults dr = rslts.get(DfmProcessingFactory.DFM, DfmResults.class);
+            if (dr != null) {
+                String[] desc = new String[input.length];
+                for (int i = 0; i < desc.length; ++i) {
+                    desc[i] = input[i].getRawName();
+                }
+                dr.setDescriptions(desc);
+            }
+        }
+        return rslts;        
+    }
 }

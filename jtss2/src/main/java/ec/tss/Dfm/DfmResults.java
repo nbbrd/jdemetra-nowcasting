@@ -67,6 +67,7 @@ public class DfmResults implements IProcResults {
     private Matrix irfShock; // variables x horizon (for a given shock)
     private Matrix idiosyncraticCorr; // variables x horizon (for a given shock)
     private TsData[] smoothedSignalUncertainty;
+    private String[] description;
 
     public DfmResults(DynamicFactorModel model, DfmInformationSet input) {
         this.model = model;
@@ -79,6 +80,21 @@ public class DfmResults implements IProcResults {
 
     public DfmInformationSet getInput() {
         return input;
+    }
+
+    public String getDescription(int idx) {
+        return description == null ? "var-" + (idx + 1) : description[idx];
+    }
+
+    public String[] getDescriptions() {
+        if (description != null) {
+            return description;
+        }
+        String[] desc = new String[input.getSeriesCount()];
+        for (int i = 0; i < desc.length; ++i) {
+            desc[i] = "var-" + (i + 1);
+        }
+        return desc;
     }
 
     public Matrix getObservedInformation() {
@@ -99,6 +115,10 @@ public class DfmResults implements IProcResults {
 
     public void setScore(DataBlock s) {
         score = s;
+    }
+
+    public void setDescriptions(String[] desc) {
+        description = desc;
     }
 
     public void setLikelihood(Likelihood ll) {
@@ -687,7 +707,7 @@ public class DfmResults implements IProcResults {
             }
         }
 
-     //   System.out.println(R);
+        //   System.out.println(R);
         // Orthogonalize and rotate errors
         CroutDoolittle er = new CroutDoolittle();
         er.decompose(B);
@@ -820,7 +840,6 @@ public class DfmResults implements IProcResults {
             }
         }
     }
-    
 
     public TsData[] getSignalUncertainty() {
         if (smoothedSignalUncertainty == null) {

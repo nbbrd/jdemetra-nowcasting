@@ -221,7 +221,7 @@ final class ShocksDecompositionView extends javax.swing.JPanel {
 
     private void updateComboBox() {
         if (dfmResults.isPresent()) {
-            comboBox.setModel(toComboBoxModel(dfmResults.get().getInput()));
+            comboBox.setModel(toComboBoxModel(dfmResults.get().getDescriptions()));
             comboBox.setEnabled(true);
         } else {
             comboBox.setModel(new DefaultComboBoxModel());
@@ -482,11 +482,8 @@ final class ShocksDecompositionView extends javax.swing.JPanel {
     }
     //</editor-fold>
 
-    private static DefaultComboBoxModel toComboBoxModel(DfmInformationSet data) {
-        DefaultComboBoxModel result = new DefaultComboBoxModel();
-        for (int i = 0; i < data.getSeriesCount(); i++) {
-            result.addElement("Var " + (i + 1));
-        }
+    private static DefaultComboBoxModel toComboBoxModel(String[] desc) {
+        DefaultComboBoxModel result = new DefaultComboBoxModel(desc);
         return result;
     }
 }
