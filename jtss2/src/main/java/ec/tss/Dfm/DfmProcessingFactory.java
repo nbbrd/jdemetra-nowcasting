@@ -66,8 +66,8 @@ import java.util.Map;
  *
  * @author Jean Palate
  */
-public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode, DfmProcessingFactory.EstimationInfo> 
-implements IProcessingFactory<DfmSpec, TsData[], CompositeResults> {
+public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode, DfmProcessingFactory.EstimationInfo>
+        implements IProcessingFactory<DfmSpec, TsData[], CompositeResults> {
 
     public static class EstimationInfo {
 
@@ -191,9 +191,15 @@ implements IProcessingFactory<DfmSpec, TsData[], CompositeResults> {
             @Override
             public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results, InformationSet info) {
                 List<MeasurementSpec> measurements = spec.getModelSpec().getMeasurements();
-                TsData[] sc = new TsData[measurements.size()];
+                int n = input.length;
+                if (n != measurements.size()) {
+                    return IProcessing.Status.Invalid;
+                }
+                TsData[] sc = new TsData[n];
+                DfmSeriesDescriptor[] desc = new DfmSeriesDescriptor[n];
                 int k = 0;
                 for (MeasurementSpec ms : measurements) {
+                    desc[k] = new DfmSeriesDescriptor(k);
                     TsData s = input[k].clone();
                     if (s == null) {
                         return IProcessing.Status.Invalid;
@@ -236,11 +242,14 @@ implements IProcessingFactory<DfmSpec, TsData[], CompositeResults> {
                     }
                     s.getValues().sub(m);
                     s.getValues().div(e);
+                    desc[k].mean = m;
+                    desc[k].stdev = e;
                     sc[k++] = s;
                 }
                 MultiTsData inputc = new MultiTsData("var", sc);
                 results.put(INPUTC, inputc);
                 DfmResults start = new DfmResults(spec.getModelSpec().build(), new DfmInformationSet(sc));
+                start.setDescriptions(desc);
                 new DefaultInitializer().initialize(start.getModel(), start.getInput());
                 results.put(DFM, start);
                 return IProcessing.Status.Valid;

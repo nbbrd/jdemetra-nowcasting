@@ -37,13 +37,13 @@ import java.util.Arrays;
  * @author Jean Palate
  */
 public class PcInitializer implements IDfmInitializer {
-    
-    public static final double DEF_NS=.80;
+
+    public static final double DEF_NS = .80;
 
     private Matrix data_, datac_;
     private ec.tstoolkit.pca.PrincipalComponents[] pc_;
     private TsDomain idom_;
-   private double ns_ = DEF_NS;
+    private double ns_ = DEF_NS;
 
     public TsDomain getEstimationDomain() {
         return idom_;
@@ -52,23 +52,24 @@ public class PcInitializer implements IDfmInitializer {
     public void setEstimationDomain(TsDomain dom) {
         idom_ = dom;
     }
-    
+
     /**
-     * Gets the minimal percentage of non missing values for determining the time span of
-     * the principal components estimation.
+     * Gets the minimal percentage of non missing values for determining the
+     * time span of the principal components estimation.
+     *
      * @return A value in ]0,1]
      */
-    public double getNonMissingThreshold(){
+    public double getNonMissingThreshold() {
         return ns_;
     }
-    
-    public void setNonMissingThreshold(double val){
-        ns_=val;
+
+    public void setNonMissingThreshold(double val) {
+        ns_ = val;
     }
 
     @Override
     public boolean initialize(DynamicFactorModel model, DfmInformationSet input) {
-        DynamicFactorModel nmodel=model.clone();
+        DynamicFactorModel nmodel = model.clone();
         clear();
         if (!computeMatrix(input)) {
             return false;
@@ -82,8 +83,9 @@ public class PcInitializer implements IDfmInitializer {
         if (!computeLoadings(nmodel)) {
             return false;
         }
-        if (nmodel.isValid())
+        if (nmodel.isValid()) {
             model.copy(nmodel);
+        }
         return true;
     }
 
@@ -134,10 +136,12 @@ public class PcInitializer implements IDfmInitializer {
     }
 
     /**
-     * Creates the data used for the computation of the principal components analysis
+     * Creates the data used for the computation of the principal components
+     * analysis
+     *
      * @param model
      * @param cmp The considered factor
-     * @return 
+     * @return
      */
     private Matrix prepareDataForComponent(DynamicFactorModel model, int cmp) {
         // Keep only the concerned series
@@ -157,7 +161,8 @@ public class PcInitializer implements IDfmInitializer {
                 for (int j = 0; j < cmp; ++j) {
                     if (!Double.isNaN(desc.coeff[j])) {
                         SingularValueDecomposition svd = pc_[j].getSvd();
-                        double l = -svd.S()[0] * svd.V().get(searchPos(model, s, j), 0);
+                        double scaling=pc_[j].getScaling();
+                        double l = -svd.S()[0] * svd.V().get(searchPos(model, s, j), 0)/scaling;
                         m.column(np).addAY(l, svd.U().column(0));
                     }
                 }
@@ -273,7 +278,7 @@ public class PcInitializer implements IDfmInitializer {
         }
         return true;
     }
-  
+
     private TsDomain searchDomain(DfmInformationSet input) {
         int n = input.getSeriesCount();
         Day[] start = new Day[n];

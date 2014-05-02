@@ -17,14 +17,12 @@
 package ec.tss.Dfm;
 
 import ec.tss.Ts;
-import ec.tss.documents.ActiveDocument;
 import ec.tss.documents.MultiTsDocument;
 import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.algorithm.ProcessingContext;
 import ec.tstoolkit.dfm.DfmSpec;
-import ec.tstoolkit.information.InformationSet;
-import ec.tstoolkit.timeseries.regression.TsVariables;
-import ec.tstoolkit.utilities.DefaultNameValidator;
+import ec.tstoolkit.dfm.MeasurementSpec;
+import java.util.List;
 
 /**
  *
@@ -57,14 +55,15 @@ public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> impl
         }
     }
     
+    @Override
     protected CompositeResults recalc(DfmSpec spec, Ts[] input) {
         CompositeResults rslts = super.recalc(spec, input);
         if (rslts != null) {
             DfmResults dr = rslts.get(DfmProcessingFactory.DFM, DfmResults.class);
             if (dr != null) {
-                String[] desc = new String[input.length];
+                DfmSeriesDescriptor[] desc = dr.getDescriptions();
                 for (int i = 0; i < desc.length; ++i) {
-                    desc[i] = input[i].getRawName();
+                    desc[i].description = input[i].getRawName();
                 }
                 dr.setDescriptions(desc);
             }

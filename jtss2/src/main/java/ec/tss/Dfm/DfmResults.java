@@ -67,7 +67,7 @@ public class DfmResults implements IProcResults {
     private Matrix irfShock; // variables x horizon (for a given shock)
     private Matrix idiosyncraticCorr; // variables x horizon (for a given shock)
     private TsData[] smoothedSignalUncertainty;
-    private String[] description;
+    private DfmSeriesDescriptor[] description;
 
     public DfmResults(DynamicFactorModel model, DfmInformationSet input) {
         this.model = model;
@@ -82,17 +82,18 @@ public class DfmResults implements IProcResults {
         return input;
     }
 
-    public String getDescription(int idx) {
-        return description == null ? "var-" + (idx + 1) : description[idx];
+    public DfmSeriesDescriptor getDescription(int idx) {
+        return description == null ? new DfmSeriesDescriptor(idx) : description[idx];
     }
 
-    public String[] getDescriptions() {
+    public DfmSeriesDescriptor[] getDescriptions() {
         if (description != null) {
             return description;
         }
-        String[] desc = new String[input.getSeriesCount()];
+        
+        DfmSeriesDescriptor[] desc = new DfmSeriesDescriptor[input.getSeriesCount()];
         for (int i = 0; i < desc.length; ++i) {
-            desc[i] = "var-" + (i + 1);
+            desc[i] = new DfmSeriesDescriptor(i);
         }
         return desc;
     }
@@ -117,7 +118,7 @@ public class DfmResults implements IProcResults {
         score = s;
     }
 
-    public void setDescriptions(String[] desc) {
+    public void setDescriptions(DfmSeriesDescriptor[] desc) {
         description = desc;
     }
 

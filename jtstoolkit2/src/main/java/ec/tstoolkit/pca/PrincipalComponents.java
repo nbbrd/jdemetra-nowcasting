@@ -17,9 +17,6 @@
 package ec.tstoolkit.pca;
 
 import ec.tstoolkit.data.DataBlock;
-import ec.tstoolkit.maths.Complex;
-import ec.tstoolkit.maths.matrices.EigenSystem;
-import ec.tstoolkit.maths.matrices.IEigenSystem;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.maths.matrices.SingularValueDecomposition;
 
@@ -31,21 +28,34 @@ public class PrincipalComponents {
 
     private Matrix data_;
     private SingularValueDecomposition svd_;
+    private double scaling_;
 
     public boolean process(Matrix data) {
         clear();
         data_ = data;
         svd_=new SingularValueDecomposition();
+       
         Matrix ndata;
-        if (data.getColumnsCount() == 1)
+        if (data.getColumnsCount() == 1){
             ndata=data;
-        else
-            ndata=data.times(1/Math.sqrt(data.getColumnsCount()-1));
+            scaling_=1;
+        }
+        else{
+            scaling_=1/Math.sqrt(data.getColumnsCount()-1);
+            ndata=data.times(scaling_);
+        }
         svd_.decompose(ndata);
         return svd_.isFullRank();
     }
 
     private void clear() {
+        svd_=null;
+        data_=null;
+        scaling_=1;
+    }
+    
+    public double getScaling(){
+        return scaling_;
     }
 
     public Matrix getData() {

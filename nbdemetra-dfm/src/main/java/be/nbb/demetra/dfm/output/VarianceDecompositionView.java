@@ -7,6 +7,7 @@ package be.nbb.demetra.dfm.output;
 
 import com.google.common.base.Optional;
 import ec.tss.Dfm.DfmResults;
+import ec.tss.Dfm.DfmSeriesDescriptor;
 import ec.tss.datatransfer.TssTransferSupport;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.dfm.DfmInformationSet;
@@ -184,7 +185,7 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
         return results.getVarianceDecompositionIdx(horizon, selectedItem);
     }
 
-    private static DefaultComboBoxModel toComboBoxModel(String[] data) {
+    private static DefaultComboBoxModel toComboBoxModel(DfmSeriesDescriptor[] data) {
         DefaultComboBoxModel result = new DefaultComboBoxModel(data);
 //        for (int i = 0; i < data.getSeriesCount(); i++) {
 //            result.addElement("Var " + (i + 1));
