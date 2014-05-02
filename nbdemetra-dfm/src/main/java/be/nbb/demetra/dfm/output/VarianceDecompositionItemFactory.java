@@ -32,15 +32,15 @@ import org.openide.util.lookup.ServiceProvider;
  *
  * @author Philippe Charles
  */
-@ServiceProvider(service = ProcDocumentItemFactory.class)
-public class VarianceDecompositionItemFactory extends DfmDocumentItemFactory {
+@ServiceProvider(service = ProcDocumentItemFactory.class, position = 200200)
+public class VarianceDecompositionItemFactory extends DfmResultsItemFactory {
 
     public VarianceDecompositionItemFactory() {
         super(newId(), newItemUI());
     }
 
     private static Id newId() {
-        return new LinearId("Variance Decomposition");
+        return new LinearId("Model", "Analysis", "Variance Decomposition");
     }
 
     private static ItemUI<IProcDocumentView<DfmDocument>, Optional<DfmResults>> newItemUI() {

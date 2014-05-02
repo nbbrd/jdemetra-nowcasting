@@ -32,15 +32,15 @@ import org.openide.util.lookup.ServiceProvider;
  *
  * @author Philippe Charles
  */
-@ServiceProvider(service = ProcDocumentItemFactory.class)
-public class IrfItemFactory extends DfmDocumentItemFactory {
+@ServiceProvider(service = ProcDocumentItemFactory.class, position = 200210)
+public class IrfItemFactory extends DfmResultsItemFactory {
 
     public IrfItemFactory() {
         super(newId(), newItemUI());
     }
 
     private static Id newId() {
-        return new LinearId("Impulse response functions");
+        return new LinearId("Model", "Analysis", "Impulse response functions");
     }
 
     private static ItemUI<IProcDocumentView<DfmDocument>, Optional<DfmResults>> newItemUI() {

@@ -19,7 +19,6 @@ package be.nbb.demetra.dfm.output;
 import com.google.common.base.Optional;
 import ec.tss.Dfm.DfmDocument;
 import ec.tss.Dfm.DfmResults;
-import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.utilities.DefaultInformationExtractor;
 import ec.tstoolkit.utilities.Id;
 import ec.ui.view.tsprocessing.ComposedProcDocumentItemFactory;
@@ -30,19 +29,19 @@ import ec.ui.view.tsprocessing.ItemUI;
  *
  * @author Philippe Charles
  */
-abstract class DfmDocumentItemFactory extends ComposedProcDocumentItemFactory<DfmDocument, Optional<CompositeResults>> {
+abstract class DfmResultsItemFactory extends ComposedProcDocumentItemFactory<DfmDocument, Optional<DfmResults>> {
 
-    protected DfmDocumentItemFactory(Id itemId, ItemUI<? extends IProcDocumentView<DfmDocument>, Optional<CompositeResults>> itemUI) {
+    protected DfmResultsItemFactory(Id itemId, ItemUI<? extends IProcDocumentView<DfmDocument>, Optional<DfmResults>> itemUI) {
         super(DfmDocument.class, itemId, DfmResultsExtractor.INSTANCE, itemUI);
     }
 
-    private static final class DfmResultsExtractor extends DefaultInformationExtractor<DfmDocument, Optional<CompositeResults>> {
+    private static final class DfmResultsExtractor extends DefaultInformationExtractor<DfmDocument, Optional<DfmResults>> {
 
         public static final DfmResultsExtractor INSTANCE = new DfmResultsExtractor();
 
         @Override
-        public Optional<CompositeResults> retrieve(DfmDocument source) {
-            return Optional.fromNullable(source.getResults());
+        public Optional<DfmResults> retrieve(DfmDocument source) {
+            return Optional.fromNullable(source.getResults().get("dfm", DfmResults.class));
         }
     }
 }

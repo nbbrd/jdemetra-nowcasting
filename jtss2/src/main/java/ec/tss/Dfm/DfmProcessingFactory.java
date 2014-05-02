@@ -195,6 +195,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
                 if (n != measurements.size()) {
                     return IProcessing.Status.Invalid;
                 }
+                TsData[] trs = new TsData[n];
                 TsData[] sc = new TsData[n];
                 DfmSeriesDescriptor[] desc = new DfmSeriesDescriptor[n];
                 int k = 0;
@@ -240,13 +241,14 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
                         m = stats.getAverage();
                         e = stats.getStdev();
                     }
+                    trs[k]=s.clone();
                     s.getValues().sub(m);
                     s.getValues().div(e);
                     desc[k].mean = m;
                     desc[k].stdev = e;
                     sc[k++] = s;
                 }
-                MultiTsData inputc = new MultiTsData("var", sc);
+                MultiTsData inputc = new MultiTsData("var", trs);
                 results.put(INPUTC, inputc);
                 DfmResults start = new DfmResults(spec.getModelSpec().build(), new DfmInformationSet(sc));
                 start.setDescriptions(desc);

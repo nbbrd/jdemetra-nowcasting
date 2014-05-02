@@ -32,15 +32,15 @@ import org.openide.util.lookup.ServiceProvider;
  *
  * @author Philippe Charles
  */
-@ServiceProvider(service = ProcDocumentItemFactory.class)
-public class ShocksDecompositionItemFactory extends DfmDocumentItemFactory {
+@ServiceProvider(service = ProcDocumentItemFactory.class, position = 200050)
+public class ShocksDecompositionItemFactory extends DfmResultsItemFactory {
 
     public ShocksDecompositionItemFactory() {
         super(newId(), newItemUI());
     }
 
     private static Id newId() {
-        return new LinearId("Shocks Decomposition");
+        return new LinearId("Model", "Shocks Decomposition");
     }
 
     private static ItemUI<IProcDocumentView<DfmDocument>, Optional<DfmResults>> newItemUI() {

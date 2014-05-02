@@ -939,7 +939,7 @@ public class DfmResults implements IProcResults {
     private static final InformationMapper<DfmResults> mapper = new InformationMapper<>();
 
     public static final String MODEL = "model", NLAGS = "nlags", NFACTORS = "nfactors", VPARAMS = "vparams", VCOVAR = "vcovar",
-            MVARS = "mvars", MCOEFFS = "mcoeffs";
+            MVARS = "mvars", MCOEFFS = "mcoeffs", SIGNAL="signal", NOISE="noise", SIGNALS="s-*", NOISES="n-*";
 
     static {
         mapper.add(InformationSet.item(MODEL, NLAGS), new InformationMapper.Mapper<DfmResults, Integer>(Integer.class) {
