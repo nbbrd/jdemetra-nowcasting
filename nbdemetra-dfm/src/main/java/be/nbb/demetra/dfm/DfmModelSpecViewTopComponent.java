@@ -206,6 +206,7 @@ public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<Df
                 }
                 doc.setSpecification(newspec);  
                 c.dfmModelSpecView1.updateModel();
+                c.controller.setDfmState(DfmController.DfmState.READY);
              }
         }
         

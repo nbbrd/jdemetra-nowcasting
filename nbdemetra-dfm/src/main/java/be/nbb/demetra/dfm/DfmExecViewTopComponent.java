@@ -376,10 +376,12 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
 
         @Override
         public void execute(DfmExecViewTopComponent c) throws Exception {
-            DfmEstimationSpec newValue = c.getDocument().getElement().getSpecification().getEstimationSpec().clone();
+                     DfmDocument doc = c.getDocument().getElement();
+            DfmSpec oldspec = doc.getSpecification();
+            DfmSpec newspec=oldspec.clone();
+            DfmEstimationSpec newValue = newspec.getEstimationSpec();
             if (OpenIdePropertySheetBeanEditor.editSheet(DfmSheets.onDfmEstimationSpec(newValue), "Edit spec", null)) {
-                c.getDocument().getElement().getSpecification().setEstimationSpec(newValue);
-                c.getDocument().getElement().clear();
+                doc.setSpecification(newspec);  
                 c.controller.setDfmState(DfmState.READY);
             }
         }

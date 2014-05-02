@@ -232,7 +232,6 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             } else {
                 return false;
             }
-
         }
 
         @Override
