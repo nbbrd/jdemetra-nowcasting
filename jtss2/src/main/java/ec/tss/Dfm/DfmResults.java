@@ -58,16 +58,17 @@ public class DfmResults implements IProcResults {
     private MFilteringResults filtering;
     private TsData[] smoothedShocks; // one Ts for each shock
     private TsData[] smoothedNoise;  // one Ts for each observable
-    private TsData[] theData; // one Ts for each observable
-    private TsData[] smoothedSignal;  // one Ts for each observable
-    private TsData[][] shockDecomposition;
-    private Matrix varianceDecompositionShock;  // variables x horizons (for a give shock)
-    private Matrix varianceDecompositionIdx;     // shocks x horizon (for a given variable)
-    private Matrix irfIdx;   // shocks x horizon (for a given variable)
-    private Matrix irfShock; // variables x horizon (for a given shock)
+    private TsData[] theData; // one Ts for each observable,  incorporates stdev but NOT MEAN
+    private TsData[] smoothedSignal;  // one Ts for each observable (demeaned),incorporates stdev but not mean
+    private TsData[][] shockDecomposition; //incorporates stdev
+    private Matrix varianceDecompositionShock;  // variables x horizons (for a give shock),incorporates stdev
+    private Matrix varianceDecompositionIdx;     // shocks x horizon (for a given variable),incorporates stdev
+    private Matrix irfIdx;   // shocks x horizon (for a given variable) , incorporates stdev
+    private Matrix irfShock; // variables x horizon (for a given shock), incorporates stdev
     private Matrix idiosyncraticCorr; // variables x horizon (for a given shock)
-    private TsData[] smoothedSignalUncertainty;
+    private TsData[] smoothedSignalUncertainty; // incorporates stdev
     private DfmSeriesDescriptor[] description;
+    private TsData[] smoothedSignalProjection; // incorporates mean and stdev
 
     public DfmResults(DynamicFactorModel model, DfmInformationSet input) {
         this.model = model;
@@ -140,6 +141,10 @@ public class DfmResults implements IProcResults {
 
     public void calcIdiosyncratic() {
 
+        
+    
+        
+        
         TsData[] error = getNoise();
         TsData ei;
         TsData ej;
@@ -235,8 +240,13 @@ public class DfmResults implements IProcResults {
     public void pleaseGetTheData() {
 
         theData = new TsData[input.getSeriesCount()];
+        
+       if (description==null){
+                  throw new Error("missing description of the data transformations, mean and standard deviation  (object of the class DfmSeriesDescriptor[] has not been defined)");
+        }    
+       
         for (int i = 0; i < input.getSeriesCount(); i++) {
-            theData[i] = input.series(i);
+            theData[i] = input.series(i).times(description[i].stdev);//.plus(description[i].mean);
         }
 
     }
@@ -246,7 +256,7 @@ public class DfmResults implements IProcResults {
      * all observables. The nowcasting model decomposes all observables into a
      * signal plus an idiosyncratic noise (or measurement error) component.
      */
-    public TsData[] getSignal() {
+    public TsData[] getSignal() {       
         if (smoothedSignal == null) {
             calcSmoothedSignal(); // It is not well calculated because the signal becomes the same for all variables
         }
@@ -294,6 +304,7 @@ public class DfmResults implements IProcResults {
         // List<DynamicFactorModel.MeasurementDescriptor> measurements = model.getMeasurements();
         double[][] signal = new double[N][m_used];
 
+                
         for (int t = 0; t < m_used; t++) {
             DataBlock temp = Z.column(t).deepClone();
             for (int v = 0; v < N; v++) {
@@ -302,9 +313,20 @@ public class DfmResults implements IProcResults {
         }
 
         TsDomain currentDomain = input.getCurrentDomain();
+        TsData[ ] smoothedSignal_ = new TsData[N];
+        for (int v = 0; v < N; v++) {
+            smoothedSignal_[v] = new TsData(currentDomain.getStart(), signal[v], false);
+        }
+        
+        
+        if (description==null){
+                  throw new Error("missing description of the data transformations, mean and standard deviation  (object of the class DfmSeriesDescriptor[] has not been defined)");
+        }    
+        
+
         smoothedSignal = new TsData[N];
         for (int v = 0; v < N; v++) {
-            smoothedSignal[v] = new TsData(currentDomain.getStart(), signal[v], false);
+            smoothedSignal[v] = smoothedSignal_[v].times(description[v].stdev);//.plus(description[v].mean);
         }
 
     }
@@ -351,16 +373,28 @@ public class DfmResults implements IProcResults {
         }
 
         TsDomain currentDomain = input.getCurrentDomain();
-        smoothedNoise = new TsData[N];
+        TsData[] smoothedNoise_ = new TsData[N];
         for (int v = 0; v < N; v++) {
-            smoothedNoise[v] = new TsData(currentDomain.getStart(), noise[v], false);
+            smoothedNoise_[v] = new TsData(currentDomain.getStart(), noise[v], false);
         }
 
+       if (description==null){
+                  throw new Error("missing description of the data transformations, mean and standard deviation  (object of the class DfmSeriesDescriptor[] has not been defined)");
+        }    
+        
+
+        smoothedNoise = new TsData[N];
+        for (int v = 0; v < N; v++) {
+            smoothedNoise[v] = smoothedNoise_[v].times(description[v].stdev);
+        }
+        
+        
     }
 
     /**
      * Gets the array of TsData (time series) corresponding to the reduced form
-     * shocks that affect the factors. The nowcasting model decomposes all
+     * shocks that affect the factors (obtained from normalized data). 
+     * The nowcasting model decomposes all
      * observables into a signal, which is driven the shocks we extract with
      * this fuction, plus an idiosyncratic noise (or measurement error)
      * component.
@@ -420,12 +454,12 @@ public class DfmResults implements IProcResults {
     }
 
     /**
-     * Forecast Errors variance decomposition, for the variable given by "v".
+     * Forecast Errors variance decomposition, for the variable given by "v" (not normalized).
      * The forecast horizon is given by the int[] horizon. The output Matrix
      * contains the shocks accounting for that forecast error variance in the
      * columns and the forecast horizon in the raws. Note that the first raw
      * (position 0), should correspond with a forecast horizon larger than or
-     * equal to one.
+     * equal to one. 
      */
     public Matrix getVarianceDecompositionIdx(int[] horizon, int v) {
 
@@ -460,7 +494,7 @@ public class DfmResults implements IProcResults {
     }
 
     /**
-     * Part of the Forecast Errors variance, for all variables, that is
+     * Part of the Forecast Errors variance (not normalized), for all variables, that is
      * explained by a given "shock". The forecast horizon is given by the int[]
      * horizon. The output Matrix contains the reference variables in the
      * columns and the forecast horizon in the raws. Note that the first raw
@@ -500,6 +534,11 @@ public class DfmResults implements IProcResults {
         //        System.out.println(shock);
 
         //Matrix[] ZVZt = null;
+        
+          if (description==null){
+                  throw new Error("missing description of the data transformations, mean and standard deviation  (object of the class DfmSeriesDescriptor[] has not been defined)");
+        }    
+
         for (int h = 0; h < horizon.length; h++) {
 
             if (horizon[h] == 0) {
@@ -535,7 +574,8 @@ public class DfmResults implements IProcResults {
             ssf.ZVZ(0, Sigmax.subMatrix(), zvz.subMatrix());
 
             for (int v = 0; v < N; v++) {
-                varianceDecompositionShock.set(v, h, zvz.get(v, v));
+             
+                varianceDecompositionShock.set(v, h, zvz.get(v, v)*description[v].stdev*description[v].stdev);
             }
 
         }
@@ -545,7 +585,7 @@ public class DfmResults implements IProcResults {
     }
 
     /**
-     * Output Matrix "r shocks" x "horizons" representing Impulse response
+     * Output Matrix "r shocks" x "horizons" representing (not normalized) Impulse response
      * function (IRF) for a given variables "v" in response to a "shock" of the
      * standard size. The IRF represents the extent to which the forecasts
      * change when each one of the shocks hits the economy. The forecast horizon
@@ -569,7 +609,7 @@ public class DfmResults implements IProcResults {
     }
 
     /**
-     * Output Matrix "N variables" x "horizons" representing Impulse response
+     * Output Matrix "N variables" x "horizons" representing (not normalized) Impulse response
      * function for all variables in response to a "shock" of the standard size.
      * It represents the extent to which the forecasts change when each one of
      * the shocks hits the economy. The forecast horizon is given by the int[]
@@ -605,6 +645,11 @@ public class DfmResults implements IProcResults {
 
         Matrix Q_ = new Matrix(Bss.subMatrix(0, r * c_, shock * c_, shock * c_ + 1));
 
+        if (description==null){
+                  throw new Error("missing description of the data transformations, mean and standard deviation  (object of the class DfmSeriesDescriptor[] has not been defined)");
+        }    
+
+                 
         for (int h = 0; h < horizon.length; h++) {
 
             if (horizon[h] == 0) {
@@ -644,7 +689,7 @@ public class DfmResults implements IProcResults {
             ssf.ZVZ(0, Sigmax.subMatrix(), zvz.subMatrix());
 
             for (int v = 0; v < N; v++) {
-                irfShock.set(v, h, zvz.get(v, v));
+                irfShock.set(v, h, zvz.get(v, v)*description[v].stdev);
             }
 
         }
@@ -821,8 +866,18 @@ public class DfmResults implements IProcResults {
         // TsData ts = new TsData(currentDomain.getStart(), shockDec[1][1], false);
         shockDecomposition = new TsData[r + 2][N];// +2 because I want to incorporate initial factor and measurement errors
 
+        if (description==null){
+                  throw new Error("missing description of the data transformations, mean and standard deviation  (object of the class DfmSeriesDescriptor[] has not been defined)");
+        }    
+
+    
+            
         //  DataBlock db = new DataBlock(shockDecomposition[0][0]);
         //  db.cumul();
+        
+        
+        TsData[][] shockDecomposition_ =   new TsData[r+2][N];
+        
         for (int i = 0; i < r + 2; i++) {
 
             for (int v = 0; v < N; v++) {
@@ -830,17 +885,59 @@ public class DfmResults implements IProcResults {
                 if (i < r) {
                     DataBlock sd = new DataBlock(shockDec[i][v]);
                     //  sd.cumul();
-                    shockDecomposition[i][v] = new TsData(currentDomain.getStart(), sd);
+                    shockDecomposition_[i][v] = new TsData(currentDomain.getStart(), sd);
                 } else if (i == r) {  // i==r+1 refers to the initial factors' inertia   
-                    shockDecomposition[i][v] = new TsData(currentDomain.getStart(), initial[v], false);
+                    shockDecomposition_[i][v] = new TsData(currentDomain.getStart(), initial[v], false);
                 } else { // the last i==r+2 refers to the noise for variable v
-                    shockDecomposition[i][v] = smoothedNoise[v];
+                    shockDecomposition_[i][v] = smoothedNoise[v];
 
                 }
 
             }
         }
+        
+        for (int i = 0; i < r + 2; i++) {
+
+            for (int v = 0; v < N; v++) {
+
+                    if (i==r){               
+                        shockDecomposition[i][v] =shockDecomposition_[i][v].times(description[v].stdev);//.plus(description[v].mean)  ;  // include mean
+                    } else if (i < r){
+                        shockDecomposition[i][v] =shockDecomposition_[i][v].times(description[v].stdev) ;
+                    } else {
+                         shockDecomposition[i][v]=shockDecomposition_[i][v] ; // the noise has already been de-normalized
+                    }
+            }
+        }
+  
+
+          
+        
     }
+    
+     public TsData[] getSignalProjections() {
+        if (smoothedSignalProjection == null) {
+            calcSignalProjections(); // It is not well calculated because the signal becomes the same for all variables
+        }
+        return smoothedSignalProjection;
+    }
+
+      public void calcSignalProjections() {
+
+        if (smoothedSignal == null) {
+            calcSmoothedSignal();
+        }
+
+        IMSsf ssf = model.ssfRepresentation();
+        int N = ssf.getVarsCount();
+           for (int v = 0; v < N; v++) {
+           smoothedSignalProjection[v] = smoothedSignal[v].clone().plus(description[v].mean);
+           }
+        
+      }
+      
+     
+     
 
     public TsData[] getSignalUncertainty() {
         if (smoothedSignalUncertainty == null) {
@@ -848,6 +945,8 @@ public class DfmResults implements IProcResults {
         }
         return smoothedSignalUncertainty;
     }
+    
+
 
     public void calcSmoothedSignalUncertainty() {
 
@@ -873,6 +972,10 @@ public class DfmResults implements IProcResults {
         IMSsf ssf = model.ssfRepresentation();
         int N = ssf.getVarsCount();
 
+        if (description==null){
+                  throw new Error("missing description of the data transformations, mean and standard deviation  (object of the class DfmSeriesDescriptor[] has not been defined)");
+        }    
+                
         double[][] signalUncertainty = new double[N][m_used];
 
         for (int t = 0; t < m_used; t++) {
@@ -883,8 +986,8 @@ public class DfmResults implements IProcResults {
                 Matrix zvz = new Matrix(r * c_, r * c_);
                 ssf.ZVZ(0, temp.subMatrix(), zvz.subMatrix());
 
-                signalUncertainty[v][t] = zvz.get(v, v);
-                System.out.println(signalUncertainty[v][t]);
+                signalUncertainty[v][t] = zvz.get(v, v)*description[v].stdev*description[v].stdev;
+               // System.out.println(signalUncertainty[v][t]);
             }
         }
 
