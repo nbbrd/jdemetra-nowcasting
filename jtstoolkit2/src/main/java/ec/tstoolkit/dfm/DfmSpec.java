@@ -18,7 +18,6 @@ package ec.tstoolkit.dfm;
 
 import ec.satoolkit.ISaSpecification;
 import ec.satoolkit.tramoseats.TramoSeatsSpecification;
-import ec.tstoolkit.var.VarSpec;
 import ec.tstoolkit.algorithm.IProcSpecification;
 import ec.tstoolkit.information.InformationSet;
 import java.util.Map;

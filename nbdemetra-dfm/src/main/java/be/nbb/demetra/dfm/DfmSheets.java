@@ -18,6 +18,7 @@ package be.nbb.demetra.dfm;
 
 import ec.nbdemetra.ui.properties.NodePropertySetBuilder;
 import ec.tstoolkit.dfm.DfmEstimationSpec;
+import ec.tstoolkit.dfm.DfmModelSpec;
 import ec.tstoolkit.dfm.EmSpec;
 import ec.tstoolkit.dfm.NumericalProcessingSpec;
 import ec.tstoolkit.dfm.PcSpec;
@@ -89,18 +90,18 @@ final class DfmSheets {
                 .display(Bundle.emSpec_maxNumIter_display())
                 .min(1)
                 .add();
-         B.withDouble()
+        B.withDouble()
                 .select(bean, "precision")
                 .display(Bundle.emSpec_precision_display())
                 .min(0)
                 .add();
- }
+    }
 
     @NbBundle.Messages({
         "numericalProcessingSpec.enabled.display=Enabled",
         "numericalProcessingSpec.maxIter.display=Max number iterations",
         "numericalProcessingSpec.maxInitialIter.display=Simplified model iterations",
-       "numericalProcessingSpec.maxStepIter.display=Max number iterations in optimization by block",
+        "numericalProcessingSpec.maxStepIter.display=Max number iterations in optimization by block",
         "numericalProcessingSpec.independentShocks.display=Independent VAR shocks",
         "numericalProcessingSpec.blockIterations.display=Iterations by blocks",
         "numericalProcessingSpec.mixedEstimation.display=Mixed estimation",
@@ -182,22 +183,34 @@ final class DfmSheets {
         "varSpec.display=VAR model",
         "varSpec.nvars.display=Equations count",
         "varSpec.nlags.display=Lags count",
-        "varSpec.initialization.display=Initialization"
+        "varSpec.initialization.display=Initialization",
+        "modelSpec.display=Dfm model",
+        "modelSpec.forecastHorizon.display=Forecast horizon"
     })
-    public static Sheet onVarSpec(final VarSpec spec) {
-        Sheet result = new Sheet();
 
+    public static Sheet onModelSpec(final DfmModelSpec spec) {
+        final VarSpec vspec = spec.getVarSpec();
+        Sheet result = new Sheet();
         B.reset("varSpec").display(Bundle.varSpec_display());
+        withVarSpec(spec.getVarSpec());
+        result.put(B.build());
+        B.reset("modelSpec").display(Bundle.modelSpec_display());
+        withModelSpec(spec);
+        result.put(B.build());
+        return result;
+    }
+
+    private static void withVarSpec(final VarSpec vspec) {
         B.withInt()
                 .select(new PropertySupport.ReadWrite<Integer>("nvars", Integer.class, Bundle.varSpec_nvars_display(), null) {
                     @Override
                     public Integer getValue() {
-                        return spec.getEquationsCount();
+                        return vspec.getEquationsCount();
                     }
 
                     @Override
                     public void setValue(Integer val) {
-                        spec.setSize(val, spec.getLagsCount());
+                        vspec.setSize(val, vspec.getLagsCount());
                     }
                 })
                 .min(1)
@@ -206,22 +219,36 @@ final class DfmSheets {
                 .select(new PropertySupport.ReadWrite<Integer>("nlags", Integer.class, Bundle.varSpec_nlags_display(), null) {
                     @Override
                     public Integer getValue() {
-                        return spec.getLagsCount();
+                        return vspec.getLagsCount();
                     }
 
                     @Override
                     public void setValue(Integer val) {
-                        spec.setSize(spec.getEquationsCount(), val);
+                        vspec.setSize(vspec.getEquationsCount(), val);
                     }
                 })
                 .min(1)
                 .add();
         B.withEnum(Initialization.class)
-                .select(spec, "initialization")
+                .select(vspec, "initialization")
                 .display(Bundle.varSpec_initialization_display())
                 .add();
-        result.put(B.build());
+    }
 
-        return result;
+    private static void withModelSpec(final DfmModelSpec spec) {
+        B.withInt()
+                .select(new PropertySupport.ReadWrite<Integer>("forecastHorizon", Integer.class, Bundle.modelSpec_forecastHorizon_display(), null) {
+                    @Override
+                    public Integer getValue() {
+                        return spec.getForecastHorizon();
+                    }
+
+                    @Override
+                    public void setValue(Integer val) {
+                        spec.setForecastHorizon(val);
+                    }
+                })
+                .min(1)
+                .add();
     }
 }

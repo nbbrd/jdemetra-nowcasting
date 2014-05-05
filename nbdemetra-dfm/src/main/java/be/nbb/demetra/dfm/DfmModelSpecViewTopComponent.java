@@ -12,6 +12,7 @@ import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
 import ec.tss.Dfm.DfmDocument;
 import ec.tstoolkit.Parameter;
+import ec.tstoolkit.dfm.DfmModelSpec;
 import ec.tstoolkit.dfm.DfmSpec;
 import ec.tstoolkit.dfm.MeasurementSpec;
 import ec.tstoolkit.var.VarSpec;
@@ -124,7 +125,7 @@ public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<Df
         toolBar.addSeparator();
         toolBar.add(Box.createRigidArea(new Dimension(5, 0)));
 
-        JButton edit = toolBar.add(EditVarSpecCommand.INSTANCE.toAction(this));
+        JButton edit = toolBar.add(EditModelSpecCommand.INSTANCE.toAction(this));
         edit.setIcon(DemetraUiIcon.PREFERENCES);
         edit.setDisabledIcon(createDisabledIcon(edit.getIcon()));
         edit.setToolTipText("Varspec");
@@ -180,25 +181,25 @@ public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<Df
     }
 
     //<editor-fold defaultstate="collapsed" desc="Commands">
-    private static final class EditVarSpecCommand extends JCommand<DfmModelSpecViewTopComponent> {
+    private static final class EditModelSpecCommand extends JCommand<DfmModelSpecViewTopComponent> {
         
-        public static final EditVarSpecCommand INSTANCE = new EditVarSpecCommand();
+        public static final EditModelSpecCommand INSTANCE = new EditModelSpecCommand();
         
         @Override
         public void execute(DfmModelSpecViewTopComponent c) throws Exception {
             DfmDocument doc = c.getDocument().getElement();
             DfmSpec oldspec = doc.getSpecification();
             DfmSpec newspec=oldspec.clone();
-            VarSpec oldValue =oldspec.getModelSpec().getVarSpec();
-            VarSpec newValue = newspec.getModelSpec().getVarSpec();
-            if (OpenIdePropertySheetBeanEditor.editSheet(DfmSheets.onVarSpec(newValue), "Edit var spec", null)) {
-                int diff = newValue.getEquationsCount() - oldValue.getEquationsCount();
+            DfmModelSpec oldValue =oldspec.getModelSpec();
+            DfmModelSpec newValue = newspec.getModelSpec();
+            if (OpenIdePropertySheetBeanEditor.editSheet(DfmSheets.onModelSpec(newValue), "Edit var spec", null)) {
+                int diff = newValue.getVarSpec().getEquationsCount() - oldValue.getVarSpec().getEquationsCount();
                 if (diff != 0) {
                     for (MeasurementSpec o : newspec.getModelSpec().getMeasurements()) {
-                        Parameter[] tmp = Arrays.copyOf(o.getCoefficients(), newValue.getEquationsCount());
+                        Parameter[] tmp = Arrays.copyOf(o.getCoefficients(), newValue.getVarSpec().getEquationsCount());
                         if (diff > 0) {
                             for (int i = 0; i < diff; i++) {
-                                tmp[oldValue.getEquationsCount() + i] = new Parameter();
+                                tmp[oldValue.getVarSpec().getEquationsCount() + i] = new Parameter();
                             }
                         }
                         o.setCoefficient(tmp);

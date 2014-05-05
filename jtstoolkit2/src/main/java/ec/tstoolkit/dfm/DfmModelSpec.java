@@ -41,15 +41,32 @@ import java.util.logging.Logger;
  */
 public class DfmModelSpec implements IProcSpecification, Cloneable {
 
-    public static final String VSPEC = "var", MSPEC = "measurement", MSPECS = "measurement*";
+    public static final String VSPEC = "var", MSPEC = "measurement", MSPECS = "measurement*", FHORIZON = "fhorizon";
     private VarSpec vspec;
-    private  List<MeasurementSpec> mspecs = new ArrayList<>();
+    private List<MeasurementSpec> mspecs = new ArrayList<>();
+    private int fh;
 
-    public DfmModelSpec(){
-        vspec=new VarSpec();
+    private static final int DEF_FH = 1;
+
+    public DfmModelSpec() {
+        vspec = new VarSpec();
         vspec.setSize(2, 2);
+        fh = 1;
     }
-    
+
+    /**
+     * Gets the forecast horizon (in years)
+     *
+     * @return
+     */
+    public int getForecastHorizon() {
+        return fh;
+    }
+
+    public void setForecastHorizon(final int fh) {
+        this.fh = fh;
+    }
+
     public VarSpec getVarSpec() {
         return vspec;
     }
@@ -67,7 +84,7 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
         try {
             DfmModelSpec spec = (DfmModelSpec) super.clone();
             spec.vspec = vspec.clone();
-            spec.mspecs=new ArrayList<>();
+            spec.mspecs = new ArrayList<>();
             for (MeasurementSpec mspec : mspecs) {
                 spec.mspecs.add(mspec.clone());
             }
@@ -84,6 +101,9 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
         int i = 0;
         for (MeasurementSpec mspec : mspecs) {
             info.add(MSPEC + (i++), mspec.write(verbose));
+        }
+        if (verbose || fh != DEF_FH) {
+            info.add(FHORIZON, fh);
         }
         return info;
     }
@@ -105,6 +125,10 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
                 mspecs.add(x);
             }
         }
+        Integer f = info.get(FHORIZON, Integer.class);
+        if (f != null) {
+            fh = f;
+        }
         return true;
     }
 
@@ -121,6 +145,8 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
     }
 
     public boolean equals(DfmModelSpec spec) {
+        if (spec.fh != fh)
+            return false;
         if (!vspec.equals(spec.vspec)) {
             return false;
         }
@@ -206,11 +232,11 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
                 if (Parameter.isDefined(p[i])) {
                     if (p[i].isFixed() && p[i].getValue() == 0) {
                         coeff[i] = Double.NaN;
-                    } else if (p[i].getType() !=ParameterType.Undefined){
+                    } else if (p[i].getType() != ParameterType.Undefined) {
                         coeff[i] = p[i].getValue();
-                    }else{
+                    } else {
                         coeff[i] = DynamicFactorModel.C_DEF;
-                       
+
                     }
                 }
             }
@@ -227,6 +253,7 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
     public static void fillDictionary(String prefix, Map<String, Class> dic) {
         VarSpec.fillDictionary(InformationSet.item(prefix, VSPEC), dic);
         MeasurementSpec.fillDictionary(InformationSet.item(prefix, MSPECS), dic);
+        dic.put(InformationSet.item(prefix, FHORIZON), Integer.class);
     }
 
 }

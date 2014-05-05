@@ -55,9 +55,11 @@ import ec.tstoolkit.maths.realfunctions.levmar.LevenbergMarquardtMethod;
 import ec.tstoolkit.maths.realfunctions.riso.LbfgsMinimizer;
 import ec.tstoolkit.modelling.ModellingDictionary;
 import ec.tstoolkit.mssf2.MSsfFunctionInstance;
+import ec.tstoolkit.timeseries.Day;
 import ec.tstoolkit.timeseries.PeriodSelectorType;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDomain;
+import ec.tstoolkit.timeseries.simplets.TsPeriod;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -250,7 +252,15 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
                 }
                 MultiTsData inputc = new MultiTsData("var", trs);
                 results.put(INPUTC, inputc);
-                DfmResults start = new DfmResults(spec.getModelSpec().build(), new DfmInformationSet(sc));
+                DfmInformationSet dinfo=new DfmInformationSet(sc);
+                int fh=spec.getModelSpec().getForecastHorizon();
+                if (fh>0){
+                    TsPeriod last=dinfo.getCurrentDomain().getLast();
+                    last.move(fh*last.getFrequency().intValue());
+                    Day lastday = last.lastday();
+                    dinfo=dinfo.extendTo(lastday);
+                }
+                DfmResults start = new DfmResults(spec.getModelSpec().build(), dinfo);
                 start.setDescriptions(desc);
                 new DefaultInitializer().initialize(start.getModel(), start.getInput());
                 results.put(DFM, start);
