@@ -84,14 +84,6 @@ public interface IMSsf extends ISsfBase {
      */
     void XpZd(int pos, DataBlock x, DataBlock d);
 
-    /**
-     *
-     * @param pos
-     * @param v
-     * @param x
-     * @param d
-     */
-    void XpZd(int pos, int v, DataBlock x, double d);
     // Matrix version
     /**
      *
@@ -100,15 +92,6 @@ public interface IMSsf extends ISsfBase {
      */
     void Z(int pos, SubMatrix z);
 
-    /**
-     * Computes Z(pos)[v,] * x
-     *
-     * @param pos
-     * @param v
-     * @param x
-     * @return
-     */
-    double ZX(int pos, int v, DataBlock x);
 
     /**
      *
@@ -157,4 +140,84 @@ public interface IMSsf extends ISsfBase {
      * @param v  
      */
     void addH(int pos, SubMatrix v);
+    
+        /**
+     * Variance of the v-th measurement equation (at position v)
+     * @param pos
+     * @param v
+     * @return 
+     */
+    double H(int pos, int v);
+
+    /**
+     *
+     * @param pos
+     * @param v
+     * @return
+     */
+    boolean hasZ(int pos, int v);
+    
+     /**
+     * Computes L = T(pos) - k * Z(pos)[v,]
+     *
+     * @param pos
+     * @param v 
+     * @param k 
+     * @param lm
+     */
+    void L(int pos, int v, DataBlock k, SubMatrix lm);
+
+    /**
+     * Z(pos)[v,]
+     *
+     * @param pos
+     * @param v
+     * @param z
+     */
+    void Z(int pos, int v, DataBlock z);
+
+    /**
+     * Computes Z(pos)[v,] * V * Z(pos)[w,]'
+     *
+     * @param pos
+     * @param v
+     * @param w
+     * @param V
+     * @return  
+     */
+    double ZVZ(int pos, int v, int w, SubMatrix V);
+
+    // forward operations
+    /**
+     * Computes Z(pos)[v,] * x
+     *
+     * @param pos
+     * @param v
+     * @param x
+     * @return
+     */
+    double ZX(int pos, int v, DataBlock x);
+    
+       // backward operations
+    /**
+     * Computes V = V + Z(pos) * d * Z'(pos)
+     * 
+     * @param pos
+     * @param v
+     * @param w
+     * @param V
+     * @param d
+     */
+    void VpZdZ(int pos, int v, int w, SubMatrix V, double d);
+
+    /**
+     * Computes x = x + Z(pos)[v,]' * d
+     *
+     * @param pos Current position
+     * @param v 
+     * @param x (dim x 1) matrix (in array form)
+     * @param d (
+     */
+    void XpZd(int pos, int v, DataBlock x, double d);
+
 }

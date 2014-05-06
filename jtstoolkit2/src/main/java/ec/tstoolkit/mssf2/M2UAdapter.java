@@ -35,7 +35,7 @@ public class M2UAdapter implements ISsf {
      * @param tmax
      * @return
      */
-    public static IM2UMap createMap(final IMSsf2U mssf, final int tmax) {
+    public static IM2UMap createMap(final IMSsf mssf, final int tmax) {
         int nvars = mssf.getVarsCount();
         int nentry = 0;
         for (int pos = 0; pos < tmax; ++pos) {
@@ -63,7 +63,7 @@ public class M2UAdapter implements ISsf {
     /**
      *
      */
-    private final IMSsf2U m_mssf;
+    private final IMSsf m_mssf;
     /**
      *
      */
@@ -87,7 +87,7 @@ public class M2UAdapter implements ISsf {
      * @param mssf
      * @param map
      */
-    public M2UAdapter(final IMSsf2U mssf, final IM2UMap map) {
+    public M2UAdapter(final IMSsf mssf, final IM2UMap map) {
         m_mssf = mssf;
         m_map = map;
         m_z = new DataBlock(m_mssf.getStateDim());
@@ -120,7 +120,7 @@ public class M2UAdapter implements ISsf {
      *
      * @return
      */
-    public IMSsf2U getMSsf() {
+    public IMSsf getMSsf() {
         return m_mssf;
     }
 

@@ -36,6 +36,7 @@ import ec.tstoolkit.mssf2.DefaultMultivariateSsf;
 import ec.tstoolkit.mssf2.IMSsf;
 import ec.tstoolkit.mssf2.MFilteringResults;
 import ec.tstoolkit.mssf2.MSmoothingResults;
+import ec.tstoolkit.timeseries.Day;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDomain;
 import java.util.LinkedHashMap;
@@ -478,10 +479,10 @@ public class DfmResults implements IProcResults {
                 }
 
             } else {
-                double var=description[v].stdev*description[v].stdev;
+                double var = description[v].stdev * description[v].stdev;
                 for (int h = 0; h < horizon.length; h++) {
-                   
-                    varianceDecompositionIdx.set(shock, h, model.getMeasurements().get(v).var*var);
+
+                    varianceDecompositionIdx.set(shock, h, model.getMeasurements().get(v).var * var);
                 }
 
             }
@@ -988,14 +989,26 @@ public class DfmResults implements IProcResults {
             calcSmoothedStates();
         }
         DataBlockStorage smoothedStates = smoothing.getSmoothedStates();
-        TsData sdata = input.series(pos).clone();
+        TsDomain cur = input.getCurrentDomain();
+        TsData sdata = new TsData(cur);
         int n = sdata.getLength();
 
         for (int i = 0; i < n; ++i) {
-            if (!DescriptiveStatistics.isFinite(sdata.get(i))) {
-                sdata.set(i, ssf.ZX(i, pos, smoothedStates.block(i)));
+            sdata.set(i, ssf.ZX(i, pos, smoothedStates.block(i)));
+        }
+
+        TsData s = input.series(pos);
+        for (int i = 0; i < s.getLength(); ++i) {
+            double v = s.get(i);
+            if (DescriptiveStatistics.isFinite(v)) {
+                Day ld = s.getDomain().get(i).lastday();
+                int j = cur.search(ld);
+                if (j >= 0) {
+                    sdata.set(j, v);
+                }
             }
         }
+
         DfmSeriesDescriptor sdesc = getDescription(pos);
         sdata.getValues().mul(sdesc.stdev);
         sdata.getValues().add(sdesc.mean);
@@ -1007,25 +1020,28 @@ public class DfmResults implements IProcResults {
             calcSmoothedStates();
         }
         IMSsf ssf = getSsf();
-        MatrixStorage svars = smoothing.getSmoothedStatesVariance();
         DynamicFactorModel.MeasurementDescriptor mdesc = this.model.getMeasurements().get(pos);
-        TsData src = input.series(pos);
-        TsData sdata = new TsData(src.getDomain(), 0);
-        int n = sdata.getLength();
+        TsDomain cur = input.getCurrentDomain();
 
         int d = ssf.getStateDim();
         DataBlock tmp = new DataBlock(d);
+        ssf.Z(0, pos, tmp);
+        double[] zvar = smoothing.zvariance(tmp);
+        TsData sdata = new TsData(cur.getStart(), zvar, false);
+        sdata.getValues().add(mdesc.var);
 
-        for (int i = 0; i < n; ++i) {
-            if (!DescriptiveStatistics.isFinite(src.get(i))) {
-                tmp.set(0);
-                SubMatrix v = svars.matrix(i);
-                for (int j = 0; j < d; ++j) {
-                    tmp.set(j, ssf.ZX(i, pos, v.column(j)));
+        TsData s = input.series(pos);
+        for (int i = 0; i < s.getLength(); ++i) {
+            double v = s.get(i);
+            if (DescriptiveStatistics.isFinite(v)) {
+                Day ld = s.getDomain().get(i).lastday();
+                int j = cur.search(ld);
+                if (j >= 0) {
+                    sdata.set(j, 0);
                 }
-                sdata.set(i, mdesc.var + ssf.ZX(i, pos, tmp));
             }
         }
+
         DfmSeriesDescriptor sdesc = getDescription(pos);
         sdata.getValues().sqrt();
         sdata.getValues().mul(sdesc.stdev);

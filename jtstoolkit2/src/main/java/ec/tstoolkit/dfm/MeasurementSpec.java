@@ -68,7 +68,7 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
         try {
             MeasurementSpec m = (MeasurementSpec) super.clone();
             if (coeff != null) {
-                m.coeff = coeff.clone();
+                m.coeff = Parameter.clone(coeff);
             }
             if (var != null) {
                 m.var = var.clone();

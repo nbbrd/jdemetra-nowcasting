@@ -18,7 +18,6 @@ package ec.tstoolkit.mssf2;
 
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DataBlockIterator;
-import ec.tstoolkit.data.SubArrayOfInt;
 import ec.tstoolkit.design.Development;
 import ec.tstoolkit.maths.matrices.SubMatrix;
 import ec.tstoolkit.maths.matrices.SymmetricMatrix;
@@ -29,7 +28,7 @@ import ec.tstoolkit.ssf2.Utilities;
  * @author Jean Palate
  */
 @Development(status = Development.Status.Preliminary)
-public abstract class AbstractMultivariateSsf implements IArraySsf, IMSsf2U {
+public abstract class AbstractMultivariateSsf implements IArraySsf {
 
     @Override
     public void L(int pos, SubMatrix k, SubMatrix lm) {
@@ -183,6 +182,12 @@ public abstract class AbstractMultivariateSsf implements IArraySsf, IMSsf2U {
 
     @Override
     public void S(int pos, SubMatrix s) {
+        
+    }
+
+    @Override
+    public void Q(int pos, SubMatrix q) {
+        V(pos, q);
     }
 
     @Override
