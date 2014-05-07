@@ -29,8 +29,9 @@ import java.util.Objects;
  */
 public class MeasurementSpec implements IProcSpecification, Cloneable {
 
-    public static enum Transformation {
 
+
+    public static enum Transformation {
         Log,
         Sa,
         Diff1,
@@ -57,9 +58,12 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
         var = new Parameter();
     }
 
-    public MeasurementSpec(final String name, int nfac) {
-        coeff = Parameter.create(nfac);
-        transformations = new Transformation[0];
+
+    void clear() {
+        for (int i=0; i<coeff.length; ++i){
+            if (!coeff[i].isFixed())
+                coeff[i]=new Parameter();
+        }
         var = new Parameter();
     }
 
@@ -155,8 +159,12 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
     /**
      * @param coeff the coeff to set
      */
-    public void setCoefficient(Parameter[] coeff) {
+    public void setCoefficients(Parameter[] coeff) {
         this.coeff = coeff;
+    }
+
+    void setCoefficient(int j, Parameter c) {
+        this.coeff[j]=c;
     }
 
     public Transformation[] getSeriesTransformations() {

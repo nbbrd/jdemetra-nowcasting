@@ -189,7 +189,7 @@ public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<Df
         public void execute(DfmModelSpecViewTopComponent c) throws Exception {
             DfmDocument doc = c.getDocument().getElement();
             DfmSpec oldspec = doc.getSpecification();
-            DfmSpec newspec=oldspec.clone();
+            DfmSpec newspec=oldspec.cloneStructure();
             DfmModelSpec oldValue =oldspec.getModelSpec();
             DfmModelSpec newValue = newspec.getModelSpec();
             if (OpenIdePropertySheetBeanEditor.editSheet(DfmSheets.onModelSpec(newValue), "Edit var spec", null)) {
@@ -202,7 +202,7 @@ public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<Df
                                 tmp[oldValue.getVarSpec().getEquationsCount() + i] = new Parameter();
                             }
                         }
-                        o.setCoefficient(tmp);
+                        o.setCoefficients(tmp);
                    }
                 }
                 doc.setSpecification(newspec);  

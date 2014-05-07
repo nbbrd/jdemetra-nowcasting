@@ -7,6 +7,7 @@ package be.nbb.demetra.dfm.output;
 
 import com.google.common.base.Optional;
 import ec.tss.Dfm.DfmResults;
+import ec.tss.Dfm.DfmSeriesDescriptor;
 import ec.tss.datatransfer.TssTransferSupport;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.dfm.DfmInformationSet;
@@ -155,7 +156,7 @@ final class IrfView extends javax.swing.JPanel {
 
     private void updateComboBox() {
         if (dfmResults.isPresent()) {
-            comboBox.setModel(toComboBoxModel(dfmResults.get().getInput()));
+            comboBox.setModel(toComboBoxModel(dfmResults.get().getDescriptions()));
             comboBox.setEnabled(true);
         } else {
             comboBox.setModel(new DefaultComboBoxModel());
@@ -184,11 +185,8 @@ final class IrfView extends javax.swing.JPanel {
         return results.getIrfIdx(horizon, selectedItem);
     }
 
-    private static DefaultComboBoxModel toComboBoxModel(DfmInformationSet data) {
-        DefaultComboBoxModel result = new DefaultComboBoxModel();
-        for (int i = 0; i < data.getSeriesCount(); i++) {
-            result.addElement("Var " + (i + 1));
-        }
+    private static DefaultComboBoxModel toComboBoxModel(DfmSeriesDescriptor[] desc) {
+        DefaultComboBoxModel result = new DefaultComboBoxModel(desc);
         return result;
     }
 

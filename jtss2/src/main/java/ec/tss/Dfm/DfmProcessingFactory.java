@@ -21,6 +21,8 @@ import ec.tss.Ts;
 import ec.tss.TsInformationType;
 import ec.tss.TsStatus;
 import ec.tss.sa.SaManager;
+import ec.tstoolkit.Parameter;
+import ec.tstoolkit.ParameterType;
 import ec.tstoolkit.algorithm.AlgorithmDescriptor;
 import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.algorithm.IProcResults;
@@ -37,8 +39,10 @@ import ec.tstoolkit.data.DescriptiveStatistics;
 import ec.tstoolkit.dfm.DefaultInitializer;
 import ec.tstoolkit.dfm.DfmEM;
 import ec.tstoolkit.dfm.DfmEM2;
+import ec.tstoolkit.dfm.DfmEstimationSpec;
 import ec.tstoolkit.dfm.DfmEstimator;
 import ec.tstoolkit.dfm.DfmInformationSet;
+import ec.tstoolkit.dfm.DfmModelSpec;
 import ec.tstoolkit.dfm.DfmSpec;
 import ec.tstoolkit.dfm.DynamicFactorModel;
 import ec.tstoolkit.dfm.EmSpec;
@@ -243,7 +247,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
                         m = stats.getAverage();
                         e = stats.getStdev();
                     }
-                    trs[k]=s.clone();
+                    trs[k] = s.clone();
                     s.getValues().sub(m);
                     s.getValues().div(e);
                     desc[k].mean = m;
@@ -252,13 +256,13 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
                 }
                 MultiTsData inputc = new MultiTsData("var", trs);
                 results.put(INPUTC, inputc);
-                DfmInformationSet dinfo=new DfmInformationSet(sc);
-                int fh=spec.getModelSpec().getForecastHorizon();
-                if (fh>0){
-                    TsPeriod last=dinfo.getCurrentDomain().getLast();
-                    last.move(fh*last.getFrequency().intValue());
+                DfmInformationSet dinfo = new DfmInformationSet(sc);
+                int fh = spec.getModelSpec().getForecastHorizon();
+                if (fh > 0) {
+                    TsPeriod last = dinfo.getCurrentDomain().getLast();
+                    last.move(fh * last.getFrequency().intValue());
                     Day lastday = last.lastday();
-                    dinfo=dinfo.extendTo(lastday);
+                    dinfo = dinfo.extendTo(lastday);
                 }
                 DfmResults start = new DfmResults(spec.getModelSpec().build(), dinfo);
                 start.setDescriptions(desc);
@@ -485,5 +489,34 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
             return IProcessing.Status.Valid;
         }
     };
+
+    /**
+     * Updates the spec with the given results
+     *
+     * @param spec The specification
+     * @param rslts The results
+     * @return A new updated specification object is returned
+     */
+    public static void update(DfmSpec spec, DfmResults rslts, boolean disable) {
+        if (rslts == null) {
+            return;
+        }
+        // estimation spec
+        if (disable) {
+            spec.getEstimationSpec().disable();
+        }
+        // model spec
+        // transformations
+        DynamicFactorModel model = rslts.getModel();
+        DfmModelSpec mspec = spec.getModelSpec();
+        mspec.copyParameters(model);
+        int i = 0;
+        // measurements        
+        for (MeasurementSpec cur : mspec.getMeasurements()) {
+            DfmSeriesDescriptor desc = rslts.getDescription(i++);
+            cur.setMean(desc.mean);
+            cur.setStdev(desc.stdev);
+        }
+     }
 
 }

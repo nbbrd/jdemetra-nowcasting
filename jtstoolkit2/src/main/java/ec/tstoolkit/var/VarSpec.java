@@ -21,6 +21,7 @@ import ec.tstoolkit.algorithm.IProcSpecification;
 import ec.tstoolkit.data.Table;
 import ec.tstoolkit.dfm.DynamicFactorModel;
 import ec.tstoolkit.information.InformationSet;
+import ec.tstoolkit.maths.matrices.SymmetricMatrix;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
@@ -121,10 +122,29 @@ public class VarSpec implements IProcSpecification, Cloneable {
             VarSpec spec = (VarSpec) super.clone();
             spec.nparams = new Table<>(nparams);
             spec.vparams = new Table<>(vparams);
+            Parameter[] buffer=new Parameter[nparams.size()];
+            nparams.copyTo(buffer);
+            for (int i=0; i<buffer.length; ++i){
+                if (buffer[i] != null)
+                    buffer[i]=buffer[i].clone();
+            }
+            nparams.copyFrom(buffer);
+            buffer=new Parameter[vparams.size()];
+            vparams.copyTo(buffer);
+            for (int i=0; i<buffer.length; ++i){
+                if (buffer[i] != null)
+                    buffer[i]=buffer[i].clone();
+            }
+            vparams.copyFrom(buffer);
             return spec;
         } catch (CloneNotSupportedException ex) {
             throw new AssertionError();
         }
+    }
+
+    public void clear() {
+        vparams = new Table<>(nvars, nvars * nlags);
+        nparams = new Table<>(nvars, nvars);
     }
 
     @Override
@@ -143,7 +163,7 @@ public class VarSpec implements IProcSpecification, Cloneable {
         if (!Parameter.isDefault(n)) {
             Parameter[] q = new Parameter[nvars * (nvars + 1) / 2];
             for (int c = 0, i = 0; c < nvars; ++c) {
-                for (int r = c; r <= nvars; ++r, ++i) {
+                for (int r = c; r < nvars; ++r, ++i) {
                     q[i] = nparams.get(r, c);
                 }
             }
@@ -178,8 +198,10 @@ public class VarSpec implements IProcSpecification, Cloneable {
                 return false;
             }
             for (int c = 0, i = 0; c < nvars; ++c) {
-                for (int r = c; r <= nvars; ++r, ++i) {
+                for (int r = c; r < nvars; ++r, ++i) {
                     nparams.set(r, c, s[i]);
+                    if (r != c)
+                        nparams.set(c, r, s[i]);
                 }
             }
         }

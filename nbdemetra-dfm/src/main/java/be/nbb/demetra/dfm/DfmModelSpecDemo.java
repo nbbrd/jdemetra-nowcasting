@@ -31,7 +31,7 @@ public class DfmModelSpecDemo {
     public static DfmDocument getDemo() {
         DfmDocument result = new DfmDocument();
         for (int i = 0; i < 10; i++) {
-            result.getSpecification().getModelSpec().getMeasurements().add(new MeasurementSpec("S" + i, 4));
+            result.getSpecification().getModelSpec().getMeasurements().add(new MeasurementSpec(4));
         }
         return result;
     }

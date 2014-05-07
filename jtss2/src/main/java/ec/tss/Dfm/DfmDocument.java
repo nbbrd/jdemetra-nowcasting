@@ -29,23 +29,23 @@ import java.util.List;
  * @author Jean Palate
  */
 public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> implements Cloneable {
-    
+
     public DfmDocument() {
         super(new DfmProcessingFactory(), null);
         setSpecification(new DfmSpec());
     }
-    
+
     public DfmDocument(ProcessingContext context) {
         super(new DfmProcessingFactory(), context);
         setSpecification(new DfmSpec());
     }
-    
+
     public DfmDocument clone() {
         DfmDocument doc = (DfmDocument) super.clone();
         doc.factory_ = new DfmProcessingFactory();
         return doc;
     }
-    
+
     public DfmResults getDfmResults() {
         CompositeResults rslts = getResults();
         if (rslts == null) {
@@ -54,7 +54,7 @@ public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> impl
             return rslts.get(DfmProcessingFactory.DFM, DfmResults.class);
         }
     }
-    
+
     @Override
     protected CompositeResults recalc(DfmSpec spec, Ts[] input) {
         CompositeResults rslts = super.recalc(spec, input);
@@ -66,8 +66,24 @@ public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> impl
                     desc[i].description = input[i].getRawName();
                 }
                 dr.setDescriptions(desc);
+                DfmProcessingFactory.update(spec, dr, false);
             }
         }
-        return rslts;        
+        return rslts;
     }
+
+    public void updateSpecification() {
+        if (!isLocked()) {
+            CompositeResults rslts = this.getResults();
+            if (rslts == null) {
+                return;
+            }
+            DfmResults dr = rslts.get(DfmProcessingFactory.DFM, DfmResults.class);
+            if (dr == null) {
+                return;
+            }
+            DfmProcessingFactory.update(this.getSpecification(), dr, false);
+        }
+    }
+
 }

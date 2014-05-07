@@ -161,28 +161,54 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
         return true;
     }
 
-    public static DfmModelSpec of(DynamicFactorModel m) {
-        DfmModelSpec spec = new DfmModelSpec();
-        spec.vspec = new VarSpec();
-        spec.vspec.setSize(m.getFactorsCount(), m.getTransition().nlags);
+    public boolean copyParameters(DynamicFactorModel m) {
+        if (vspec.getEquationsCount() != m.getFactorsCount())
+            return false;
+        if (vspec.getLagsCount() != m.getTransition().nlags)
+            return false;
+        if (mspecs.size() != m.getMeasurementsCount())
+            return false;
         // fill the transition equation
-        Table<Parameter> v = spec.vspec.getVarParams();
+        Table<Parameter> v = vspec.getVarParams();
         Matrix vparams = m.getTransition().varParams;
         for (int r = 0; r < v.getRowsCount(); ++r) {
             for (int c = 0; c < v.getColumnsCount(); ++c) {
-                v.set(r, c, new Parameter(vparams.get(r, c), ParameterType.Estimated));
+                v.set(r, c, convert(vparams.get(r, c)));
             }
         }
         // copy noises
-        Table<Parameter> n = spec.vspec.getNoiseParams();
+        Table<Parameter> n = vspec.getNoiseParams();
         Matrix tvar = m.getTransition().covar;
         for (int r = 0; r < n.getRowsCount(); ++r) {
             for (int c = 0; c <= r; ++c) {
-                n.set(r, c, new Parameter(tvar.get(r, c), ParameterType.Estimated));
+                n.set(r, c, convert(tvar.get(r, c)));
             }
         }
-
-        return spec;
+        // copy measurements
+        int nf=m.getFactorsCount();
+        int i=0;
+        for (MeasurementDescriptor mdesc : m.getMeasurements()){
+            MeasurementSpec mspec=mspecs.get(i++);
+            mspec.setVariance(convert(mdesc.var));
+            for (int j=0; j<nf; ++j){
+                mspec.setCoefficient(j, convertCoeff(mdesc.coeff[j]));
+            }
+        }
+        return true;
+    }
+    
+    private static Parameter convertCoeff(double v){
+        if (Double.isNaN(v))
+            return new Parameter(0, ParameterType.Fixed);
+        else
+            return new Parameter(v, ParameterType.Estimated);
+    }
+    
+    private static Parameter convert(double v){
+        if (Double.isNaN(v))
+            return new Parameter();
+        else
+            return new Parameter(v, ParameterType.Estimated);
     }
 
     public DynamicFactorModel build() {
@@ -249,11 +275,19 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
         dfm.setInitialization(vspec.getInitialization());
         return dfm;
     }
+    
+    void clear() {
+        vspec.clear();
+        for (MeasurementSpec m : mspecs){
+            m.clear();
+        }
+    }
 
     public static void fillDictionary(String prefix, Map<String, Class> dic) {
         VarSpec.fillDictionary(InformationSet.item(prefix, VSPEC), dic);
         MeasurementSpec.fillDictionary(InformationSet.item(prefix, MSPECS), dic);
         dic.put(InformationSet.item(prefix, FHORIZON), Integer.class);
     }
+
 
 }

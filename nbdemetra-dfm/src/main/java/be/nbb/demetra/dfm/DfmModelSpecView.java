@@ -132,15 +132,16 @@ public final class DfmModelSpecView extends JComponent {
     }
 
     public void setModel(DfmDocument model) {
-        if (this.model == model)
+        if (this.model == model) {
             return;
+        }
         DfmDocument old = this.model;
         this.model = model != null ? model : new DfmDocument();
         variables.replace(model.getInput());
         firePropertyChange(MODEL_PROPERTY, old, this.model);
     }
-    
-    public void updateModel(){
+
+    public void updateModel() {
         firePropertyChange(MODEL_PROPERTY, null, this.model);
     }
     //</editor-fold>
@@ -148,10 +149,12 @@ public final class DfmModelSpecView extends JComponent {
     private final TsCollection variables = TsFactory.instance.createTsCollection();
 
     public void appendTsVariables(TsCollection col) {
-        DfmSpec spec = model.getSpecification().clone();
+        DfmSpec spec = model.getSpecification().cloneStructure();
         for (Ts o : col) {
-            variables.add(o);
-            spec.getModelSpec().getMeasurements().add(new MeasurementSpec(o.getName(), spec.getModelSpec().getVarSpec().getEquationsCount()));
+            if (!variables.contains(o)) {
+                variables.add(o);
+                spec.getModelSpec().getMeasurements().add(new MeasurementSpec(spec.getModelSpec().getVarSpec().getEquationsCount()));
+            }
         }
         model.setInput(variables.toArray());
         model.setSpecification(spec);
@@ -195,7 +198,7 @@ public final class DfmModelSpecView extends JComponent {
                 case 2:
                     return ms.getFactorsTransformation();
                 default:
-                    return ms.getCoefficients()[columnIndex - 3].getType() == ParameterType.Undefined;
+                    return ms.getCoefficients()[columnIndex - 3].getType() != ParameterType.Fixed;
             }
         }
 
@@ -206,7 +209,7 @@ public final class DfmModelSpecView extends JComponent {
 
         @Override
         public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
-            DfmSpec spec = model.getSpecification().clone();
+            DfmSpec spec = model.getSpecification().cloneStructure();
             MeasurementSpec ms = spec.getModelSpec().getMeasurements().get(rowIndex);
             switch (columnIndex) {
                 case 1:
@@ -322,7 +325,7 @@ public final class DfmModelSpecView extends JComponent {
                 if (o != selected) {
                     o.setSeriesTransformations(Arrays3.cloneIfNotNull(selected.getSeriesTransformations()));
                     o.setFactorsTransformation(selected.getFactorsTransformation());
-                    o.setCoefficient(Parameter.clone(selected.getCoefficients()));
+                    o.setCoefficients(Parameter.clone(selected.getCoefficients()));
                 }
             }
             model.fireTableDataChanged();

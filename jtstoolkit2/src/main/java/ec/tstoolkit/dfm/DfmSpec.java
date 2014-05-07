@@ -58,7 +58,7 @@ public class DfmSpec implements IProcSpecification, Cloneable {
         sa_ = sa;
     }
 
-    @Override
+    //@Override
     public DfmSpec clone() {
         try {
             DfmSpec spec = (DfmSpec) super.clone();
@@ -69,6 +69,12 @@ public class DfmSpec implements IProcSpecification, Cloneable {
         } catch (CloneNotSupportedException ex) {
             throw new AssertionError();
         }
+    }
+    
+    public DfmSpec cloneStructure(){
+        DfmSpec spec=clone();
+        spec.model_.clear();
+        return spec;
     }
 
     @Override

@@ -27,6 +27,21 @@ public class DfmEstimationSpec implements IProcSpecification, Cloneable {
         pc_.setEnabled(true);
         proc_.setEnabled(true);
     }
+    
+    public void disable(){
+        pc_.setEnabled(false);
+        preEm_.setEnabled(false);
+        proc_.setEnabled(false);
+        postEm_.setEnabled(false);
+    }
+    
+    public boolean isEnabled(){
+        return pc_.isEnabled() || preEm_.isEnabled() || proc_.isEnabled() || postEm_.isEnabled();
+    }
+    
+    public boolean isDisabled(){
+        return ! isEnabled();
+    }
 
     public void setDefault() {
         pc_ = new PcSpec();
