@@ -6,8 +6,8 @@
 package be.nbb.demetra.dfm.output;
 
 import com.google.common.base.Optional;
-import ec.tss.Dfm.DfmResults;
-import ec.tss.Dfm.DfmSeriesDescriptor;
+import ec.tss.dfm.DfmResults;
+import ec.tss.dfm.DfmSeriesDescriptor;
 import ec.tss.datatransfer.TssTransferSupport;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.dfm.DfmInformationSet;

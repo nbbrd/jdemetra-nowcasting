@@ -22,7 +22,7 @@ import ec.nbdemetra.ui.DemetraUI;
 import ec.nbdemetra.ui.NbComponents;
 import ec.nbdemetra.ui.awt.PopupListener;
 import ec.nbdemetra.ui.properties.ListSelection;
-import ec.tss.Dfm.DfmDocument;
+import ec.tss.dfm.DfmDocument;
 import ec.tss.DynamicTsVariable;
 import ec.tss.Ts;
 import ec.tss.TsCollection;

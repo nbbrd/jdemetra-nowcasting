@@ -18,8 +18,8 @@
 package be.nbb.demetra.dfm.output;
 
 import com.google.common.base.Optional;
-import ec.tss.Dfm.DfmDocument;
-import ec.tss.Dfm.DfmResults;
+import ec.tss.dfm.DfmDocument;
+import ec.tss.dfm.DfmResults;
 import ec.tss.Ts;
 import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.utilities.Id;

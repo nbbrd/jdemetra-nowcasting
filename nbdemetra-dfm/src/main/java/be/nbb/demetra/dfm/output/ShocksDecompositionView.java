@@ -18,8 +18,8 @@ package be.nbb.demetra.dfm.output;
 
 import com.google.common.base.Optional;
 import ec.nbdemetra.ui.DemetraUI;
-import ec.tss.Dfm.DfmResults;
-import ec.tss.Dfm.DfmSeriesDescriptor;
+import ec.tss.dfm.DfmResults;
+import ec.tss.dfm.DfmSeriesDescriptor;
 import ec.tss.Ts;
 import ec.tss.TsCollection;
 import ec.tss.TsFactory;

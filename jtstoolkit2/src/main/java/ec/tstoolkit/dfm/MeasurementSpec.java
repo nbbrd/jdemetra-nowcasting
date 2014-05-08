@@ -29,6 +29,7 @@ import java.util.Objects;
  */
 public class MeasurementSpec implements IProcSpecification, Cloneable {
 
+ 
 
 
     public static enum Transformation {
@@ -67,7 +68,18 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
         var = new Parameter();
     }
 
-    @Override
+   boolean isSpecified() {
+        if (Parameter.isDefault(var))
+            return false;
+        for (int i=0; i<coeff.length; ++i){
+            if (!coeff[i].isFixed() && !Parameter.isDefault(coeff[i]))
+                return false;
+        }
+        return true;
+        
+    }
+
+   @Override
     public MeasurementSpec clone() {
         try {
             MeasurementSpec m = (MeasurementSpec) super.clone();

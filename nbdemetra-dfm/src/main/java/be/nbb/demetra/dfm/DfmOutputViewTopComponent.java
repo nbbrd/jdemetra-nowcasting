@@ -8,7 +8,7 @@ package be.nbb.demetra.dfm;
 import ec.nbdemetra.ui.NbComponents;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
-import ec.tss.Dfm.DfmDocument;
+import ec.tss.dfm.DfmDocument;
 import ec.ui.view.tsprocessing.DefaultProcessingViewer;
 import static ec.ui.view.tsprocessing.DefaultProcessingViewer.Type.APPLY;
 import ec.util.various.swing.FontAwesome;

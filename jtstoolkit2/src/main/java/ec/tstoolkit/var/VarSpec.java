@@ -116,24 +116,31 @@ public class VarSpec implements IProcSpecification, Cloneable {
         init_ = init;
     }
 
+    public boolean isSpecified() {
+        return !Parameter.isDefault(nparams.get(0, 0))
+                && !Parameter.isDefault(vparams.get(0, 0));
+    }
+
     @Override
     public VarSpec clone() {
         try {
             VarSpec spec = (VarSpec) super.clone();
             spec.nparams = new Table<>(nparams);
             spec.vparams = new Table<>(vparams);
-            Parameter[] buffer=new Parameter[nparams.size()];
+            Parameter[] buffer = new Parameter[nparams.size()];
             nparams.copyTo(buffer);
-            for (int i=0; i<buffer.length; ++i){
-                if (buffer[i] != null)
-                    buffer[i]=buffer[i].clone();
+            for (int i = 0; i < buffer.length; ++i) {
+                if (buffer[i] != null) {
+                    buffer[i] = buffer[i].clone();
+                }
             }
             nparams.copyFrom(buffer);
-            buffer=new Parameter[vparams.size()];
+            buffer = new Parameter[vparams.size()];
             vparams.copyTo(buffer);
-            for (int i=0; i<buffer.length; ++i){
-                if (buffer[i] != null)
-                    buffer[i]=buffer[i].clone();
+            for (int i = 0; i < buffer.length; ++i) {
+                if (buffer[i] != null) {
+                    buffer[i] = buffer[i].clone();
+                }
             }
             vparams.copyFrom(buffer);
             return spec;
@@ -200,8 +207,9 @@ public class VarSpec implements IProcSpecification, Cloneable {
             for (int c = 0, i = 0; c < nvars; ++c) {
                 for (int r = c; r < nvars; ++r, ++i) {
                     nparams.set(r, c, s[i]);
-                    if (r != c)
+                    if (r != c) {
                         nparams.set(c, r, s[i]);
+                    }
                 }
             }
         }

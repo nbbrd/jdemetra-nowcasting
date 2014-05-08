@@ -9,7 +9,7 @@ package be.nbb.demetra.dfm;
 import ec.nbdemetra.ws.DefaultFileItemRepository;
 import ec.nbdemetra.ws.IWorkspaceItemRepository;
 import ec.nbdemetra.ws.WorkspaceItem;
-import ec.tss.Dfm.DfmDocument;
+import ec.tss.dfm.DfmDocument;
 import ec.tstoolkit.MetaData;
 import java.util.Date;
 import org.openide.util.lookup.ServiceProvider;

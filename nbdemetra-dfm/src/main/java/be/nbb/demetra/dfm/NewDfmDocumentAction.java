@@ -13,7 +13,7 @@ import static be.nbb.demetra.dfm.DfmController.DfmState.READY;
 import static be.nbb.demetra.dfm.DfmController.DfmState.STARTED;
 import ec.nbdemetra.ws.WorkspaceFactory;
 import ec.nbdemetra.ws.WorkspaceItem;
-import ec.tss.Dfm.DfmDocument;
+import ec.tss.dfm.DfmDocument;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;

@@ -10,7 +10,7 @@ import ec.nbdemetra.ui.NbComponents;
 import ec.nbdemetra.ui.properties.OpenIdePropertySheetBeanEditor;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
-import ec.tss.Dfm.DfmDocument;
+import ec.tss.dfm.DfmDocument;
 import ec.tstoolkit.Parameter;
 import ec.tstoolkit.dfm.DfmModelSpec;
 import ec.tstoolkit.dfm.DfmSpec;

@@ -10,7 +10,7 @@ import ec.nbdemetra.ws.WorkspaceFactory;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.nodes.ItemWsNode;
 import ec.nbdemetra.ws.nodes.WsNode;
-import ec.tss.Dfm.DfmDocument;
+import ec.tss.dfm.DfmDocument;
 import ec.tstoolkit.algorithm.IProcSpecification;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
