@@ -18,7 +18,6 @@ package be.nbb.demetra.dfm.output;
 
 import com.google.common.base.Optional;
 import ec.tss.dfm.DfmDocument;
-import ec.tss.dfm.DfmResults;
 import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.utilities.DefaultInformationExtractor;
 import ec.tstoolkit.utilities.Id;

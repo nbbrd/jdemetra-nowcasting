@@ -9,7 +9,7 @@ package be.nbb.demetra.dfm;
 import ec.nbdemetra.ws.DefaultFileItemRepository;
 import ec.nbdemetra.ws.IWorkspaceItemRepository;
 import ec.nbdemetra.ws.WorkspaceItem;
-import ec.tss.dfm.DfmDocument;
+import ec.tss.dfm.VersionedDfmDocument;
 import ec.tstoolkit.MetaData;
 import java.util.Date;
 import org.openide.util.lookup.ServiceProvider;
@@ -19,7 +19,7 @@ import org.openide.util.lookup.ServiceProvider;
  * @author palatej
  */
 @ServiceProvider(service = IWorkspaceItemRepository.class)
-public class DfmDocFileRepository extends DefaultFileItemRepository<DfmDocument> {
+public class DfmDocFileRepository extends DefaultFileItemRepository<VersionedDfmDocument> {
 
     public static final String REPOSITORY = "DfmDoc";
 
@@ -29,13 +29,13 @@ public class DfmDocFileRepository extends DefaultFileItemRepository<DfmDocument>
     }
 
     @Override
-    public Class<DfmDocument> getSupportedType() {
-        return DfmDocument.class;
+    public Class<VersionedDfmDocument> getSupportedType() {
+        return VersionedDfmDocument.class;
     }
 
     @Override
-    public boolean save(WorkspaceItem<DfmDocument> doc) {
-        DfmDocument element = doc.getElement();
-        element.getMetaData().put(MetaData.DATE, new Date().toString());
+    public boolean save(WorkspaceItem<VersionedDfmDocument> doc) {
+        VersionedDfmDocument element = doc.getElement();
+        element.getCurrent().getMetaData().put(MetaData.DATE, new Date().toString());
         return super.save(doc);
     }}

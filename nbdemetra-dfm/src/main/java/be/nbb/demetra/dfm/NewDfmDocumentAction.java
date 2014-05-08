@@ -14,6 +14,7 @@ import static be.nbb.demetra.dfm.DfmController.DfmState.STARTED;
 import ec.nbdemetra.ws.WorkspaceFactory;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.tss.dfm.DfmDocument;
+import ec.tss.dfm.VersionedDfmDocument;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -52,13 +53,13 @@ public final class NewDfmDocumentAction implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
         DfmDocumentManager mgr = WorkspaceFactory.getInstance().getManager(DfmDocumentManager.class);
-        WorkspaceItem<DfmDocument> doc = mgr.create(WorkspaceFactory.getInstance().getActiveWorkspace());
+        WorkspaceItem<VersionedDfmDocument> doc = mgr.create(WorkspaceFactory.getInstance().getActiveWorkspace());
         TopComponent c = createView(doc);
         c.open();
         c.requestActive();
     }
 
-    public static TopComponent createView(final WorkspaceItem<DfmDocument> doc) {
+    public static TopComponent createView(final WorkspaceItem<VersionedDfmDocument> doc) {
         if (doc.isOpen()) {
             return doc.getView();
         }

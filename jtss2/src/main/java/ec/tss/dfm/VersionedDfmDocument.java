@@ -17,13 +17,20 @@
 
 package ec.tss.dfm;
 
+import ec.tss.Ts;
 import ec.tss.documents.VersionedDocument;
+import ec.tstoolkit.algorithm.CompositeResults;
+import ec.tstoolkit.dfm.DfmSpec;
 
 /**
  *
  * @author Jean Palate
  */
-public class VersionedDfmDocument extends VersionedDocument<DfmDocument>{
+public class VersionedDfmDocument extends VersionedDocument<DfmSpec, Ts[], CompositeResults, DfmDocument> {
+    
+    public VersionedDfmDocument(){
+        super(new DfmDocument());
+    }
 
     @Override
     protected DfmDocument newDocument() {
@@ -43,4 +50,11 @@ public class VersionedDfmDocument extends VersionedDocument<DfmDocument>{
         document.freezeTs();
         return document;
     }
+    
+    public void unfreeze(){
+        DfmDocument current = getCurrent();
+        if (current != null)
+            current.unfreezeTs();
+    }
+ 
 }

@@ -19,13 +19,11 @@ package be.nbb.demetra.dfm.output;
 
 import com.google.common.base.Optional;
 import ec.tss.dfm.DfmDocument;
-import ec.tss.dfm.DfmResults;
 import ec.tss.Ts;
 import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.utilities.Id;
 import ec.tstoolkit.utilities.LinearId;
 import ec.ui.view.tsprocessing.DefaultItemUI;
-import ec.ui.view.tsprocessing.DefaultTableUI;
 import ec.ui.view.tsprocessing.IProcDocumentView;
 import ec.ui.view.tsprocessing.ItemUI;
 import ec.ui.view.tsprocessing.ProcDocumentItemFactory;

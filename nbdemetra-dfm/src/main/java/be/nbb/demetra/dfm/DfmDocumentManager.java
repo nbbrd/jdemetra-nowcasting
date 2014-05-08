@@ -12,6 +12,7 @@ import ec.nbdemetra.ws.WorkspaceFactory;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.tss.dfm.DfmDocument;
 import ec.tss.dfm.DfmProcessingFactory;
+import ec.tss.dfm.VersionedDfmDocument;
 import ec.tstoolkit.descriptors.IObjectDescriptor;
 import ec.tstoolkit.dfm.DfmSpec;
 import ec.tstoolkit.utilities.Id;
@@ -29,7 +30,7 @@ import org.openide.windows.TopComponent;
  * @author palatej
  */
 @ServiceProvider(service = IWorkspaceItemManager.class, position = 4500)
-public class DfmDocumentManager extends AbstractWorkspaceItemManager<DfmDocument> {
+public class DfmDocumentManager extends AbstractWorkspaceItemManager<VersionedDfmDocument> {
 
     static {
         DocumentUIServices.getDefault().register(DfmDocument.class, new DocumentUIServices.AbstractUIFactory<DfmSpec, DfmDocument>() {
@@ -42,7 +43,7 @@ public class DfmDocumentManager extends AbstractWorkspaceItemManager<DfmDocument
 
                     @Override
                     public Id getPreferredView() {
-                        return new LinearId("ShocksDecomposition");
+                        return new LinearId("");
                     }
                 }.create(document);
             }
@@ -70,8 +71,8 @@ public class DfmDocumentManager extends AbstractWorkspaceItemManager<DfmDocument
     }
 
     @Override
-    protected DfmDocument createNewObject() {
-        return new DfmDocument();
+    protected VersionedDfmDocument createNewObject() {
+        return new VersionedDfmDocument();
     }
 
     @Override
@@ -90,11 +91,11 @@ public class DfmDocumentManager extends AbstractWorkspaceItemManager<DfmDocument
     }
 
     @Override
-    public Class<DfmDocument> getItemClass() {
-        return DfmDocument.class;
+    public Class<VersionedDfmDocument> getItemClass() {
+        return VersionedDfmDocument.class;
     }
 
-    public void openDocument(WorkspaceItem<DfmDocument> doc) {
+    public void openDocument(WorkspaceItem<VersionedDfmDocument> doc) {
         if (doc == null || doc.getElement() == null) {
             return;
         }
@@ -109,7 +110,7 @@ public class DfmDocumentManager extends AbstractWorkspaceItemManager<DfmDocument
         return new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                WorkspaceItem<DfmDocument> doc = (WorkspaceItem<DfmDocument>) WorkspaceFactory.getInstance().getActiveWorkspace().searchDocument(child);
+                WorkspaceItem<VersionedDfmDocument> doc = (WorkspaceItem<VersionedDfmDocument>) WorkspaceFactory.getInstance().getActiveWorkspace().searchDocument(child);
                 if (doc != null) {
                     openDocument(doc);
                 }

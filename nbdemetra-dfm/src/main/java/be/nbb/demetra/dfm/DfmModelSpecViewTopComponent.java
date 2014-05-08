@@ -11,6 +11,7 @@ import ec.nbdemetra.ui.properties.OpenIdePropertySheetBeanEditor;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
 import ec.tss.dfm.DfmDocument;
+import ec.tss.dfm.VersionedDfmDocument;
 import ec.tstoolkit.Parameter;
 import ec.tstoolkit.dfm.DfmModelSpec;
 import ec.tstoolkit.dfm.DfmSpec;
@@ -52,7 +53,7 @@ import org.openide.util.NbBundle.Messages;
     "CTL_DfmModelSpecViewTopComponent=DfmModelSpecView Window",
     "HINT_DfmModelSpecViewTopComponent=This is a DfmModelSpecView window"
 })
-public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<DfmDocument> implements MultiViewElement, MultiViewDescription {
+public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<VersionedDfmDocument> implements MultiViewElement, MultiViewDescription {
 
     private final DfmController controller;
 
@@ -60,13 +61,13 @@ public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<Df
         this(null, new DfmController());
     }
 
-    DfmModelSpecViewTopComponent(WorkspaceItem<DfmDocument> document, DfmController controller) {
+    DfmModelSpecViewTopComponent(WorkspaceItem<VersionedDfmDocument> document, DfmController controller) {
         super(document);
         initComponents();
         setName(Bundle.CTL_DfmModelSpecViewTopComponent());
         setToolTipText(Bundle.HINT_DfmModelSpecViewTopComponent());
         if (document != null) {
-            dfmModelSpecView1.setModel(document.getElement());
+            dfmModelSpecView1.setModel(document.getElement().getCurrent());
         }
         
         this.controller = controller;
@@ -187,7 +188,7 @@ public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<Df
         
         @Override
         public void execute(DfmModelSpecViewTopComponent c) throws Exception {
-            DfmDocument doc = c.getDocument().getElement();
+            DfmDocument doc = c.getDocument().getElement().getCurrent();
             DfmSpec oldspec = doc.getSpecification();
             DfmSpec newspec=oldspec.cloneStructure();
             DfmModelSpec oldValue =oldspec.getModelSpec();

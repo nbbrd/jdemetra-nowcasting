@@ -16,6 +16,7 @@ import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
 import ec.tss.dfm.DfmDocument;
 import ec.tss.dfm.DfmProcessingFactory;
+import ec.tss.dfm.VersionedDfmDocument;
 import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.algorithm.IProcessingFactory;
 import ec.tstoolkit.algorithm.IProcessingHook;
@@ -74,7 +75,7 @@ import org.openide.util.NbBundle.Messages;
     "CTL_DfmExecViewTopComponent=DfmExecView Window",
     "HINT_DfmExecViewTopComponent=This is a DfmExecView window"
 })
-public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocument> implements MultiViewElement, MultiViewDescription {
+public final class DfmExecViewTopComponent extends WorkspaceTopComponent<VersionedDfmDocument> implements MultiViewElement, MultiViewDescription {
 
     private final DfmController controller;
     private DynamicTimeSeriesCollection dataset;
@@ -83,7 +84,7 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
         this(null, new DfmController());
     }
 
-    DfmExecViewTopComponent(WorkspaceItem<DfmDocument> document, DfmController controller) {
+    DfmExecViewTopComponent(WorkspaceItem<VersionedDfmDocument> document, DfmController controller) {
         super(document);
         initComponents();
         setName(Bundle.CTL_DfmExecViewTopComponent());
@@ -287,9 +288,9 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
 
         @Override
         protected CompositeResults doInBackground() throws Exception {
-            DfmProcessingFactory processor = (DfmProcessingFactory) getDocument().getElement().getProcessor();
+            DfmProcessingFactory processor = (DfmProcessingFactory) getDocument().getElement().getCurrent().getProcessor();
             processor.register(this);
-            CompositeResults rslt = getDocument().getElement().getResults();
+            CompositeResults rslt = getDocument().getElement().getCurrent().getResults();
             processor.unregister(this);
             return rslt;
         }
@@ -376,7 +377,7 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
 
         @Override
         public void execute(DfmExecViewTopComponent c) throws Exception {
-                     DfmDocument doc = c.getDocument().getElement();
+                     DfmDocument doc = c.getDocument().getElement().getCurrent();
             DfmSpec oldspec = doc.getSpecification();
             DfmSpec newspec=oldspec.cloneStructure();
             DfmEstimationSpec newValue = newspec.getEstimationSpec();
@@ -398,7 +399,7 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<DfmDocu
 
         @Override
         public void execute(DfmExecViewTopComponent c) throws Exception {
-            c.getDocument().getElement().clear();
+            c.getDocument().getElement().getCurrent().clear();
             c.controller.setDfmState(DfmState.READY);
         }
 

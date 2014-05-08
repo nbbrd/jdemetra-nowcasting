@@ -897,7 +897,6 @@ public class DfmResults implements IProcResults {
                 }
             }
         }
-
     }
 
     public TsData[] getSignalProjections() {
@@ -918,7 +917,6 @@ public class DfmResults implements IProcResults {
         for (int v = 0; v < N; v++) {
             smoothedSignalProjection[v] = smoothedSignal[v].clone().plus(description[v].mean);
         }
-
     }
 
     public TsData[] getSignalUncertainty() {

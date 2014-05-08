@@ -9,8 +9,9 @@ import ec.nbdemetra.ui.NbComponents;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
 import ec.tss.dfm.DfmDocument;
+import ec.tss.dfm.VersionedDfmDocument;
 import ec.ui.view.tsprocessing.DefaultProcessingViewer;
-import static ec.ui.view.tsprocessing.DefaultProcessingViewer.Type.APPLY;
+import static ec.ui.view.tsprocessing.DefaultProcessingViewer.Type.NONE;
 import ec.util.various.swing.FontAwesome;
 import static ec.util.various.swing.FontAwesome.FA_COGS;
 import static ec.util.various.swing.FontAwesome.FA_EXCLAMATION_TRIANGLE;
@@ -51,18 +52,18 @@ import org.openide.util.NbBundle.Messages;
     "CTL_DfmOutputViewTopComponent=DfmOutputView Window",
     "HINT_DfmOutputViewTopComponent=This is a DfmOutputView window"
 })
-public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDocument> implements MultiViewElement, MultiViewDescription {
+public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<VersionedDfmDocument> implements MultiViewElement, MultiViewDescription {
 
     private final DfmController controller;
     private final XLabel label;
 
-    private final DefaultProcessingViewer processingViewer;
+    private final DefaultProcessingViewer<DfmDocument> processingViewer;
 
     public DfmOutputViewTopComponent() {
         this(null, new DfmController());
     }
 
-    DfmOutputViewTopComponent(WorkspaceItem<DfmDocument> document, DfmController controller) {
+    DfmOutputViewTopComponent(WorkspaceItem<VersionedDfmDocument> document, DfmController controller) {
         super(document);
         initComponents();
         setName(Bundle.CTL_DfmOutputViewTopComponent());
@@ -71,7 +72,7 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
         this.controller = controller;
         this.label = new XLabel();
 
-        this.processingViewer = new DefaultProcessingViewer<DfmDocument>(APPLY) {
+        this.processingViewer = new DefaultProcessingViewer<DfmDocument>(NONE) {
         };
         
         processingViewer.setHeaderVisible(false);
@@ -189,7 +190,7 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<DfmDo
     private void updateChart() {
         switch (controller.getDfmState()) {
             case DONE:
-                processingViewer.setDocument(getDocument().getElement());
+                processingViewer.setDocument(getDocument().getElement().getCurrent());
                 switchTo(processingViewer);
 //                    switchTo(label.with(FA_EXCLAMATION_TRIANGLE, "No data produced"));
                 break;
