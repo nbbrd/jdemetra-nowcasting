@@ -247,16 +247,18 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<Version
                 break;
             case DONE:
                 appendText("\nDONE");
-                progressHandle.finish();
+                if (progressHandle != null) {
+                    progressHandle.finish();
+                }
                 break;
             case FAILED:
                 appendText("\nFAILED");
                 progressHandle.finish();
                 break;
             case READY:
+                jEditorPane1.setText("");
                 break;
             case STARTED:
-                jEditorPane1.setText("");
                 swingWorker = new SwingWorkerImpl();
                 progressHandle = ProgressHandleFactory.createHandle(getName(), new Cancellable() {
                     @Override
@@ -377,12 +379,12 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<Version
 
         @Override
         public void execute(DfmExecViewTopComponent c) throws Exception {
-                     DfmDocument doc = c.getDocument().getElement().getCurrent();
+            DfmDocument doc = c.getDocument().getElement().getCurrent();
             DfmSpec oldspec = doc.getSpecification();
-            DfmSpec newspec=oldspec.cloneStructure();
+            DfmSpec newspec = oldspec.cloneDefinition();
             DfmEstimationSpec newValue = newspec.getEstimationSpec();
             if (OpenIdePropertySheetBeanEditor.editSheet(DfmSheets.onDfmEstimationSpec(newValue), "Edit spec", null)) {
-                doc.setSpecification(newspec);  
+                doc.setSpecification(newspec);
                 c.controller.setDfmState(DfmState.READY);
             }
         }
@@ -399,7 +401,9 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<Version
 
         @Override
         public void execute(DfmExecViewTopComponent c) throws Exception {
-            c.getDocument().getElement().getCurrent().clear();
+            DfmDocument current = c.getDocument().getElement().getCurrent();
+            DfmSpec spec =current.getSpecification();
+            current.setSpecification(spec.cloneDefinition());
             c.controller.setDfmState(DfmState.READY);
         }
 

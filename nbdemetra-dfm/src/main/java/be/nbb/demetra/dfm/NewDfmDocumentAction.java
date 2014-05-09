@@ -49,7 +49,7 @@ import org.openide.windows.TopComponent;
 @ActionReference(path = "Menu/Statistical methods/Nowcasting", position = 5000)
 @Messages("CTL_NewDfmDocumentAction=Dynamic factor model")
 public final class NewDfmDocumentAction implements ActionListener {
-
+    
     @Override
     public void actionPerformed(ActionEvent e) {
         DfmDocumentManager mgr = WorkspaceFactory.getInstance().getManager(DfmDocumentManager.class);
@@ -58,7 +58,7 @@ public final class NewDfmDocumentAction implements ActionListener {
         c.open();
         c.requestActive();
     }
-
+    
     public static TopComponent createView(final WorkspaceItem<VersionedDfmDocument> doc) {
         if (doc.isOpen()) {
             return doc.getView();
@@ -68,12 +68,12 @@ public final class NewDfmDocumentAction implements ActionListener {
         final DfmModelSpecViewTopComponent modelView = new DfmModelSpecViewTopComponent(doc, controller);
         final DfmExecViewTopComponent execView = new DfmExecViewTopComponent(doc, controller);
         final DfmOutputViewTopComponent outputView = new DfmOutputViewTopComponent(doc, controller);
-
-         MultiViewDescription[] descriptions = {
+        
+        MultiViewDescription[] descriptions = {
             new QuickAndDirtyDescription("Model", modelView),
             new QuickAndDirtyDescription("Processing", execView),
             new QuickAndDirtyDescription("Output", outputView),};
-
+        
         final TopComponent result = MultiViewFactory.createMultiView(descriptions, descriptions[0]);
         result.setName(doc.getDisplayName());
         controller.addPropertyChangeListener(DfmController.DFM_STATE_PROPERTY, new PropertyChangeListener() {
@@ -102,44 +102,48 @@ public final class NewDfmDocumentAction implements ActionListener {
             }
         });
         doc.setView(result);
+        DfmDocument cur = doc.getElement().getCurrent();
+        if (cur.getSpecification().getModelSpec().isSpecified()) {
+            controller.setDfmState(DONE);
+        }
         return result;
     }
-
+    
     static class QuickAndDirtyDescription implements MultiViewDescription, Serializable {
-
+        
         final String name;
         final MultiViewElement multiViewElement;
-
+        
         public QuickAndDirtyDescription(String name, MultiViewElement multiViewElement) {
             this.name = name;
             this.multiViewElement = multiViewElement;
         }
-
+        
         @Override
         public int getPersistenceType() {
             return TopComponent.PERSISTENCE_NEVER;
         }
-
+        
         @Override
         public String getDisplayName() {
             return name;
         }
-
+        
         @Override
         public Image getIcon() {
             return null;
         }
-
+        
         @Override
         public HelpCtx getHelpCtx() {
             return null;
         }
-
+        
         @Override
         public String preferredID() {
             return name;
         }
-
+        
         @Override
         public MultiViewElement createElement() {
             return multiViewElement;

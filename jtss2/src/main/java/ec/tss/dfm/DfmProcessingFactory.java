@@ -138,7 +138,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
     }
 
     private void addPcStep(DfmSpec spec, ProcessingContext context, SequentialProcessing processing) {
-        if (spec.getEstimationSpec() == null) {
+        if (spec.getModelSpec().isSpecified() || !spec.getEstimationSpec().isEnabled()) {
             return;
         }
         PcSpec pc = spec.getEstimationSpec().getPrincipalComponentsSpec();
@@ -148,7 +148,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
     }
 
     private void addPreEmStep(DfmSpec spec, ProcessingContext context, SequentialProcessing processing) {
-        if (spec.getEstimationSpec() == null) {
+        if (spec.getModelSpec().isSpecified() || !spec.getEstimationSpec().isEnabled()) {
             return;
         }
         EmSpec em = spec.getEstimationSpec().getPreEmSpec();
@@ -158,7 +158,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
     }
 
     private void addProcStep(DfmSpec spec, ProcessingContext context, SequentialProcessing processing) {
-        if (spec.getEstimationSpec() == null) {
+        if (spec.getModelSpec().isSpecified() || !spec.getEstimationSpec().isEnabled()) {
             return;
         }
         NumericalProcessingSpec proc = spec.getEstimationSpec().getNumericalProcessingSpec();
@@ -168,7 +168,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
     }
 
     private void addPostEmStep(DfmSpec spec, ProcessingContext context, SequentialProcessing processing) {
-        if (spec.getEstimationSpec() == null) {
+        if (spec.getModelSpec().isSpecified() || !spec.getEstimationSpec().isEnabled()) {
             return;
         }
         EmSpec em = spec.getEstimationSpec().getPostEmSpec();
@@ -266,7 +266,9 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
                 }
                 DfmResults start = new DfmResults(spec.getModelSpec().build(), dinfo);
                 start.setDescriptions(desc);
-                new DefaultInitializer().initialize(start.getModel(), start.getInput());
+                if (!spec.getModelSpec().isSpecified()) {
+                    new DefaultInitializer().initialize(start.getModel(), start.getInput());
+                }
                 results.put(DFM, start);
                 return IProcessing.Status.Valid;
             }
@@ -517,6 +519,6 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
             cur.setMean(desc.mean);
             cur.setStdev(desc.stdev);
         }
-     }
+    }
 
 }

@@ -149,7 +149,7 @@ public final class DfmModelSpecView extends JComponent {
     private final TsCollection variables = TsFactory.instance.createTsCollection();
 
     public void appendTsVariables(TsCollection col) {
-        DfmSpec spec = model.getSpecification().cloneStructure();
+        DfmSpec spec = model.getSpecification().cloneDefinition();
         for (Ts o : col) {
             if (!variables.contains(o)) {
                 variables.add(o);
@@ -209,7 +209,7 @@ public final class DfmModelSpecView extends JComponent {
 
         @Override
         public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
-            DfmSpec spec = model.getSpecification().cloneStructure();
+            DfmSpec spec = model.getSpecification().cloneDefinition();
             MeasurementSpec ms = spec.getModelSpec().getMeasurements().get(rowIndex);
             switch (columnIndex) {
                 case 1:

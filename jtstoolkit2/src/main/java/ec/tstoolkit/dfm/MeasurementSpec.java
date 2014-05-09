@@ -17,6 +17,7 @@
 package ec.tstoolkit.dfm;
 
 import ec.tstoolkit.Parameter;
+import ec.tstoolkit.ParameterType;
 import ec.tstoolkit.algorithm.IProcSpecification;
 import ec.tstoolkit.information.InformationSet;
 import java.util.Arrays;
@@ -59,20 +60,25 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
         var = new Parameter();
     }
 
-
-    void clear() {
+    public void clear() {
         for (int i=0; i<coeff.length; ++i){
             if (!coeff[i].isFixed())
                 coeff[i]=new Parameter();
         }
         var = new Parameter();
     }
+    
+    private static boolean isSpecified(Parameter p){
+        if (Parameter.isDefault(p))
+            return false;
+        return p.getType() != ParameterType.Initial;
+    }
 
-   boolean isSpecified() {
-        if (Parameter.isDefault(var))
+   public boolean isSpecified() {
+        if (! isSpecified(var))
             return false;
         for (int i=0; i<coeff.length; ++i){
-            if (!coeff[i].isFixed() && !Parameter.isDefault(coeff[i]))
+            if (! isSpecified(coeff[i]))
                 return false;
         }
         return true;

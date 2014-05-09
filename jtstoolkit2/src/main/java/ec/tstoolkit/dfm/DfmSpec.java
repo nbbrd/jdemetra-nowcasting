@@ -71,7 +71,7 @@ public class DfmSpec implements IProcSpecification, Cloneable {
         }
     }
     
-    public DfmSpec cloneStructure(){
+    public DfmSpec cloneDefinition(){
         DfmSpec spec=clone();
         spec.model_.clear();
         return spec;

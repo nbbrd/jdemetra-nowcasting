@@ -66,7 +66,10 @@ public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> impl
                     desc[i].description = input[i].getRawName();
                 }
                 dr.setDescriptions(desc);
-                DfmProcessingFactory.update(spec, dr, false);
+                if (!spec.getModelSpec().isSpecified()) {
+                    DfmProcessingFactory.update(spec, dr, false);
+                    setDirty();
+                }
             }
         }
         return rslts;

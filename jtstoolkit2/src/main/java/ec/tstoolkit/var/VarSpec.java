@@ -17,6 +17,7 @@
 package ec.tstoolkit.var;
 
 import ec.tstoolkit.Parameter;
+import ec.tstoolkit.ParameterType;
 import ec.tstoolkit.algorithm.IProcSpecification;
 import ec.tstoolkit.data.Table;
 import ec.tstoolkit.dfm.DynamicFactorModel;
@@ -115,10 +116,26 @@ public class VarSpec implements IProcSpecification, Cloneable {
     public void setInitialization(Initialization init) {
         init_ = init;
     }
+    
+    private static boolean isSpecified(Parameter p){
+        if (Parameter.isDefault(p))
+            return false;
+        return p.getType() != ParameterType.Initial;
+    }
+    
+    private static boolean isSpecified(Table<Parameter>t){
+        for (int c=0; c<t.getColumnsCount(); ++c){
+            for (int r=0; r<t.getRowsCount(); ++r){
+                if (! isSpecified(t.get(r, c)))
+                    return false;
+            }
+        }
+        return true;
+    }
 
     public boolean isSpecified() {
-        return !Parameter.isDefault(nparams.get(0, 0))
-                && !Parameter.isDefault(vparams.get(0, 0));
+        return isSpecified(nparams)
+                && isSpecified(vparams);
     }
 
     @Override

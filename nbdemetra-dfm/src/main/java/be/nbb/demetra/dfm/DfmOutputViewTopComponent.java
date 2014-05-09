@@ -85,6 +85,7 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<Versi
                 updateChart();
             }
         });
+        
     }
 
     /**
@@ -204,7 +205,8 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<Versi
                 switchTo(label.with(FA_EXCLAMATION_TRIANGLE, "Failed"));
                 break;
             case READY:
-                switchTo(label.with(FA_COGS, "Ready"));
+                 processingViewer.setDocument(null);
+               switchTo(label.with(FA_COGS, "Ready"));
                 break;
             case STARTED:
                 switchTo(label.with(FA_SPINNER, "Started"));

@@ -190,7 +190,7 @@ public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<Ve
         public void execute(DfmModelSpecViewTopComponent c) throws Exception {
             DfmDocument doc = c.getDocument().getElement().getCurrent();
             DfmSpec oldspec = doc.getSpecification();
-            DfmSpec newspec=oldspec.cloneStructure();
+            DfmSpec newspec=oldspec.cloneDefinition();
             DfmModelSpec oldValue =oldspec.getModelSpec();
             DfmModelSpec newValue = newspec.getModelSpec();
             if (OpenIdePropertySheetBeanEditor.editSheet(DfmSheets.onModelSpec(newValue), "Edit var spec", null)) {

@@ -9,9 +9,8 @@ import ec.nbdemetra.ws.IWorkspaceItemManager;
 import ec.nbdemetra.ws.WorkspaceFactory;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.nodes.ItemWsNode;
-import ec.nbdemetra.ws.nodes.WsNode;
 import ec.tss.dfm.DfmDocument;
-import ec.tstoolkit.algorithm.IProcSpecification;
+import ec.tss.dfm.VersionedDfmDocument;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import org.openide.awt.ActionID;
@@ -39,8 +38,8 @@ public final class CloneDocument implements ActionListener {
     public void actionPerformed(ActionEvent e) {
         WorkspaceItem<?> cur = context.getItem();
         if (cur != null && !cur.isReadOnly()) {
-            if (cur.getElement() instanceof DfmDocument) {
-                DfmDocument doc=(DfmDocument) cur.getElement();
+            if (cur.getElement() instanceof VersionedDfmDocument) {
+                VersionedDfmDocument doc=(VersionedDfmDocument) cur.getElement();
                 IWorkspaceItemManager mgr = WorkspaceFactory.getInstance().getManager(cur.getFamily());
                 WorkspaceItem<?> ndoc = WorkspaceItem.newItem(cur.getFamily(), mgr.getNextItemName(null), doc.clone());
                 context.getWorkspace().add(ndoc);
