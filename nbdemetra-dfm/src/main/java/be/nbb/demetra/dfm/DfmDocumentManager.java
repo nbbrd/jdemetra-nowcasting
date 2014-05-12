@@ -59,6 +59,7 @@ public class DfmDocumentManager extends AbstractWorkspaceItemManager<VersionedDf
     public static final String PATH = "dfm.doc";
     public static final String ITEMPATH = "dfm.doc.item";
     public static final String CONTEXTPATH = "dfm.doc.context";
+    public static final String LOCALPATH = "dfm.doc.local";
 
     @Override
     protected String getItemPrefix() {

@@ -22,11 +22,15 @@ import ec.nbdemetra.ui.awt.ListenableBean;
  *
  * @author Philippe Charles
  */
-final class DfmController extends ListenableBean {
+public final class DfmController extends ListenableBean {
 
     public enum DfmState {
 
-        READY, STARTED, DONE, FAILED, CANCELLING, CANCELLED
+        READY, STARTED, DONE, FAILED, CANCELLING, CANCELLED;
+        
+        public boolean isFinished(){
+            return this == DONE || this == CANCELLED || this == FAILED;
+        }
     };
 
     public static final String DFM_STATE_PROPERTY = "dfmState";
@@ -42,8 +46,7 @@ final class DfmController extends ListenableBean {
     }
 
     public void setDfmState(DfmState state) {
-        DfmState old = this.dfmState;
         this.dfmState = state;
-        firePropertyChange(DFM_STATE_PROPERTY, old, this.dfmState);
+        firePropertyChange(DFM_STATE_PROPERTY, null, this.dfmState); // force refreshing in all cases
     }
 }

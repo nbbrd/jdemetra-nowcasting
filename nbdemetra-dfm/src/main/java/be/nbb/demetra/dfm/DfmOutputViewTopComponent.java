@@ -7,7 +7,6 @@ package be.nbb.demetra.dfm;
 
 import ec.nbdemetra.ui.NbComponents;
 import ec.nbdemetra.ws.WorkspaceItem;
-import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
 import ec.tss.dfm.DfmDocument;
 import ec.tss.dfm.VersionedDfmDocument;
 import ec.ui.view.tsprocessing.DefaultProcessingViewer;
@@ -27,10 +26,6 @@ import javax.swing.JList;
 import javax.swing.JToolBar;
 import javax.swing.SwingConstants;
 import org.netbeans.api.settings.ConvertAsProperties;
-import org.netbeans.core.spi.multiview.CloseOperationState;
-import org.netbeans.core.spi.multiview.MultiViewDescription;
-import org.netbeans.core.spi.multiview.MultiViewElement;
-import org.netbeans.core.spi.multiview.MultiViewElementCallback;
 import org.openide.windows.TopComponent;
 import org.openide.util.NbBundle.Messages;
 
@@ -52,9 +47,8 @@ import org.openide.util.NbBundle.Messages;
     "CTL_DfmOutputViewTopComponent=DfmOutputView Window",
     "HINT_DfmOutputViewTopComponent=This is a DfmOutputView window"
 })
-public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<VersionedDfmDocument> implements MultiViewElement, MultiViewDescription {
+public final class DfmOutputViewTopComponent extends AbstractDfmDocumentTopComponent {
 
-    private final DfmController controller;
     private final XLabel label;
 
     private final DefaultProcessingViewer<DfmDocument> processingViewer;
@@ -64,28 +58,15 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<Versi
     }
 
     DfmOutputViewTopComponent(WorkspaceItem<VersionedDfmDocument> document, DfmController controller) {
-        super(document);
+        super(document, controller);
         initComponents();
-        setName(Bundle.CTL_DfmOutputViewTopComponent());
-        setToolTipText(Bundle.HINT_DfmOutputViewTopComponent());
-
-        this.controller = controller;
         this.label = new XLabel();
 
         this.processingViewer = new DefaultProcessingViewer<DfmDocument>(NONE) {
         };
-        
+
         processingViewer.setHeaderVisible(false);
 
-        controller.addPropertyChangeListener(DfmController.DFM_STATE_PROPERTY, new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                // forward event
-                firePropertyChange(evt.getPropertyName(), evt.getOldValue(), evt.getNewValue());
-                updateChart();
-            }
-        });
-        
     }
 
     /**
@@ -107,22 +88,9 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<Versi
     void readProperties(java.util.Properties p) {
     }
 
-    //<editor-fold defaultstate="collapsed" desc="MultiViewElement">
     @Override
-    public void componentOpened() {
-        super.componentOpened();
-        // TODO add custom code on component opening
-    }
-
-    @Override
-    public void componentClosed() {
-        super.componentClosed();
-        // TODO add custom code on component closing
-    }
-
-    @Override
-    public JComponent getVisualRepresentation() {
-        return this;
+    protected void onDfmStateChange() {
+        updateChart();
     }
 
     @Override
@@ -134,53 +102,6 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<Versi
 //        copy.setIcon(DemetraUiIcon.EDIT_COPY_16);
 //        copy.setDisabledIcon(ImageUtilities.createDisabledIcon(copy.getIcon()));
         return toolbar;
-    }
-
-    @Override
-    public void setMultiViewCallback(MultiViewElementCallback callback) {
-    }
-
-    @Override
-    public CloseOperationState canCloseElement() {
-        return CloseOperationState.STATE_OK;
-    }
-
-    @Override
-    public void componentActivated() {
-        super.componentActivated();
-    }
-
-    @Override
-    public void componentDeactivated() {
-        super.componentDeactivated();
-    }
-
-    @Override
-    public void componentHidden() {
-        super.componentHidden();
-    }
-
-    @Override
-    public void componentShowing() {
-        super.componentShowing();
-    }
-    //</editor-fold>
-
-    //<editor-fold defaultstate="collapsed" desc="MultiViewDescription">
-    @Override
-    public MultiViewElement createElement() {
-        return this;
-    }
-
-    @Override
-    public String preferredID() {
-        return super.preferredID();
-    }
-    //</editor-fold>    
-
-    @Override
-    protected String getContextPath() {
-        return DfmDocumentManager.CONTEXTPATH;
     }
 
     private void switchTo(Component c) {
@@ -205,8 +126,8 @@ public final class DfmOutputViewTopComponent extends WorkspaceTopComponent<Versi
                 switchTo(label.with(FA_EXCLAMATION_TRIANGLE, "Failed"));
                 break;
             case READY:
-                 processingViewer.setDocument(null);
-               switchTo(label.with(FA_COGS, "Ready"));
+                processingViewer.setDocument(null);
+                switchTo(label.with(FA_COGS, "Ready"));
                 break;
             case STARTED:
                 switchTo(label.with(FA_SPINNER, "Started"));

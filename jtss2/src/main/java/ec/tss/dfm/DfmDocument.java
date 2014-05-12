@@ -21,8 +21,6 @@ import ec.tss.documents.MultiTsDocument;
 import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.algorithm.ProcessingContext;
 import ec.tstoolkit.dfm.DfmSpec;
-import ec.tstoolkit.dfm.MeasurementSpec;
-import java.util.List;
 
 /**
  *

@@ -38,7 +38,7 @@ public class VersionedDfmDocument extends VersionedDocument<DfmSpec, Ts[], Compo
     public VersionedDfmDocument clone() {
         try {
             VersionedDfmDocument doc = (VersionedDfmDocument) super.clone();
-            setCurrent(getCurrent().clone());
+            doc.setCurrent(getCurrent().clone());
             doc.clearVersions(0);
             for (int i = 0; i < getVersionCount(); ++i) {
                 doc.add(getVersion(i).clone());
@@ -50,9 +50,18 @@ public class VersionedDfmDocument extends VersionedDocument<DfmSpec, Ts[], Compo
     }
 
     @Override
-    protected DfmDocument newDocument() {
-        return new DfmDocument(); //To change body of generated methods, choose Tools | Templates.
-    }
+    protected DfmDocument newDocument(DfmDocument doc) {
+        if (doc != null) {
+            DfmDocument ndoc=doc.clone();
+            if (ndoc.isTsFrozen()) {
+                ndoc.unfreezeTs();
+            }
+            ndoc.setLocked(true);
+            return ndoc;
+        }
+        else
+            return new DfmDocument();
+     }
 
     @Override
     protected DfmDocument restore(DfmDocument document) {
@@ -63,15 +72,30 @@ public class VersionedDfmDocument extends VersionedDocument<DfmSpec, Ts[], Compo
 
     @Override
     protected DfmDocument archive(DfmDocument document) {
-        document.setLocked(true);
         document.freezeTs();
+        document.setLocked(true);
         return document;
     }
 
-    public void unfreeze() {
+    public void refreshData() {
         DfmDocument current = getCurrent();
         if (current != null) {
+            boolean locked = current.isLocked();
+            if (locked) {
+                current.setLocked(false);
+            }
             current.unfreezeTs();
+            if (locked) {
+                current.setLocked(true);
+            }
+        }
+    }
+
+    public void unlockModel() {
+        DfmDocument current = getCurrent();
+        if (current != null) {
+            current.setLocked(false);
+            clearVersions(0);
         }
     }
 

@@ -9,28 +9,20 @@ import ec.nbdemetra.ui.DemetraUiIcon;
 import ec.nbdemetra.ui.NbComponents;
 import ec.nbdemetra.ui.properties.OpenIdePropertySheetBeanEditor;
 import ec.nbdemetra.ws.WorkspaceItem;
-import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
 import ec.tss.dfm.DfmDocument;
 import ec.tss.dfm.VersionedDfmDocument;
 import ec.tstoolkit.Parameter;
 import ec.tstoolkit.dfm.DfmModelSpec;
 import ec.tstoolkit.dfm.DfmSpec;
 import ec.tstoolkit.dfm.MeasurementSpec;
-import ec.tstoolkit.var.VarSpec;
 import ec.util.various.swing.JCommand;
 import java.awt.Dimension;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.util.Arrays;
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JToolBar;
 import org.netbeans.api.settings.ConvertAsProperties;
-import org.netbeans.core.spi.multiview.CloseOperationState;
-import org.netbeans.core.spi.multiview.MultiViewDescription;
-import org.netbeans.core.spi.multiview.MultiViewElement;
-import org.netbeans.core.spi.multiview.MultiViewElementCallback;
 import static org.openide.util.ImageUtilities.createDisabledIcon;
 import org.openide.windows.TopComponent;
 import org.openide.util.NbBundle.Messages;
@@ -53,31 +45,19 @@ import org.openide.util.NbBundle.Messages;
     "CTL_DfmModelSpecViewTopComponent=DfmModelSpecView Window",
     "HINT_DfmModelSpecViewTopComponent=This is a DfmModelSpecView window"
 })
-public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<VersionedDfmDocument> implements MultiViewElement, MultiViewDescription {
-
-    private final DfmController controller;
+public final class DfmModelSpecViewTopComponent extends AbstractDfmDocumentTopComponent {
 
     public DfmModelSpecViewTopComponent() {
         this(null, new DfmController());
     }
 
     DfmModelSpecViewTopComponent(WorkspaceItem<VersionedDfmDocument> document, DfmController controller) {
-        super(document);
+        super(document, controller);
         initComponents();
-        setName(Bundle.CTL_DfmModelSpecViewTopComponent());
-        setToolTipText(Bundle.HINT_DfmModelSpecViewTopComponent());
         if (document != null) {
             dfmModelSpecView1.setModel(document.getElement().getCurrent());
         }
-        
-        this.controller = controller;
-        controller.addPropertyChangeListener(DfmController.DFM_STATE_PROPERTY, new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                // forward event
-                firePropertyChange(evt.getPropertyName(), evt.getOldValue(), evt.getNewValue());
-            }
-        });
+
     }
 
     /**
@@ -98,26 +78,15 @@ public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<Ve
     private be.nbb.demetra.dfm.DfmModelSpecView dfmModelSpecView1;
     // End of variables declaration//GEN-END:variables
 
+    @Override
+    protected void onDfmStateChange() {
+        dfmModelSpecView1.setModel(getDocument().getElement().getCurrent());
+    }
+
     void writeProperties(java.util.Properties p) {
     }
 
     void readProperties(java.util.Properties p) {
-    }
-
-    //<editor-fold defaultstate="collapsed" desc="MultiViewElement">
-    @Override
-    public void componentOpened() {
-        super.componentOpened();
-    }
-
-    @Override
-    public void componentClosed() {
-        super.componentClosed();
-    }
-
-    @Override
-    public JComponent getVisualRepresentation() {
-        return this;
     }
 
     @Override
@@ -134,64 +103,17 @@ public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<Ve
         return toolBar;
     }
 
-    @Override
-    public void setMultiViewCallback(MultiViewElementCallback callback) {
-    }
-
-    @Override
-    public CloseOperationState canCloseElement() {
-        return CloseOperationState.STATE_OK;
-    }
-
-    @Override
-    public void componentActivated() {
-        super.componentActivated();
-    }
-
-    @Override
-    public void componentDeactivated() {
-        super.componentDeactivated();
-    }
-
-    @Override
-    public void componentHidden() {
-        super.componentHidden();
-    }
-
-    @Override
-    public void componentShowing() {
-        super.componentShowing();
-    }
-    //</editor-fold>
-
-    //<editor-fold defaultstate="collapsed" desc="MultiViewDescription">
-    @Override
-    public MultiViewElement createElement() {
-        return this;
-    }
-
-    @Override
-    public String preferredID() {
-        return super.preferredID();
-    }
-    //</editor-fold>
-
-    @Override
-    protected String getContextPath() {
-        return DfmDocumentManager.CONTEXTPATH;
-    }
-
     //<editor-fold defaultstate="collapsed" desc="Commands">
     private static final class EditModelSpecCommand extends JCommand<DfmModelSpecViewTopComponent> {
-        
+
         public static final EditModelSpecCommand INSTANCE = new EditModelSpecCommand();
-        
+
         @Override
         public void execute(DfmModelSpecViewTopComponent c) throws Exception {
             DfmDocument doc = c.getDocument().getElement().getCurrent();
             DfmSpec oldspec = doc.getSpecification();
-            DfmSpec newspec=oldspec.cloneDefinition();
-            DfmModelSpec oldValue =oldspec.getModelSpec();
+            DfmSpec newspec = oldspec.cloneDefinition();
+            DfmModelSpec oldValue = oldspec.getModelSpec();
             DfmModelSpec newValue = newspec.getModelSpec();
             if (OpenIdePropertySheetBeanEditor.editSheet(DfmSheets.onModelSpec(newValue), "Edit var spec", null)) {
                 int diff = newValue.getVarSpec().getEquationsCount() - oldValue.getVarSpec().getEquationsCount();
@@ -204,19 +126,19 @@ public final class DfmModelSpecViewTopComponent extends WorkspaceTopComponent<Ve
                             }
                         }
                         o.setCoefficients(tmp);
-                   }
+                    }
                 }
-                doc.setSpecification(newspec);  
+                doc.setSpecification(newspec);
                 c.dfmModelSpecView1.updateModel();
                 c.controller.setDfmState(DfmController.DfmState.READY);
-             }
+            }
         }
-        
+
         @Override
         public boolean isEnabled(DfmModelSpecViewTopComponent c) {
-            return c.controller.getDfmState() != DfmController.DfmState.STARTED;
+            return !c.getDocument().getElement().getCurrent().isLocked() && c.controller.getDfmState() != DfmController.DfmState.STARTED;
         }
-        
+
         @Override
         public ActionAdapter toAction(DfmModelSpecViewTopComponent c) {
             return super.toAction(c).withWeakPropertyChangeListener(c, DfmController.DFM_STATE_PROPERTY);

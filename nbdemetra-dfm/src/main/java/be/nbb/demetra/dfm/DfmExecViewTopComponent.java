@@ -7,31 +7,27 @@ package be.nbb.demetra.dfm;
 
 import static be.nbb.demetra.dfm.DfmController.DFM_STATE_PROPERTY;
 import be.nbb.demetra.dfm.DfmController.DfmState;
+import static be.nbb.demetra.dfm.actions.RefreshAction.REFRESH_MESSAGE;
 import ec.nbdemetra.ui.DemetraUI;
 import ec.nbdemetra.ui.DemetraUiIcon;
 import ec.nbdemetra.ui.NbComponents;
 import ec.nbdemetra.ui.nodes.ExceptionNode;
 import ec.nbdemetra.ui.properties.OpenIdePropertySheetBeanEditor;
 import ec.nbdemetra.ws.WorkspaceItem;
-import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
 import ec.tss.dfm.DfmDocument;
 import ec.tss.dfm.DfmProcessingFactory;
 import ec.tss.dfm.VersionedDfmDocument;
 import ec.tstoolkit.algorithm.CompositeResults;
-import ec.tstoolkit.algorithm.IProcessingFactory;
 import ec.tstoolkit.algorithm.IProcessingHook;
 import ec.tstoolkit.algorithm.IProcessingNode;
 import ec.tstoolkit.dfm.DfmEstimationSpec;
 import ec.tstoolkit.dfm.DfmSpec;
-import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.util.chart.ColorScheme;
 import ec.util.chart.swing.Charts;
 import ec.util.chart.swing.SwingColorSchemeSupport;
 import ec.util.various.swing.JCommand;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import javax.swing.AbstractAction;
@@ -49,9 +45,10 @@ import org.netbeans.api.progress.ProgressHandle;
 import org.netbeans.api.progress.ProgressHandleFactory;
 import org.netbeans.api.settings.ConvertAsProperties;
 import org.netbeans.core.spi.multiview.CloseOperationState;
-import org.netbeans.core.spi.multiview.MultiViewDescription;
 import org.netbeans.core.spi.multiview.MultiViewElement;
 import org.netbeans.core.spi.multiview.MultiViewElementCallback;
+import org.openide.DialogDisplayer;
+import org.openide.NotifyDescriptor;
 import org.openide.util.Cancellable;
 import static org.openide.util.ImageUtilities.createDisabledIcon;
 import org.openide.windows.TopComponent;
@@ -75,9 +72,8 @@ import org.openide.util.NbBundle.Messages;
     "CTL_DfmExecViewTopComponent=DfmExecView Window",
     "HINT_DfmExecViewTopComponent=This is a DfmExecView window"
 })
-public final class DfmExecViewTopComponent extends WorkspaceTopComponent<VersionedDfmDocument> implements MultiViewElement, MultiViewDescription {
+public final class DfmExecViewTopComponent extends AbstractDfmDocumentTopComponent {
 
-    private final DfmController controller;
     private DynamicTimeSeriesCollection dataset;
 
     public DfmExecViewTopComponent() {
@@ -85,20 +81,9 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<Version
     }
 
     DfmExecViewTopComponent(WorkspaceItem<VersionedDfmDocument> document, DfmController controller) {
-        super(document);
+        super(document, controller);
         initComponents();
-        setName(Bundle.CTL_DfmExecViewTopComponent());
         setToolTipText(Bundle.HINT_DfmExecViewTopComponent());
-
-        this.controller = controller;
-        controller.addPropertyChangeListener(DFM_STATE_PROPERTY, new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                // forward event
-                firePropertyChange(evt.getPropertyName(), evt.getOldValue(), evt.getNewValue());
-                onDfmStateChange();
-            }
-        });
 
         jEditorPane1.setEditable(false);
 
@@ -135,22 +120,6 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<Version
     void readProperties(java.util.Properties p) {
     }
 
-    //<editor-fold defaultstate="collapsed" desc="MultiViewElement">
-    @Override
-    public void componentOpened() {
-        // TODO add custom code on component opening
-    }
-
-    @Override
-    public void componentClosed() {
-        // TODO add custom code on component closing
-    }
-
-    @Override
-    public JComponent getVisualRepresentation() {
-        return this;
-    }
-
     @Override
     public JComponent getToolbarRepresentation() {
         JToolBar toolBar = NbComponents.newInnerToolbar();
@@ -185,53 +154,7 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<Version
         return toolBar;
     }
 
-    @Override
-    public void setMultiViewCallback(MultiViewElementCallback callback) {
-    }
-
-    @Override
-    public CloseOperationState canCloseElement() {
-        return CloseOperationState.STATE_OK;
-    }
-
-    @Override
-    public void componentActivated() {
-        super.componentActivated();
-    }
-
-    @Override
-    public void componentDeactivated() {
-        super.componentDeactivated();
-    }
-
-    @Override
-    public void componentHidden() {
-        super.componentHidden();
-    }
-
-    @Override
-    public void componentShowing() {
-        super.componentShowing();
-    }
     //</editor-fold>
-
-    //<editor-fold defaultstate="collapsed" desc="MultiViewDescription">
-    @Override
-    public MultiViewElement createElement() {
-        return this;
-    }
-
-    @Override
-    public String preferredID() {
-        return super.preferredID();
-    }
-    //</editor-fold>
-
-    @Override
-    protected String getContextPath() {
-        return DfmDocumentManager.CONTEXTPATH;
-    }
-
     private void appendText(String text) {
         jEditorPane1.setText(jEditorPane1.getText() + text);
     }
@@ -239,7 +162,8 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<Version
     private ProgressHandle progressHandle;
     private SwingWorkerImpl swingWorker;
 
-    private void onDfmStateChange() {
+    @Override
+    protected void onDfmStateChange() {
         switch (controller.getDfmState()) {
             case CANCELLED:
                 appendText("\nCANCELLED");
@@ -385,13 +309,12 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<Version
             DfmEstimationSpec newValue = newspec.getEstimationSpec();
             if (OpenIdePropertySheetBeanEditor.editSheet(DfmSheets.onDfmEstimationSpec(newValue), "Edit spec", null)) {
                 doc.setSpecification(newspec);
-                c.controller.setDfmState(DfmState.READY);
             }
         }
 
         @Override
         public boolean isEnabled(DfmExecViewTopComponent c) {
-            return c.controller.getDfmState() != DfmState.STARTED;
+            return c.controller.getDfmState() == DfmState.READY ;
         }
     }
 
@@ -402,15 +325,21 @@ public final class DfmExecViewTopComponent extends WorkspaceTopComponent<Version
         @Override
         public void execute(DfmExecViewTopComponent c) throws Exception {
             DfmDocument current = c.getDocument().getElement().getCurrent();
-            DfmSpec spec =current.getSpecification();
-            current.setSpecification(spec.cloneDefinition());
-            c.controller.setDfmState(DfmState.READY);
+            DfmSpec spec = current.getSpecification();
+            if (spec.getModelSpec().isSpecified()) {
+                NotifyDescriptor nd = new NotifyDescriptor.Confirmation(CLEAR_MESSAGE, NotifyDescriptor.OK_CANCEL_OPTION);
+                if (DialogDisplayer.getDefault().notify(nd) != NotifyDescriptor.OK_OPTION) {
+                    current.setSpecification(spec.cloneDefinition());
+                    c.controller.setDfmState(DfmState.READY);
+                }
+            }
         }
 
         @Override
         public boolean isEnabled(DfmExecViewTopComponent c) {
-            return c.controller.getDfmState() != DfmState.STARTED && c.controller.getDfmState() != DfmState.READY;
+            return c.controller.getDfmState().isFinished();
         }
     }
     //</editor-fold>
+    public static final String CLEAR_MESSAGE = "The model has already been computed. Are you sure you want to clear the results?";
 }

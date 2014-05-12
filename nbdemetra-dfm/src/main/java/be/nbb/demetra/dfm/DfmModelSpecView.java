@@ -124,13 +124,13 @@ public final class DfmModelSpecView extends JComponent {
         for (int i = 0; i < nbrFactors; i++) {
             view.getColumnModel().getColumn(i + 3).setPreferredWidth(10);
         }
+        view.setEnabled(!model.isLocked());
     }
 
     //<editor-fold defaultstate="collapsed" desc="Getters/Setters">
     public DfmDocument getModel() {
         return model;
     }
-
     public void setModel(DfmDocument model) {
         if (this.model == model) {
             return;
@@ -149,6 +149,8 @@ public final class DfmModelSpecView extends JComponent {
     private final TsCollection variables = TsFactory.instance.createTsCollection();
 
     public void appendTsVariables(TsCollection col) {
+        if (model.isLocked())
+            return;
         DfmSpec spec = model.getSpecification().cloneDefinition();
         for (Ts o : col) {
             if (!variables.contains(o)) {
@@ -192,7 +194,7 @@ public final class DfmModelSpecView extends JComponent {
             MeasurementSpec ms = model.getSpecification().getModelSpec().getMeasurements().get(rowIndex);
             switch (columnIndex) {
                 case 0:
-                    return variables.get(rowIndex).getName();
+                    return rowIndex >= variables.getCount() ? "var"+rowIndex : variables.get(rowIndex).getName();
                 case 1:
                     return ms.getSeriesTransformations();
                 case 2:
@@ -204,7 +206,7 @@ public final class DfmModelSpecView extends JComponent {
 
         @Override
         public boolean isCellEditable(int rowIndex, int columnIndex) {
-            return columnIndex > 0;
+            return !model.isLocked() && columnIndex > 0;
         }
 
         @Override
@@ -318,6 +320,8 @@ public final class DfmModelSpecView extends JComponent {
 
         @Override
         public void execute(XTable component) throws Exception {
+            if (! component.isEnabled())
+                return;
             ModelSpecModel model = (ModelSpecModel) component.getModel();
             int index = component.convertRowIndexToModel(component.getSelectedRows()[0]);
             MeasurementSpec selected = model.getMeasurements().get(index);
