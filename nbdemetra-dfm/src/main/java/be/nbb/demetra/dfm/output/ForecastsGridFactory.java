@@ -46,7 +46,7 @@ public class ForecastsGridFactory extends DfmDocumentItemFactory {
     }
 
     private static Id newId() {
-        return new LinearId("Model", "Forecasts", "Data");
+        return new LinearId("Estimation", "Forecasts", "Data");
     }
 
     private static ItemUI<IProcDocumentView<DfmDocument>, Optional<CompositeResults>> newItemUI() {

@@ -20,6 +20,7 @@ import ec.tss.Ts;
 import ec.tss.documents.MultiTsDocument;
 import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.algorithm.ProcessingContext;
+import ec.tstoolkit.dfm.DfmEstimationSpec;
 import ec.tstoolkit.dfm.DfmSpec;
 
 /**
@@ -87,4 +88,22 @@ public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> impl
         }
     }
 
+    public void forceSpecification(DfmEstimationSpec espec) {
+        DfmSpec spec = getSpecification().cloneDefinition();
+        if (espec != null) {
+            spec.setEstimationSpec(espec);
+        }
+        boolean locked = isLocked();
+        if (locked) {
+            setLocked(false);
+        }
+        setSpecification(spec);
+        if (locked) {
+            setLocked(true);
+        }
+    }
+    
+    public void forceComputation(){
+        forceSpecification(null);
+    }
 }

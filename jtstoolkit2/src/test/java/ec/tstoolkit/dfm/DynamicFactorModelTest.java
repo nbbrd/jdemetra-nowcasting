@@ -46,11 +46,11 @@ import static org.junit.Assert.*;
  * @author palatej
  */
 public class DynamicFactorModelTest {
-    
+
     static final DynamicFactorModel dmodel = new DynamicFactorModel(12, 3);
     static final int N = 500;
     static final boolean stressTest = false;
-    
+
     public static void evaluate(final ResidualsCumulator rslts,
             final Likelihood ll) {
         int n = rslts.getObsCount();
@@ -58,7 +58,7 @@ public class DynamicFactorModelTest {
         ll.set(ssqerr, ldet, n);
     }
     private static Matrix T, TVar, MVar, D, O, Z, M, dd, ddrnd;
-    
+
     private static void loadDavidModel() {
         T = Data.readMatrix(DynamicFactorModelTest.class, "/transition.csv");
         //System.out.println(T);
@@ -155,7 +155,7 @@ public class DynamicFactorModelTest {
         ddrnd.randomize();
         dmodel.setInitialization(VarSpec.Initialization.SteadyState);
     }
-    
+
     private static DynamicFactorModel.IMeasurement measurement(int i) {
         if (i == 1) {
             return DynamicFactorModel.measurement(MeasurementType.L);
@@ -165,11 +165,11 @@ public class DynamicFactorModelTest {
             return DynamicFactorModel.measurement(MeasurementType.C);
         }
     }
-    
+
     static {
         loadDavidModel();
     }
-    
+
     public DynamicFactorModelTest() {
     }
 
@@ -178,7 +178,7 @@ public class DynamicFactorModelTest {
         IMSsf ssf = dmodel.ssfRepresentation();
         System.out.println(DefaultTimeInvariantMultivariateSsf.of(ssf));
     }
-    
+
     @Test
     public void testDavidModel() {
         IMSsf ssf = dmodel.ssfRepresentation();
@@ -192,7 +192,7 @@ public class DynamicFactorModelTest {
         ssf.Z(0, z.subMatrix());
         assertTrue(z.minus(Z).nrm2() < 1e-6);
     }
-    
+
     @Test
     public void testTX() {
         IMSsf ssf = dmodel.ssfRepresentation();
@@ -205,7 +205,7 @@ public class DynamicFactorModelTest {
         ssf.TX(0, x);
         defssf.TX(0, y);
         assertTrue(x.distance(y) < 1e-9);
-        
+
         if (stressTest) {
             x.randomize();
             long t0 = System.currentTimeMillis();
@@ -218,13 +218,13 @@ public class DynamicFactorModelTest {
                 defssf.TX(0, x.deepClone());
             }
             long s1 = System.currentTimeMillis();
-            
+
             System.out.println("TX");
             System.out.println(s1 - s0);
             System.out.println(t1 - t0);
         }
     }
-    
+
     @Test
     public void testXT() {
         IMSsf ssf = dmodel.ssfRepresentation();
@@ -254,7 +254,7 @@ public class DynamicFactorModelTest {
             System.out.println(t1 - t0);
         }
     }
-    
+
     @Test
     public void testZX() {
         IMSsf ssf = dmodel.ssfRepresentation();
@@ -264,7 +264,7 @@ public class DynamicFactorModelTest {
         Matrix y = x.clone();
         Matrix zx = new Matrix(ssf.getVarsCount(), ssf.getStateDim());
         Matrix zy = new Matrix(ssf.getVarsCount(), ssf.getStateDim());
-        
+
         ssf.ZM(0, x.subMatrix(), zx.subMatrix());
         defssf.ZM(0, y.subMatrix(), zy.subMatrix());
         assertTrue(zx.minus(zy).nrm2() < 1e-9);
@@ -285,8 +285,8 @@ public class DynamicFactorModelTest {
             System.out.println(t1 - t0);
         }
     }
-    
-    @Test
+
+    //@Test
     public void testVar2() {
         long q0 = System.currentTimeMillis();
         //for (int k = 0; k < 10; ++k) {
@@ -303,7 +303,7 @@ public class DynamicFactorModelTest {
         System.out.println(ll.getLogLikelihood());
         System.out.println(q1 - q0);
     }
-    
+
     @Test
     public void testVar2bis() {
         long q0 = System.currentTimeMillis();
@@ -322,7 +322,7 @@ public class DynamicFactorModelTest {
         System.out.println(ll.getLogLikelihood());
         System.out.println(q1 - q0);
     }
-    
+
     @Test
     public void testVar3() {
         long q0 = System.currentTimeMillis();
@@ -337,6 +337,8 @@ public class DynamicFactorModelTest {
         filter.process(tmp.ssfRepresentation(), new MultivariateSsfData(dd.subMatrix(), null), results);
         evaluate(results, ll);
         System.out.println("test3");
+        System.out.println(results.getLogDeterminant());
+        System.out.println(results.getSsqErr());
         System.out.println(ll.getLogLikelihood());
         System.out.println(ll.getSigma());
         System.out.println(tmp);
@@ -349,14 +351,14 @@ public class DynamicFactorModelTest {
         //}
         long q1 = System.currentTimeMillis();
         System.out.println("test3bis");
-        //System.out.println(results.getLogDeterminant());
-        //System.out.println(results.getSsqErr());
+        System.out.println(results.getLogDeterminant());
+        System.out.println(results.getSsqErr());
         System.out.println(ll.getLogLikelihood());
         System.out.println(ll.getSigma());
         System.out.println(md);
         System.out.println(q1 - q0);
     }
-    
+
     @Test
     public void testVarU() {
         long q0 = System.currentTimeMillis();
@@ -375,8 +377,8 @@ public class DynamicFactorModelTest {
         System.out.println(ll.getLogLikelihood());
         System.out.println(q1 - q0);
     }
-    
-    @Test
+
+//    @Test
     public void testSVar3() {
         long q0 = System.currentTimeMillis();
 //        for (int k = 0; k < 10; ++k) {
@@ -402,10 +404,10 @@ public class DynamicFactorModelTest {
 //        Matrix Z = new Matrix(ssf.getVarsCount(), ssf.getStateDim());
 //        ssf.Z(0, Z.subMatrix());
         MSmoothingResults sresults = monitor.getSmoothingResults();
-        
+
         double[] z = sresults.zcomponent(Z.row(25));
         double[] vz = sresults.zvariance(Z.row(25));
-        
+
         for (int i = 0; i < dd.getColumnsCount(); ++i) {
             System.out.print(z[i]);
             if (vz != null) {
@@ -430,15 +432,15 @@ public class DynamicFactorModelTest {
 //        ssf.Z(0, Z.subMatrix());
         DataBlock zz = new DataBlock(fssf.getStateDim());
         zz.range(0, Z.getColumnsCount()).copy(Z.row(25));
-        zz.set(Z.getColumnsCount()+25, 1);
+        zz.set(Z.getColumnsCount() + 25, 1);
         z = sresults.zcomponent(zz);
         vz = sresults.zvariance(zz);
-        
+
         for (int i = 0; i < dd.getColumnsCount(); ++i) {
             System.out.print(z[i]);
             if (vz != null) {
                 System.out.print('\t');
-                System.out.println(vz[i]<=0 ? 0 : Math.sqrt(vz[i]));
+                System.out.println(vz[i] <= 0 ? 0 : Math.sqrt(vz[i]));
             } else {
                 System.out.println();
             }
@@ -457,10 +459,10 @@ public class DynamicFactorModelTest {
         SmoothingResults sresults = new SmoothingResults();
         Smoother smoother = new Smoother();
         smoother.setSsf(new M2UAdapter(dmodel.ssfRepresentation(), new FullM2UMap(dmodel.getMeasurementsCount())));
-        
+
         smoother.setCalcVar(false);
         smoother.process(new M2UData(dd, null), sresults);
-        
+
         DiffuseFilteringResults results = smoother.getFilteringResults();
         long q1 = System.currentTimeMillis();
         Likelihood ll = new Likelihood();
@@ -508,8 +510,8 @@ public class DynamicFactorModelTest {
         System.out.println(w);
         System.out.println(q1 - q0);
     }
-    
-    @Test
+
+    //@Test
     public void testMapping() {
         DfmMapping mapping = new DfmMapping(dmodel);
         DfmMapping mapping1 = new DfmMapping(dmodel, true, false);
@@ -520,8 +522,8 @@ public class DynamicFactorModelTest {
         x = new DataBlock(mapping.map(m.ssfRepresentation()));
         System.out.println(x);
     }
-    
-    @Test
+
+    //@Test
     public void testMapping2() {
         DynamicFactorModel tmp = dmodel.clone();
         tmp.lnormalize();
@@ -546,5 +548,5 @@ public class DynamicFactorModelTest {
             System.out.println(s);
         }
     }
-    
+
 }

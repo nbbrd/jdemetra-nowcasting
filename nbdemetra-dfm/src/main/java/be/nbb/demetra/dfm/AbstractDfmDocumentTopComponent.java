@@ -41,10 +41,10 @@ public abstract class AbstractDfmDocumentTopComponent extends WorkspaceTopCompon
 
     AbstractDfmDocumentTopComponent(WorkspaceItem<VersionedDfmDocument> document, DfmController controller) {
         super(document);
-        String txt=document == null ? "" : document.getDisplayName();
+        String txt = document == null ? "" : document.getDisplayName();
         setName(txt);
-         setToolTipText(txt + " view");
-       this.controller = controller;
+        setToolTipText(txt + " view");
+        this.controller = controller;
         controller.addPropertyChangeListener(DfmController.DFM_STATE_PROPERTY, new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
@@ -54,12 +54,15 @@ public abstract class AbstractDfmDocumentTopComponent extends WorkspaceTopCompon
             }
         });
     }
-    
-    public DfmController getController(){
+
+    public DfmController getController() {
         return controller;
     }
 
-    protected abstract void onDfmStateChange();
+    protected void onDfmStateChange() {
+        this.getToolbarRepresentation().updateUI();
+        this.getVisualRepresentation().updateUI();
+    }
 
     //<editor-fold defaultstate="collapsed" desc="MultiViewElement">
     @Override

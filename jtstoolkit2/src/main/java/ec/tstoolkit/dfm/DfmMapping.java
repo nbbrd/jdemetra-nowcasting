@@ -20,6 +20,7 @@ import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.IDataBlock;
 import ec.tstoolkit.data.IReadDataBlock;
 import ec.tstoolkit.dfm.DynamicFactorModel.MeasurementDescriptor;
+import ec.tstoolkit.maths.Complex;
 import ec.tstoolkit.maths.matrices.IEigenSystem;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.maths.matrices.EigenSystem;
@@ -284,37 +285,51 @@ public class DfmMapping implements IDfmMapping {
     @Override
     public boolean checkBoundaries(IReadDataBlock inparams) {
         // check the stability of VAR
-        try{
-        IReadDataBlock vp = vparams(inparams);
-        if (vp == null) {
-            return true;
-        }
-        // s=(f0,t f1,t f2,t f0,t-1 f1,t-1 f2,t-1 ...f0,t-l+1 f1,t-l+1 f2,t-l+1)
-        //    |x00 x10 x20   
-        // T =|...
-        // T =|1   0   0
-        //    |0   1   0
-        //    |...
-        Matrix Q = new Matrix(nb * nl, nb * nl);
-        for (int i = 0, i0 = 0; i < nb; ++i) {
-            for (int l = 0; l < nl; ++l, i0 += nb) {
-                DataBlock c = Q.column(l*nb + i).range(0, nb);
-                c.copy(vp.rextract(i0, nb));
+        try {
+            IReadDataBlock vp = vparams(inparams);
+            if (vp == null) {
+                return true;
             }
-        }
-        Q.subDiagonal(-nb).set(1);
-        IEigenSystem es=EigenSystem.create(Q, false);
-        return es.getEigenValues(1)[0].abs() < .99;
-        }
-        catch (MatrixException err){
+        // s=(f0,t f1,t f2,t f0,t-1 f1,t-1 f2,t-1 ...f0,t-l+1 f1,t-l+1 f2,t-l+1)
+            //    |x00 x10 x20   
+            // T =|...
+            // T =|1   0   0
+            //    |0   1   0
+            //    |...
+            Matrix Q = new Matrix(nb * nl, nb * nl);
+            for (int i = 0, i0 = 0; i < nb; ++i) {
+                for (int l = 0; l < nl; ++l, i0 += nb) {
+                    DataBlock c = Q.column(l * nb + i).range(0, nb);
+                    c.copy(vp.rextract(i0, nb));
+                }
+            }
+            Q.subDiagonal(-nb).set(1);
+            IEigenSystem es = EigenSystem.create(Q, false);
+            Complex[] ev = es.getEigenValues();
+            return max(ev) < 1;
+        } catch (MatrixException err) {
             return false;
         }
 //        return true;
     }
 
+    static double max(Complex[] v) {
+        if (v == null || v.length == 0) {
+            return 0;
+        }
+        double m = v[0].abs();
+        for (int i = 1; i < v.length; ++i) {
+            double cur = v[i].abs();
+            if (cur > m) {
+                m = cur;
+            }
+        }
+        return m;
+    }
+
     @Override
     public double epsilon(IReadDataBlock inparams, int idx) {
-        return inparams.get(idx)>0 ? -EPS : EPS;
+        return inparams.get(idx) > 0 ? -EPS : EPS;
     }
 
     @Override
@@ -336,9 +351,9 @@ public class DfmMapping implements IDfmMapping {
     public ParamValidation validate(IDataBlock ioparams) {
         return checkBoundaries(ioparams) ? ParamValidation.Valid : ParamValidation.Invalid;
     }
-    
+
     @Override
     public String getDescription(int idx) {
-         return PARAM+idx; 
+        return PARAM + idx;
     }
 }

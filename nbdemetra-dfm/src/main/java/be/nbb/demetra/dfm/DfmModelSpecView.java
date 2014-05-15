@@ -131,6 +131,7 @@ public final class DfmModelSpecView extends JComponent {
     public DfmDocument getModel() {
         return model;
     }
+
     public void setModel(DfmDocument model) {
         if (this.model == model) {
             return;
@@ -149,8 +150,9 @@ public final class DfmModelSpecView extends JComponent {
     private final TsCollection variables = TsFactory.instance.createTsCollection();
 
     public void appendTsVariables(TsCollection col) {
-        if (model.isLocked())
+        if (model.isLocked()) {
             return;
+        }
         DfmSpec spec = model.getSpecification().cloneDefinition();
         for (Ts o : col) {
             if (!variables.contains(o)) {
@@ -194,7 +196,7 @@ public final class DfmModelSpecView extends JComponent {
             MeasurementSpec ms = model.getSpecification().getModelSpec().getMeasurements().get(rowIndex);
             switch (columnIndex) {
                 case 0:
-                    return rowIndex >= variables.getCount() ? "var"+rowIndex : variables.get(rowIndex).getName();
+                    return rowIndex >= variables.getCount() ? "var" + rowIndex : variables.get(rowIndex).getName();
                 case 1:
                     return ms.getSeriesTransformations();
                 case 2:
@@ -206,13 +208,14 @@ public final class DfmModelSpecView extends JComponent {
 
         @Override
         public boolean isCellEditable(int rowIndex, int columnIndex) {
-            return !model.isLocked() && columnIndex > 0;
+            return columnIndex > 0;
         }
 
         @Override
         public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
             DfmSpec spec = model.getSpecification().cloneDefinition();
             MeasurementSpec ms = spec.getModelSpec().getMeasurements().get(rowIndex);
+            MeasurementSpec xms = ms.clone();
             switch (columnIndex) {
                 case 1:
                     ms.setSeriesTransformations((Transformation[]) aValue);
@@ -224,7 +227,10 @@ public final class DfmModelSpecView extends JComponent {
                     ms.getCoefficients()[columnIndex - 3].setType(((Boolean) aValue).booleanValue() ? ParameterType.Undefined : ParameterType.Fixed);
                     break;
             }
-            model.setSpecification(spec);
+            if (!ms.equals(xms)) {
+                model.setSpecification(spec);
+                firePropertyChange(MODEL_PROPERTY, null, model);
+            }
         }
 
         @Override
@@ -320,8 +326,9 @@ public final class DfmModelSpecView extends JComponent {
 
         @Override
         public void execute(XTable component) throws Exception {
-            if (! component.isEnabled())
+            if (!component.isEnabled()) {
                 return;
+            }
             ModelSpecModel model = (ModelSpecModel) component.getModel();
             int index = component.convertRowIndexToModel(component.getSelectedRows()[0]);
             MeasurementSpec selected = model.getMeasurements().get(index);

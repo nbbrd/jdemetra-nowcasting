@@ -138,25 +138,25 @@ public class DfmEstimationSpec implements IProcSpecification, Cloneable {
     public boolean read(InformationSet info) {
         InformationSet pc = info.getSubSet(PC);
         if (pc != null) {
-            pc_.read(info);
+            pc_.read(pc);
         } else {
             pc_.setEnabled(false);
         }
         InformationSet em = info.getSubSet(PREEM);
         if (em != null) {
-            preEm_.read(info);
+            preEm_.read(em);
         } else {
             preEm_.setEnabled(false);
         }
         InformationSet proc = info.getSubSet(PROC);
         if (proc != null) {
-            proc_.read(info);
+            proc_.read(proc);
         } else {
             proc_.setEnabled(false);
         }
         em = info.getSubSet(POSTEM);
         if (em != null) {
-            postEm_.read(info);
+            postEm_.read(em);
         } else {
             postEm_.setEnabled(false);
         }

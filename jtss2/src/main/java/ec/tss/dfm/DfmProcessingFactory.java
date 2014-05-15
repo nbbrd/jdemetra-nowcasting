@@ -481,6 +481,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
             estimator.setMixedMethod(spec.isMixedEstimation());
             estimator.setIndependentVarShocks(spec.isIndependentVarShocks());
             estimator.setUsingBlockIterations(spec.isBlockIterations());
+            estimator.setPrecision(spec.getPrecision());
             if (!estimator.estimate(rslts.getModel(), actualData)) {
                 return IProcessing.Status.Invalid;
             } else {

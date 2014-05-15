@@ -5,6 +5,7 @@
  */
 package be.nbb.demetra.dfm;
 
+import static be.nbb.demetra.dfm.DfmModelSpecView.MODEL_PROPERTY;
 import ec.nbdemetra.ui.DemetraUiIcon;
 import ec.nbdemetra.ui.NbComponents;
 import ec.nbdemetra.ui.properties.OpenIdePropertySheetBeanEditor;
@@ -17,6 +18,8 @@ import ec.tstoolkit.dfm.DfmSpec;
 import ec.tstoolkit.dfm.MeasurementSpec;
 import ec.util.various.swing.JCommand;
 import java.awt.Dimension;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.util.Arrays;
 import javax.swing.Box;
 import javax.swing.JButton;
@@ -57,6 +60,16 @@ public final class DfmModelSpecViewTopComponent extends AbstractDfmDocumentTopCo
         if (document != null) {
             dfmModelSpecView1.setModel(document.getElement().getCurrent());
         }
+        dfmModelSpecView1.addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                switch (evt.getPropertyName()) {
+                    case MODEL_PROPERTY:
+                        getController().setDfmState(DfmController.DfmState.READY);
+                        break;
+                }
+            }
+        });
 
     }
 
@@ -80,7 +93,11 @@ public final class DfmModelSpecViewTopComponent extends AbstractDfmDocumentTopCo
 
     @Override
     protected void onDfmStateChange() {
-        dfmModelSpecView1.setModel(getDocument().getElement().getCurrent());
+        DfmDocument doc = getDocument().getElement().getCurrent();
+        dfmModelSpecView1.setModel(doc);
+        boolean rw = controller.getDfmState().isFinished() && !doc.isLocked();
+        dfmModelSpecView1.setEnabled(rw);
+        super.onDfmStateChange();
     }
 
     void writeProperties(java.util.Properties p) {

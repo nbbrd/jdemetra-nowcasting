@@ -17,6 +17,7 @@
 package be.nbb.demetra.dfm.output;
 
 import com.google.common.base.Optional;
+import ec.nbdemetra.ui.NbComponents;
 import ec.tss.dfm.DfmDocument;
 import ec.tss.dfm.DfmResults;
 import ec.tstoolkit.utilities.Id;
@@ -25,32 +26,48 @@ import ec.ui.view.tsprocessing.DefaultItemUI;
 import ec.ui.view.tsprocessing.IProcDocumentView;
 import ec.ui.view.tsprocessing.ItemUI;
 import ec.ui.view.tsprocessing.ProcDocumentItemFactory;
+import java.awt.BorderLayout;
+import javax.swing.BorderFactory;
 import javax.swing.JComponent;
+import javax.swing.JEditorPane;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
  *
  * @author Philippe Charles
  */
-@ServiceProvider(service = ProcDocumentItemFactory.class, position = 200050)
-public class ShocksDecompositionItemFactory extends DfmResultsItemFactory {
+@ServiceProvider(service = ProcDocumentItemFactory.class, position = 200000)
+public class ModelItemFactory extends DfmResultsItemFactory {
 
-    public ShocksDecompositionItemFactory() {
+    public ModelItemFactory() {
         super(newId(), newItemUI());
     }
 
     private static Id newId() {
-        return new LinearId("Estimation", "Shocks Decomposition");
+        return new LinearId("Estimation", "Model");
     }
 
     private static ItemUI<IProcDocumentView<DfmDocument>, Optional<DfmResults>> newItemUI() {
         return new DefaultItemUI<IProcDocumentView<DfmDocument>, Optional<DfmResults>>() {
             @Override
             public JComponent getView(IProcDocumentView<DfmDocument> host, Optional<DfmResults> information) {
-                ShocksDecompositionView result = new ShocksDecompositionView();
-                result.setDfmResults(information);
-                return result;
+
+                return new View(information.get().getModel().toString());
             }
         };
+    }
+}
+
+class View extends JComponent {
+
+    JEditorPane editor = new JEditorPane();
+
+    View(String txt) {
+        editor.setEditable(false);
+        editor.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        setLayout(new BorderLayout());
+        add(NbComponents.newJScrollPane(editor), BorderLayout.CENTER);
+        editor.setText(txt);
+
     }
 }

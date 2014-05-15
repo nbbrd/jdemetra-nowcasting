@@ -7,7 +7,6 @@ package be.nbb.demetra.dfm;
 
 import static be.nbb.demetra.dfm.DfmController.DFM_STATE_PROPERTY;
 import be.nbb.demetra.dfm.DfmController.DfmState;
-import static be.nbb.demetra.dfm.actions.RefreshAction.REFRESH_MESSAGE;
 import ec.nbdemetra.ui.DemetraUI;
 import ec.nbdemetra.ui.DemetraUiIcon;
 import ec.nbdemetra.ui.NbComponents;
@@ -44,9 +43,6 @@ import org.jfree.data.time.Second;
 import org.netbeans.api.progress.ProgressHandle;
 import org.netbeans.api.progress.ProgressHandleFactory;
 import org.netbeans.api.settings.ConvertAsProperties;
-import org.netbeans.core.spi.multiview.CloseOperationState;
-import org.netbeans.core.spi.multiview.MultiViewElement;
-import org.netbeans.core.spi.multiview.MultiViewElementCallback;
 import org.openide.DialogDisplayer;
 import org.openide.NotifyDescriptor;
 import org.openide.util.Cancellable;
@@ -73,20 +69,20 @@ import org.openide.util.NbBundle.Messages;
     "HINT_DfmExecViewTopComponent=This is a DfmExecView window"
 })
 public final class DfmExecViewTopComponent extends AbstractDfmDocumentTopComponent {
-
+    
     private DynamicTimeSeriesCollection dataset;
-
+    
     public DfmExecViewTopComponent() {
         this(null, new DfmController());
     }
-
+    
     DfmExecViewTopComponent(WorkspaceItem<VersionedDfmDocument> document, DfmController controller) {
         super(document, controller);
         initComponents();
         setToolTipText(Bundle.HINT_DfmExecViewTopComponent());
-
+        
         jEditorPane1.setEditable(false);
-
+        
         dataset = new DynamicTimeSeriesCollection(1, 200, new Second());
         dataset.setTimeBase(new Second());
         dataset.addSeries(new float[]{}, 0, "loglikelihood");
@@ -116,31 +112,31 @@ public final class DfmExecViewTopComponent extends AbstractDfmDocumentTopCompone
     // End of variables declaration//GEN-END:variables
     void writeProperties(java.util.Properties p) {
     }
-
+    
     void readProperties(java.util.Properties p) {
     }
-
+    
     @Override
     public JComponent getToolbarRepresentation() {
         JToolBar toolBar = NbComponents.newInnerToolbar();
         toolBar.addSeparator();
         toolBar.add(Box.createRigidArea(new Dimension(5, 0)));
-
+        
         JToggleButton startStop = (JToggleButton) toolBar.add(new JToggleButton(StartStopCommand.INSTANCE.toAction(this)));
         startStop.setIcon(DemetraUiIcon.COMPILE_16);
         startStop.setDisabledIcon(createDisabledIcon(startStop.getIcon()));
         startStop.setToolTipText("Start/Stop");
-
+        
         JButton edit = toolBar.add(EditSpecCommand.INSTANCE.toAction(this));
         edit.setIcon(DemetraUiIcon.PREFERENCES);
         edit.setDisabledIcon(createDisabledIcon(edit.getIcon()));
         edit.setToolTipText("Specification");
-
+        
         JButton clear = toolBar.add(ClearCommand.INSTANCE.toAction(this));
         clear.setIcon(DemetraUiIcon.EDIT_CLEAR_16);
         clear.setDisabledIcon(createDisabledIcon(clear.getIcon()));
         clear.setToolTipText("Clear");
-
+        
         SwingColorSchemeSupport colorSchemeSupport = SwingColorSchemeSupport.from(DemetraUI.getInstance().getColorScheme());
         ChartPanel sparkline = (ChartPanel) toolBar.add(Charts.avoidScaling(new ChartPanel(Charts.createSparkLineChart(null))));
         sparkline.setPreferredSize(new Dimension(150, 16));
@@ -150,7 +146,7 @@ public final class DfmExecViewTopComponent extends AbstractDfmDocumentTopCompone
         sparkline.setBackground(colorSchemeSupport.getPlotColor());
         sparkline.setBorder(BorderFactory.createLineBorder(colorSchemeSupport.getGridColor()));
         sparkline.setToolTipText("loglikelihood");
-
+        
         return toolBar;
     }
 
@@ -158,10 +154,10 @@ public final class DfmExecViewTopComponent extends AbstractDfmDocumentTopCompone
     private void appendText(String text) {
         jEditorPane1.setText(jEditorPane1.getText() + text);
     }
-
+    
     private ProgressHandle progressHandle;
     private SwingWorkerImpl swingWorker;
-
+    
     @Override
     protected void onDfmStateChange() {
         switch (controller.getDfmState()) {
@@ -204,14 +200,15 @@ public final class DfmExecViewTopComponent extends AbstractDfmDocumentTopCompone
                 swingWorker.cancel(false);
                 break;
         }
+        super.onDfmStateChange();
     }
-
+    
     private void reportException(Exception ex) {
         new ExceptionNode(ex).getPreferredAction().actionPerformed(null);
     }
-
+    
     private final class SwingWorkerImpl extends SwingWorker<CompositeResults, IProcessingHook.HookInformation<IProcessingNode, DfmProcessingFactory.EstimationInfo>> implements IProcessingHook<IProcessingNode, DfmProcessingFactory.EstimationInfo> {
-
+        
         @Override
         protected CompositeResults doInBackground() throws Exception {
             DfmProcessingFactory processor = (DfmProcessingFactory) getDocument().getElement().getCurrent().getProcessor();
@@ -220,7 +217,7 @@ public final class DfmExecViewTopComponent extends AbstractDfmDocumentTopCompone
             processor.unregister(this);
             return rslt;
         }
-
+        
         @Override
         protected void done() {
             if (isCancelled()) {
@@ -239,7 +236,7 @@ public final class DfmExecViewTopComponent extends AbstractDfmDocumentTopCompone
                 }
             }
         }
-
+        
         @Override
         public void process(HookInformation<IProcessingNode, DfmProcessingFactory.EstimationInfo> info, boolean cancancel) {
             if (isCancelled()) {
@@ -247,7 +244,7 @@ public final class DfmExecViewTopComponent extends AbstractDfmDocumentTopCompone
             }
             publish(info);
         }
-
+        
         @Override
         protected void process(List<HookInformation<IProcessingNode, DfmProcessingFactory.EstimationInfo>> chunks) {
             for (HookInformation<IProcessingNode, DfmProcessingFactory.EstimationInfo> info : chunks) {
@@ -257,7 +254,7 @@ public final class DfmExecViewTopComponent extends AbstractDfmDocumentTopCompone
                         .append(info.message).append('\t').append(info.information.loglikelihood);
                 txt.append("\r\n");
                 appendText(txt.toString());
-
+                
                 dataset.advanceTime();
                 dataset.appendData(new float[]{(float) info.information.loglikelihood});
             }
@@ -266,17 +263,17 @@ public final class DfmExecViewTopComponent extends AbstractDfmDocumentTopCompone
 
     //<editor-fold defaultstate="collapsed" desc="Commands">
     private static abstract class DfmExecCommand extends JCommand<DfmExecViewTopComponent> {
-
+        
         @Override
         public JCommand.ActionAdapter toAction(DfmExecViewTopComponent c) {
             return super.toAction(c).withWeakPropertyChangeListener(c, DFM_STATE_PROPERTY);
         }
     }
-
+    
     private static final class StartStopCommand extends DfmExecCommand {
-
+        
         public static final StartStopCommand INSTANCE = new StartStopCommand();
-
+        
         @Override
         public void execute(DfmExecViewTopComponent c) throws Exception {
             if (c.controller.getDfmState() == DfmState.STARTED) {
@@ -285,56 +282,55 @@ public final class DfmExecViewTopComponent extends AbstractDfmDocumentTopCompone
                 c.controller.setDfmState(DfmState.STARTED);
             }
         }
-
+        
         @Override
         public boolean isEnabled(DfmExecViewTopComponent c) {
             return c.controller.getDfmState() == DfmState.READY || c.controller.getDfmState() == DfmState.STARTED;
         }
-
+        
         @Override
         public boolean isSelected(DfmExecViewTopComponent c) {
             return c.controller.getDfmState() == DfmState.STARTED;
         }
     }
-
+    
     private static final class EditSpecCommand extends DfmExecCommand {
-
+        
         public static final EditSpecCommand INSTANCE = new EditSpecCommand();
-
+        
         @Override
         public void execute(DfmExecViewTopComponent c) throws Exception {
             DfmDocument doc = c.getDocument().getElement().getCurrent();
-            DfmSpec oldspec = doc.getSpecification();
-            DfmSpec newspec = oldspec.cloneDefinition();
-            DfmEstimationSpec newValue = newspec.getEstimationSpec();
+            DfmSpec spec = doc.getSpecification();
+            DfmEstimationSpec newValue = spec.getEstimationSpec().clone();
             if (OpenIdePropertySheetBeanEditor.editSheet(DfmSheets.onDfmEstimationSpec(newValue), "Edit spec", null)) {
-                doc.setSpecification(newspec);
+                doc.forceSpecification(newValue);
             }
         }
-
+        
         @Override
         public boolean isEnabled(DfmExecViewTopComponent c) {
-            return c.controller.getDfmState() == DfmState.READY ;
+            return c.controller.getDfmState() == DfmState.READY;
         }
     }
-
+    
     private static final class ClearCommand extends DfmExecCommand {
-
+        
         public static final ClearCommand INSTANCE = new ClearCommand();
-
+        
         @Override
         public void execute(DfmExecViewTopComponent c) throws Exception {
             DfmDocument current = c.getDocument().getElement().getCurrent();
             DfmSpec spec = current.getSpecification();
             if (spec.getModelSpec().isSpecified()) {
                 NotifyDescriptor nd = new NotifyDescriptor.Confirmation(CLEAR_MESSAGE, NotifyDescriptor.OK_CANCEL_OPTION);
-                if (DialogDisplayer.getDefault().notify(nd) != NotifyDescriptor.OK_OPTION) {
-                    current.setSpecification(spec.cloneDefinition());
+                if (DialogDisplayer.getDefault().notify(nd) == NotifyDescriptor.OK_OPTION) {
+                    current.forceComputation();
                     c.controller.setDfmState(DfmState.READY);
                 }
             }
         }
-
+        
         @Override
         public boolean isEnabled(DfmExecViewTopComponent c) {
             return c.controller.getDfmState().isFinished();

@@ -34,14 +34,14 @@ import org.openide.util.lookup.ServiceProvider;
  * @author Jean Palate
  */
 @ServiceProvider(service = ProcDocumentItemFactory.class, position = 200120)
-public class DfmFactorView extends ComposedProcDocumentItemFactory<DfmDocument, EstimationUI.Information> {
+public class FactorViewFactory extends ComposedProcDocumentItemFactory<DfmDocument, EstimationUI.Information> {
 
-    public DfmFactorView() {
+    public FactorViewFactory() {
         super(DfmDocument.class, newId(), DfmResultsExtractor.INSTANCE, newItemUI());
     }
 
     private static Id newId() {
-        return new LinearId("Model", "Factors");
+        return new LinearId("Estimation", "Factors");
     }
 
     private static ItemUI<IProcDocumentView<DfmDocument>, EstimationUI.Information> newItemUI() {

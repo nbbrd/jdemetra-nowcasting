@@ -19,7 +19,9 @@ package ec.tstoolkit.dfm;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.IDataBlock;
 import ec.tstoolkit.data.IReadDataBlock;
+import static ec.tstoolkit.dfm.DfmMapping.max;
 import ec.tstoolkit.dfm.DynamicFactorModel.MeasurementDescriptor;
+import ec.tstoolkit.maths.Complex;
 import ec.tstoolkit.maths.matrices.EigenSystem;
 import ec.tstoolkit.maths.matrices.IEigenSystem;
 import ec.tstoolkit.maths.matrices.Matrix;
@@ -44,8 +46,8 @@ public class DfmMapping2 implements IDfmMapping {
     private final int np;
     private final int nml, nm, nb, nl;
     private final int l0, mv0, v0;
-    private final int ivmax;
-    private final double vmax;
+    private final int immax, ifmax;
+    private final double cmax;
 
     private IReadDataBlock loadings(IReadDataBlock p) {
         return l0 < 0 ? null : p.rextract(l0, nml);
@@ -89,30 +91,34 @@ public class DfmMapping2 implements IDfmMapping {
             l0 = -1;
             mv0 = -1;
             v0 = 0;
-            ivmax = -1;
-            vmax = 0;
+            immax = -1;
+            ifmax = -1;
+            cmax = 0;
             p = nb * nb * nl;
         } else {
             int n = 0, m = 0;
-            int iv = -1;
-            double v = 0;
+            int im = -1, f = -1;
+            double c = 0;
             for (MeasurementDescriptor desc : template.getMeasurements()) {
-                if (desc.var > v) {
-                    v = desc.var;
-                    iv = m;
-                }
                 for (int i = 0; i < nb; ++i) {
-                    if (!Double.isNaN(desc.coeff[i])) {
+                    double cur = desc.coeff[i];
+                    if (!Double.isNaN(cur)) {
+                        if (Math.abs(cur) > Math.abs(c)) {
+                            c = cur;
+                            f = i;
+                            im = m;
+                        }
                         ++n;
                     }
                 }
                 ++m;
             }
             l0 = 0;
-            ivmax = iv;
-            vmax = v;
-            nm = template.getMeasurementsCount() - 1;
-            nml = n;
+            immax = im;
+            ifmax = f;
+            cmax = c;
+            nm = template.getMeasurementsCount();
+            nml = n - 1;
             mv0 = nml;
             p = nm + nml;
             if (tfixed) {
@@ -152,15 +158,15 @@ public class DfmMapping2 implements IDfmMapping {
             for (MeasurementDescriptor desc : m.getMeasurements()) {
                 for (int k = 0; k < nb; ++k) {
                     if (!Double.isNaN(desc.coeff[k])) {
-                        desc.coeff[k] = l.get(i0++);
+                        if (immax != n || ifmax != k) {
+                            desc.coeff[k] = l.get(i0++);
+                        } else {
+                            desc.coeff[k] = cmax;
+                        }
                     }
                 }
-                if (n == ivmax) {
-                    desc.var = vmax;
-                } else {
-                    double x = mv.get(j0++);
-                    desc.var = x * x;
-                }
+                double x = mv.get(j0++);
+                desc.var = x * x;
                 ++n;
             }
         }
@@ -187,16 +193,16 @@ public class DfmMapping2 implements IDfmMapping {
         DataBlock mv = mvars(p);
         int i0 = 0, j0 = 0;
         if (l != null) {
-             int n = 0;
+            int n = 0;
             for (MeasurementDescriptor desc : m.getMeasurements()) {
                 for (int k = 0; k < nb; ++k) {
                     if (!Double.isNaN(desc.coeff[k])) {
-                        l.set(i0++, desc.coeff[k]);
+                        if (n != immax || k != ifmax) {
+                            l.set(i0++, desc.coeff[k]);
+                        }
                     }
                 }
-                if (n != ivmax) {
-                    mv.set(j0++, Math.sqrt(desc.var));
-                }
+                mv.set(j0++, Math.sqrt(desc.var));
                 ++n;
             }
         }
@@ -231,7 +237,8 @@ public class DfmMapping2 implements IDfmMapping {
             }
             Q.subDiagonal(-nb).set(1);
             IEigenSystem es = EigenSystem.create(Q, false);
-            return es.getEigenValues(1)[0].abs() < .99;
+            Complex[] ev = es.getEigenValues();
+            return max(ev) < 1;
         } catch (MatrixException err) {
             return false;
         }

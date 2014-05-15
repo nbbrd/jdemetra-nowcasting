@@ -78,6 +78,14 @@ public class DfmEstimator implements IDfmEstimator {
     public void setMaxInitialIter(int n) {
         nstart_ = n;
     }
+    
+    public void setPrecision(double eps){
+        min_.setConvergenceCriterion(eps);
+    }
+    
+    public double getPrecision(){
+        return min_.getConvergenceCriterion();
+    }
 
     public int getMaxIntermediateIter() {
         return nnext_;
