@@ -55,6 +55,7 @@ public class FactorViewFactory extends ComposedProcDocumentItemFactory<DfmDocume
         @Override
         public EstimationUI.Information retrieve(DfmDocument source) {
             TsData o = null, l = null, u = null;
+            
             DfmResults rslts = source.getDfmResults();
             if (rslts != null) {
                 o = rslts.getFactor(0);
