@@ -1,16 +1,26 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright 2013 National Bank of Belgium
+ *
+ * Licensed under the EUPL, Version 1.1 or – as soon they will be approved 
+ * by the European Commission - subsequent versions of the EUPL (the "Licence");
+ * You may not use this work except in compliance with the Licence.
+ * You may obtain a copy of the Licence at:
+ * 
+ * http://ec.europa.eu/idabc/eupl
+ * 
+ * Unless required by applicable law or agreed to in writing, software 
+ * distributed under the Licence is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the Licence for the specific language governing permissions and 
+ * limitations under the Licence.
  */
 package be.nbb.demetra.dfm.output;
 
 import com.google.common.base.Optional;
+import ec.tss.datatransfer.TssTransferSupport;
 import ec.tss.dfm.DfmResults;
 import ec.tss.dfm.DfmSeriesDescriptor;
-import ec.tss.datatransfer.TssTransferSupport;
 import ec.tstoolkit.data.DataBlock;
-import ec.tstoolkit.dfm.DfmInformationSet;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
@@ -169,7 +179,7 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
             Matrix matrix = toMatrix(dfmResults.get(), comboBox.getSelectedIndex());
             TsPeriod start = new TsPeriod(TsFrequency.Yearly, 2000, 0);
             TsXYDatasets.Builder b = TsXYDatasets.builder();
-            int i = 0;
+            int i = 1;
             for (DataBlock o : matrix.rowList()) {
                 double[] data = new double[o.getLength()];
                 o.copyTo(data, 0);

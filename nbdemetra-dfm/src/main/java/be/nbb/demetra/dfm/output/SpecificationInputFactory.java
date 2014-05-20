@@ -1,6 +1,6 @@
 /*
- * Copyright 2013-2014 National Bank of Belgium
- * 
+ * Copyright 2013 National Bank of Belgium
+ *
  * Licensed under the EUPL, Version 1.1 or – as soon they will be approved 
  * by the European Commission - subsequent versions of the EUPL (the "Licence");
  * You may not use this work except in compliance with the Licence.
@@ -16,6 +16,7 @@
  */
 package be.nbb.demetra.dfm.output;
 
+import be.nbb.demetra.dfm.output.html.HtmlSpecificationModel;
 import com.google.common.base.Optional;
 import ec.tss.dfm.DfmDocument;
 import ec.tss.dfm.DfmResults;
@@ -23,33 +24,35 @@ import ec.tstoolkit.utilities.Id;
 import ec.tstoolkit.utilities.LinearId;
 import ec.ui.view.tsprocessing.DefaultItemUI;
 import ec.ui.view.tsprocessing.IProcDocumentView;
+import ec.ui.view.tsprocessing.ITsViewToolkit;
 import ec.ui.view.tsprocessing.ItemUI;
 import ec.ui.view.tsprocessing.ProcDocumentItemFactory;
+import ec.ui.view.tsprocessing.TsViewToolkit;
 import javax.swing.JComponent;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
  *
- * @author Jean Palate
+ * @author Mats Maggi
  */
-@ServiceProvider(service = ProcDocumentItemFactory.class, position = 200120)
-public class FactorViewFactory extends DfmResultsItemFactory {
+@ServiceProvider(service = ProcDocumentItemFactory.class, position = 100110)
+public class SpecificationInputFactory extends DfmResultsItemFactory {
 
-    public FactorViewFactory() {
+    public SpecificationInputFactory() {
         super(newId(), newItemUI());
     }
 
     private static Id newId() {
-        return new LinearId("Estimation", "Factors");
+        return new LinearId("Input", "Specifications", "Model");
     }
-    
+
     private static ItemUI<IProcDocumentView<DfmDocument>, Optional<DfmResults>> newItemUI() {
         return new DefaultItemUI<IProcDocumentView<DfmDocument>, Optional<DfmResults>>() {
+            private final ITsViewToolkit toolkit_ = TsViewToolkit.getInstance();
+
             @Override
             public JComponent getView(IProcDocumentView<DfmDocument> host, Optional<DfmResults> information) {
-                FactorView result = new FactorView();
-                result.setDfmResults(information);
-                return result;
+                return toolkit_.getHtmlViewer(new HtmlSpecificationModel(host.getDocument()));
             }
         };
     }

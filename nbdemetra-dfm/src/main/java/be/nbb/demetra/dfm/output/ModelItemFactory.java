@@ -16,20 +16,19 @@
  */
 package be.nbb.demetra.dfm.output;
 
+import be.nbb.demetra.dfm.output.html.HtmlEstimationModel;
 import com.google.common.base.Optional;
-import ec.nbdemetra.ui.NbComponents;
 import ec.tss.dfm.DfmDocument;
 import ec.tss.dfm.DfmResults;
 import ec.tstoolkit.utilities.Id;
 import ec.tstoolkit.utilities.LinearId;
 import ec.ui.view.tsprocessing.DefaultItemUI;
 import ec.ui.view.tsprocessing.IProcDocumentView;
+import ec.ui.view.tsprocessing.ITsViewToolkit;
 import ec.ui.view.tsprocessing.ItemUI;
 import ec.ui.view.tsprocessing.ProcDocumentItemFactory;
-import java.awt.BorderLayout;
-import javax.swing.BorderFactory;
+import ec.ui.view.tsprocessing.TsViewToolkit;
 import javax.swing.JComponent;
-import javax.swing.JEditorPane;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
@@ -49,25 +48,12 @@ public class ModelItemFactory extends DfmResultsItemFactory {
 
     private static ItemUI<IProcDocumentView<DfmDocument>, Optional<DfmResults>> newItemUI() {
         return new DefaultItemUI<IProcDocumentView<DfmDocument>, Optional<DfmResults>>() {
+            private final ITsViewToolkit toolkit_ = TsViewToolkit.getInstance();
+
             @Override
             public JComponent getView(IProcDocumentView<DfmDocument> host, Optional<DfmResults> information) {
-
-                return new View(information.get().getModel().toString());
+                return toolkit_.getHtmlViewer(new HtmlEstimationModel(information));
             }
         };
-    }
-}
-
-class View extends JComponent {
-
-    JEditorPane editor = new JEditorPane();
-
-    View(String txt) {
-        editor.setEditable(false);
-        editor.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        setLayout(new BorderLayout());
-        add(NbComponents.newJScrollPane(editor), BorderLayout.CENTER);
-        editor.setText(txt);
-
     }
 }

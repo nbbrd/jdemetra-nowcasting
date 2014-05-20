@@ -18,13 +18,12 @@ package be.nbb.demetra.dfm.output;
 
 import com.google.common.base.Optional;
 import ec.nbdemetra.ui.DemetraUI;
-import ec.tss.dfm.DfmResults;
-import ec.tss.dfm.DfmSeriesDescriptor;
 import ec.tss.Ts;
 import ec.tss.TsCollection;
 import ec.tss.TsFactory;
 import ec.tss.datatransfer.TssTransferSupport;
-import ec.tstoolkit.dfm.DfmInformationSet;
+import ec.tss.dfm.DfmResults;
+import ec.tss.dfm.DfmSeriesDescriptor;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.ui.chart.TsXYDatasets;
 import ec.util.chart.ColorScheme;
@@ -277,7 +276,7 @@ final class ShocksDecompositionView extends javax.swing.JPanel {
         }
         TsData[][] x = dfmResults.getShocksDecomposition();
         for (int i = 0; i < x.length - 2; i++) {
-            result.quietAdd(TsFactory.instance.createTs("F" + i, null, x[i][selectedIndex]));
+            result.quietAdd(TsFactory.instance.createTs("F" + (i+1), null, x[i][selectedIndex]));
         }
         if (initialFactorVisible) {
             result.quietAdd(TsFactory.instance.createTs("Initial factor", null, x[x.length - 2][selectedIndex]));

@@ -24,7 +24,7 @@ import javax.annotation.Nullable;
  *
  * @author Philippe Charles
  */
-final class Arrays3 {
+public final class Arrays3 {
 
     private Arrays3() {
         // static class

@@ -18,8 +18,8 @@
 package be.nbb.demetra.dfm.output;
 
 import com.google.common.base.Optional;
-import ec.tss.dfm.DfmDocument;
 import ec.tss.Ts;
+import ec.tss.dfm.DfmDocument;
 import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.utilities.Id;
 import ec.tstoolkit.utilities.LinearId;
@@ -35,7 +35,7 @@ import org.openide.util.lookup.ServiceProvider;
  *
  * @author Jean Palate
  */
-@ServiceProvider(service = ProcDocumentItemFactory.class, position = 100010)
+@ServiceProvider(service = ProcDocumentItemFactory.class, position = 100200)
 public class InputGridFactory extends DfmDocumentItemFactory {
 
     public InputGridFactory() {

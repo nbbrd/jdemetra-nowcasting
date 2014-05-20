@@ -16,6 +16,7 @@
  */
 package be.nbb.demetra.dfm.output;
 
+import be.nbb.demetra.dfm.output.html.HtmlSpecificationEstimation;
 import com.google.common.base.Optional;
 import ec.tss.dfm.DfmDocument;
 import ec.tss.dfm.DfmResults;
@@ -23,33 +24,35 @@ import ec.tstoolkit.utilities.Id;
 import ec.tstoolkit.utilities.LinearId;
 import ec.ui.view.tsprocessing.DefaultItemUI;
 import ec.ui.view.tsprocessing.IProcDocumentView;
+import ec.ui.view.tsprocessing.ITsViewToolkit;
 import ec.ui.view.tsprocessing.ItemUI;
 import ec.ui.view.tsprocessing.ProcDocumentItemFactory;
+import ec.ui.view.tsprocessing.TsViewToolkit;
 import javax.swing.JComponent;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
  *
- * @author Jean Palate
+ * @author Mats Maggi
  */
-@ServiceProvider(service = ProcDocumentItemFactory.class, position = 200120)
-public class FactorViewFactory extends DfmResultsItemFactory {
+@ServiceProvider(service = ProcDocumentItemFactory.class, position = 100120)
+public class EstimationInputFactory extends DfmResultsItemFactory {
 
-    public FactorViewFactory() {
+    public EstimationInputFactory() {
         super(newId(), newItemUI());
     }
 
     private static Id newId() {
-        return new LinearId("Estimation", "Factors");
+        return new LinearId("Input", "Specifications", "Estimation");
     }
-    
+
     private static ItemUI<IProcDocumentView<DfmDocument>, Optional<DfmResults>> newItemUI() {
         return new DefaultItemUI<IProcDocumentView<DfmDocument>, Optional<DfmResults>>() {
+            private final ITsViewToolkit toolkit_ = TsViewToolkit.getInstance();
+
             @Override
             public JComponent getView(IProcDocumentView<DfmDocument> host, Optional<DfmResults> information) {
-                FactorView result = new FactorView();
-                result.setDfmResults(information);
-                return result;
+                return toolkit_.getHtmlViewer(new HtmlSpecificationEstimation(host.getDocument().getSpecification().getEstimationSpec()));
             }
         };
     }
