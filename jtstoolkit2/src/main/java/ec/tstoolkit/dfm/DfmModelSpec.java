@@ -18,22 +18,19 @@ package ec.tstoolkit.dfm;
 
 import ec.tstoolkit.Parameter;
 import ec.tstoolkit.ParameterType;
-import ec.tstoolkit.var.VarSpec;
 import ec.tstoolkit.algorithm.IProcSpecification;
 import ec.tstoolkit.data.Table;
-import ec.tstoolkit.dfm.DynamicFactorModel;
 import ec.tstoolkit.dfm.DynamicFactorModel.IMeasurement;
 import ec.tstoolkit.dfm.DynamicFactorModel.MeasurementDescriptor;
 import ec.tstoolkit.information.Information;
 import ec.tstoolkit.information.InformationSet;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.maths.matrices.SymmetricMatrix;
+import ec.tstoolkit.var.VarSpec;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
