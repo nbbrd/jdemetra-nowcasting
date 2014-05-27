@@ -17,12 +17,7 @@
 package ec.tss.dfm;
 
 import ec.satoolkit.GenericSaProcessingFactory;
-import ec.tss.Ts;
-import ec.tss.TsInformationType;
-import ec.tss.TsStatus;
 import ec.tss.sa.SaManager;
-import ec.tstoolkit.Parameter;
-import ec.tstoolkit.ParameterType;
 import ec.tstoolkit.algorithm.AlgorithmDescriptor;
 import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.algorithm.IProcResults;
@@ -39,7 +34,6 @@ import ec.tstoolkit.data.DescriptiveStatistics;
 import ec.tstoolkit.dfm.DefaultInitializer;
 import ec.tstoolkit.dfm.DfmEM;
 import ec.tstoolkit.dfm.DfmEM2;
-import ec.tstoolkit.dfm.DfmEstimationSpec;
 import ec.tstoolkit.dfm.DfmEstimator;
 import ec.tstoolkit.dfm.DfmInformationSet;
 import ec.tstoolkit.dfm.DfmModelSpec;
@@ -266,7 +260,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
                 }
                 DfmResults start = new DfmResults(spec.getModelSpec().build(), dinfo);
                 start.setDescriptions(desc);
-                if (!spec.getModelSpec().isSpecified()) {
+                if (!spec.getModelSpec().isDefined()) {
                     new DefaultInitializer().initialize(start.getModel(), start.getInput());
                 }
                 results.put(DFM, start);
@@ -498,7 +492,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
      *
      * @param spec The specification
      * @param rslts The results
-     * @return A new updated specification object is returned
+     * @param disable
      */
     public static void update(DfmSpec spec, DfmResults rslts, boolean disable) {
         if (rslts == null) {

@@ -85,6 +85,24 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
         return vspec.isSpecified();
     }
 
+    public boolean isDefined() {
+        for (MeasurementSpec mspec : mspecs) {
+            if (!mspec.isDefined()) {
+                return false;
+            }
+        }
+        return vspec.isDefined();
+    }
+
+    public boolean setParameterType(ParameterType type) {
+        for (MeasurementSpec mspec : mspecs) {
+            if (!mspec.setParameterType(type)) {
+                return false;
+            }
+        }
+        return vspec.setParameterType(type);
+    }
+
     @Override
     public DfmModelSpec clone() {
         try {

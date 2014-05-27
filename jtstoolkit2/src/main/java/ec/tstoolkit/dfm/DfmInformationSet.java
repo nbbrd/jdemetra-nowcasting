@@ -16,6 +16,7 @@
  */
 package ec.tstoolkit.dfm;
 
+import ec.tstoolkit.data.DescriptiveStatistics;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.timeseries.Day;
 import ec.tstoolkit.timeseries.simplets.TsData;
@@ -40,6 +41,30 @@ public class DfmInformationSet {
         }
     }
 
+    // 
+    /**
+     * Creates a new information set with only the revised data in comparison
+     * with this data set (the domains of the series of this data set are
+     * identical to the domains of the series of the returned information set
+     *
+     * @param newdata
+     * @return
+     */
+    public DfmInformationSet revisedData(DfmInformationSet newdata) {
+        TsData[] ndata = new TsData[table_.getSeriesCount()];
+        for (int i = 0; i < ndata.length; ++i) {
+            TsData cur = table_.series(i);
+            TsData ncur = newdata.table_.series(i);
+            ndata[i] = ncur.fittoDomain(cur.getDomain());
+            for (int j = 0; j < cur.getLength(); ++j) {
+                if (cur.getValues().isMissing(j)) {
+                    ncur.getValues().setMissing(j);
+                }
+            }
+        }
+        return new DfmInformationSet(ndata);
+    }
+
     public DfmInformationSet actualData() {
         TsData[] ndata = new TsData[table_.getSeriesCount()];
         for (int i = 0; i < ndata.length; ++i) {
@@ -55,6 +80,7 @@ public class DfmInformationSet {
         }
         return new DfmInformationSet(ndata);
     }
+
     /**
      *
      * @return

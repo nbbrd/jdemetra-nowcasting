@@ -30,10 +30,8 @@ import java.util.Objects;
  */
 public class MeasurementSpec implements IProcSpecification, Cloneable {
 
- 
-
-
     public static enum Transformation {
+
         Log,
         Sa,
         Diff1,
@@ -61,31 +59,52 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
     }
 
     public void clear() {
-        for (int i=0; i<coeff.length; ++i){
-            if (!coeff[i].isFixed())
-                coeff[i]=new Parameter();
+        for (int i = 0; i < coeff.length; ++i) {
+            if (!coeff[i].isFixed()) {
+                coeff[i] = new Parameter();
+            }
         }
         var = new Parameter();
     }
-    
-    private static boolean isSpecified(Parameter p){
-        if (Parameter.isDefault(p))
+
+    private static boolean isSpecified(Parameter p) {
+        if (Parameter.isDefault(p)) {
             return false;
+        }
         return p.getType() != ParameterType.Initial;
     }
 
-   public boolean isSpecified() {
-        if (! isSpecified(var))
+    public boolean isSpecified() {
+        if (!isSpecified(var)) {
             return false;
-        for (int i=0; i<coeff.length; ++i){
-            if (! isSpecified(coeff[i]))
+        }
+        for (int i = 0; i < coeff.length; ++i) {
+            if (!isSpecified(coeff[i])) {
                 return false;
+            }
         }
         return true;
-        
     }
 
-   @Override
+    public boolean isDefined() {
+        return Parameter.isDefined(var) && Parameter.isDefined(coeff);
+    }
+
+    public boolean setParameterType(ParameterType type) {
+        if (Parameter.isDefault(var)) {
+            return false;
+        }
+        var.setType(type);
+        for (int i = 0; i < coeff.length; ++i) {
+            if (Parameter.isDefault(coeff[i])) {
+                return false;
+            }
+            if (!coeff[i].isFixed())
+                coeff[i].setType(type);
+        }
+        return true;
+    }
+    @Override
     public MeasurementSpec clone() {
         try {
             MeasurementSpec m = (MeasurementSpec) super.clone();
@@ -182,7 +201,7 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
     }
 
     void setCoefficient(int j, Parameter c) {
-        this.coeff[j]=c;
+        this.coeff[j] = c;
     }
 
     public Transformation[] getSeriesTransformations() {
@@ -191,8 +210,8 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
 
     public void setSeriesTransformations(Transformation[] tr) {
         this.transformations = tr;
-        this.mean=Double.NaN;
-        this.stdev=Double.NaN;
+        this.mean = Double.NaN;
+        this.stdev = Double.NaN;
     }
 
     public double getMean() {

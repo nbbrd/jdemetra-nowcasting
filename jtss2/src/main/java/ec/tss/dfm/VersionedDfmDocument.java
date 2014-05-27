@@ -18,6 +18,7 @@ package ec.tss.dfm;
 
 import ec.tss.Ts;
 import ec.tss.documents.VersionedDocument;
+import ec.tstoolkit.ParameterType;
 import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.dfm.DfmSpec;
 import java.util.logging.Level;
@@ -56,6 +57,7 @@ public class VersionedDfmDocument extends VersionedDocument<DfmSpec, Ts[], Compo
             if (ndoc.isTsFrozen()) {
                 ndoc.unfreezeTs();
             }
+            ndoc.getSpecification().getModelSpec().setParameterType(ParameterType.Initial);
             ndoc.setLocked(true);
             return ndoc;
         }

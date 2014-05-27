@@ -20,10 +20,7 @@ import ec.tstoolkit.Parameter;
 import ec.tstoolkit.ParameterType;
 import ec.tstoolkit.algorithm.IProcSpecification;
 import ec.tstoolkit.data.Table;
-import ec.tstoolkit.dfm.DynamicFactorModel;
 import ec.tstoolkit.information.InformationSet;
-import ec.tstoolkit.maths.matrices.SymmetricMatrix;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 
@@ -116,18 +113,20 @@ public class VarSpec implements IProcSpecification, Cloneable {
     public void setInitialization(Initialization init) {
         init_ = init;
     }
-    
-    private static boolean isSpecified(Parameter p){
-        if (Parameter.isDefault(p))
+
+    private static boolean isSpecified(Parameter p) {
+        if (Parameter.isDefault(p)) {
             return false;
+        }
         return p.getType() != ParameterType.Initial;
     }
-    
-    private static boolean isSpecified(Table<Parameter>t){
-        for (int c=0; c<t.getColumnsCount(); ++c){
-            for (int r=0; r<t.getRowsCount(); ++r){
-                if (! isSpecified(t.get(r, c)))
+
+    private static boolean isSpecified(Table<Parameter> t) {
+        for (int c = 0; c < t.getColumnsCount(); ++c) {
+            for (int r = 0; r < t.getRowsCount(); ++r) {
+                if (!isSpecified(t.get(r, c))) {
                     return false;
+                }
             }
         }
         return true;
@@ -136,6 +135,41 @@ public class VarSpec implements IProcSpecification, Cloneable {
     public boolean isSpecified() {
         return isSpecified(nparams)
                 && isSpecified(vparams);
+    }
+
+    private static boolean isDefined(Table<Parameter> t) {
+        for (int c = 0; c < t.getColumnsCount(); ++c) {
+            for (int r = 0; r < t.getRowsCount(); ++r) {
+                if (Parameter.isDefault(t.get(r, c))) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private static boolean setParameterType(Table<Parameter> t, ParameterType type) {
+        for (int c = 0; c < t.getColumnsCount(); ++c) {
+            for (int r = 0; r < t.getRowsCount(); ++r) {
+                Parameter cell = t.get(r, c);
+                if (Parameter.isDefault(cell)) {
+                    return false;
+                }
+                if (!cell.isFixed()) {
+                    cell.setType(type);
+                }
+            }
+        }
+        return true;
+    }
+
+    public boolean isDefined() {
+        return isDefined(nparams)
+                && isDefined(vparams);
+    }
+
+    public boolean setParameterType(ParameterType type) {
+        return setParameterType(nparams, type) && setParameterType(vparams, type);
     }
 
     @Override
