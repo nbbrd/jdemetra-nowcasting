@@ -23,7 +23,6 @@ import ec.tstoolkit.data.DescriptiveStatistics;
 import ec.tstoolkit.dfm.DfmInformationSet;
 import ec.tstoolkit.dfm.DfmProcessor;
 import ec.tstoolkit.dfm.DynamicFactorModel;
-//import ec.tstoolkit.dfm.DynamicFactorModel.MeasurementDescriptor;
 import ec.tstoolkit.eco.Likelihood;
 import ec.tstoolkit.information.InformationMapper;
 import ec.tstoolkit.information.InformationSet;
@@ -907,13 +906,15 @@ public class DfmResults implements IProcResults {
     }
 
     public void calcSignalProjections() {
-
+        
+        
         IMSsf ssf = getSsf();
         if (smoothedSignal == null) {
             calcSmoothedSignal();
         }
 
         int N = ssf.getVarsCount();
+        smoothedSignalProjection = new TsData[N];
         for (int v = 0; v < N; v++) {
             smoothedSignalProjection[v] = smoothedSignal[v].clone().plus(description[v].mean);
         }
