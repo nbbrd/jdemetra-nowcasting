@@ -30,25 +30,24 @@ import org.openide.util.lookup.ServiceProvider;
 
 /**
  *
- * @author Philippe Charles
+ * @author Mats Maggi
  */
-@ServiceProvider(service = ProcDocumentItemFactory.class, position = 200050)
-public class ShocksDecompositionItemFactory extends DfmResultsItemFactory {
+@ServiceProvider(service = ProcDocumentItemFactory.class, position = 200110)
+public class FitSignalDataItemFactory extends DfmResultsItemFactory {
 
-    public ShocksDecompositionItemFactory() {
+    public FitSignalDataItemFactory() {
         super(newId(), newItemUI());
-        setAsync(true);
     }
 
     private static Id newId() {
-        return new LinearId("Estimation", "Shocks Decomposition");
+        return new LinearId("Estimation", "Fit", "Signals vs Data");
     }
 
     private static ItemUI<IProcDocumentView<DfmDocument>, Optional<DfmResults>> newItemUI() {
         return new DefaultItemUI<IProcDocumentView<DfmDocument>, Optional<DfmResults>>() {
             @Override
             public JComponent getView(IProcDocumentView<DfmDocument> host, Optional<DfmResults> information) {
-                ShocksDecompositionView result = new ShocksDecompositionView();
+                FitSignalDataView result = new FitSignalDataView();
                 result.setDfmResults(information);
                 return result;
             }

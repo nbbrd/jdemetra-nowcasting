@@ -200,6 +200,7 @@ final class IrfView extends javax.swing.JPanel {
         return result;
     }
 
+    //<editor-fold defaultstate="collapsed" desc="Menus">
     private JMenu createChartMenu() {
         JMenu menu = new JMenu();
         JMenuItem item;
@@ -209,7 +210,9 @@ final class IrfView extends javax.swing.JPanel {
 
         return menu;
     }
+    //</editor-fold>
 
+    //<editor-fold defaultstate="collapsed" desc="Commands">
     private static final class CopyCommand extends JCommand<IrfView> {
 
         public static final CopyCommand INSTANCE = new CopyCommand();
@@ -233,5 +236,6 @@ final class IrfView extends javax.swing.JPanel {
             return super.toAction(c).withWeakPropertyChangeListener(c, DFM_RESULTS_PROPERTY);
         }
     }
+    //</editor-fold>
 
 }
