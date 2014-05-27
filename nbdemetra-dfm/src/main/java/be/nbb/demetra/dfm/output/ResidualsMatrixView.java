@@ -17,12 +17,15 @@
 package be.nbb.demetra.dfm.output;
 
 import com.google.common.base.Optional;
+import ec.nbdemetra.ui.DemetraUI;
 import ec.nbdemetra.ui.awt.PopupListener;
 import ec.tss.dfm.DfmResults;
+import ec.tss.tsproviders.utils.Formatters.Formatter;
 import ec.tstoolkit.dfm.DynamicFactorModel;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.ui.interfaces.IZoomableGrid;
 import ec.util.grid.swing.AbstractGridModel;
+import ec.util.grid.swing.GridModel;
 import ec.util.grid.swing.GridRowHeaderRenderer;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -32,11 +35,8 @@ import java.awt.event.ActionEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.text.DecimalFormat;
-import java.text.NumberFormat;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import javax.swing.AbstractAction;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JLabel;
@@ -45,8 +45,6 @@ import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.JToolTip;
 import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableModel;
 
 /**
  *
@@ -178,7 +176,7 @@ public class ResidualsMatrixView extends JPanel {
         if (results == null || !results.isPresent()) {
             matrix.setModel(null);
         } else {
-            matrix.setModel(new TableModelAdapter(createModel()));
+            matrix.setModel(createModel());
         }
     }
 
@@ -226,66 +224,41 @@ public class ResidualsMatrixView extends JPanel {
     }
 
     // <editor-fold defaultstate="collapsed" desc="Table Model & Adapater">
-    private TableModel createModel() {
-        DefaultTableModel model = new DefaultTableModel();
+    private GridModel createModel() {
 
-        Matrix data = filterMatrix();
+        final Matrix data = filterMatrix();
         lowValue = min(data);
         highValue = max(data);
         updateColourDistance();
 
-        model.addColumn("Series");
+        final int nbSeries = titles.size();
 
-        int nbSeries = titles.size();
-        for (int i = 0; i < nbSeries; i++) {
-            model.addColumn(titles.get(i));
-        }
-
-        for (int i = 0; i < nbSeries; i++) {
-            String[] row = new String[nbSeries + 1];
-            row[0] = titles.get(i);
-            for (int j = 0; j <= i; j++) {
-                double value = data.get(i, j);
-                row[j + 1] = Double.isNaN(value) ? "" : df3.format(value);
+        return new AbstractGridModel() {
+            @Override
+            public int getRowCount() {
+                return nbSeries;
             }
-            model.addRow(row);
-        }
 
-        return model;
-    }
+            @Override
+            public int getColumnCount() {
+                return nbSeries;
+            }
 
-    private static final class TableModelAdapter extends AbstractGridModel {
+            @Override
+            public Object getValueAt(int rowIndex, int columnIndex) {
+                return columnIndex <= rowIndex ? data.get(rowIndex, columnIndex) : null;
+            }
 
-        private final TableModel source;
+            @Override
+            public String getRowName(int rowIndex) {
+                return titles.get(rowIndex);
+            }
 
-        public TableModelAdapter(TableModel source) {
-            this.source = source;
-        }
-
-        @Override
-        public int getRowCount() {
-            return source.getRowCount();
-        }
-
-        @Override
-        public int getColumnCount() {
-            return source.getColumnCount() - 1;
-        }
-
-        @Override
-        public Object getValueAt(int rowIndex, int columnIndex) {
-            return source.getValueAt(rowIndex, columnIndex + 1);
-        }
-
-        @Override
-        public String getRowName(int rowIndex) {
-            return (String) source.getValueAt(rowIndex, 0);
-        }
-
-        @Override
-        public String getColumnName(int column) {
-            return source.getColumnName(column + 1);
-        }
+            @Override
+            public String getColumnName(int column) {
+                return getRowName(column);
+            }
+        };
     }
     // </editor-fold>
 
@@ -430,33 +403,28 @@ public class ResidualsMatrixView extends JPanel {
                     l.setBackground(table.getSelectionBackground());
                     l.setForeground(table.getSelectionForeground());
                 }
-            } else if (value instanceof String) {
-                String text = String.valueOf(value);
+            } else if (value instanceof Double) {
+                DemetraUI demetraUI = DemetraUI.getInstance();
+                Formatter<Number> format = demetraUI.getDataFormat().numberFormatter();
+                Number number = (Double) value;
 
-                try {
-                    NumberFormat format = NumberFormat.getInstance(Locale.FRANCE);
-                    Number number = format.parse(text);
-
-                    if (heatMapVisible) {
-                        Color c = getCellColour(Math.abs(number.doubleValue()));
-                        l.setBackground(c);
-                        l.setForeground(getForegroundColor(getLuminance(c)));
-                    } else {
-                        l.setBackground(table.getBackground());
-                        l.setForeground(table.getForeground());
-                    }
-                } catch (ParseException ex) {
+                if (heatMapVisible) {
+                    Color c = getCellColour(Math.abs(number.doubleValue()));
+                    l.setBackground(c);
+                    l.setForeground(getForegroundColor(getLuminance(c)));
+                } else {
                     l.setBackground(table.getBackground());
                     l.setForeground(table.getForeground());
                 }
+                
                 if (isSelected) {
                     l.setBackground(table.getSelectionBackground());
                     l.setForeground(table.getSelectionForeground());
                 }
-                l.setText(text);
+                l.setText(Double.isNaN(number.doubleValue()) ? "" : format.formatAsString(number));
                 setToolTipText("<html>" + titles.get(row) + "<br>"
                         + titles.get(column) + "<br>"
-                        + "Value : " + text);
+                        + "Value : " + l.getText());
             }
 
             return l;
