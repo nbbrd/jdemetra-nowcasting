@@ -55,12 +55,13 @@ public class DfmInformationSet {
         for (int i = 0; i < ndata.length; ++i) {
             TsData cur = table_.series(i);
             TsData ncur = newdata.table_.series(i);
-            ndata[i] = ncur.fittoDomain(cur.getDomain());
+            ncur = ncur.fittoDomain(cur.getDomain());
             for (int j = 0; j < cur.getLength(); ++j) {
-                if (cur.getValues().isMissing(j)) {
-                    ncur.getValues().setMissing(j);
+                if (cur.isMissing(j)) {
+                    ncur.setMissing(j);
                 }
             }
+            ndata[i]=ncur;
         }
         return new DfmInformationSet(ndata);
     }

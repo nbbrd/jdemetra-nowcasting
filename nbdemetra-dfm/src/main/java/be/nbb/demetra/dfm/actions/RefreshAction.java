@@ -62,7 +62,7 @@ public final class RefreshAction extends AbstractViewAction<AbstractDfmDocumentT
             if (DialogDisplayer.getDefault().notify(nd) != NotifyDescriptor.OK_OPTION) {
                 return;
             }
-            doc.getCurrent().unfreezeTs();
+            doc.refreshData();
         }
 
     }

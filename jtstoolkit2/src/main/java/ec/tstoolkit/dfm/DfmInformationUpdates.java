@@ -34,33 +34,39 @@ public class DfmInformationUpdates {
      */
     public static class Update {
 
+//        Update(final TsPeriod period, final int series) {
+//            this.period = period;
+//            this.series = series;
+//        }
         Update(final TsPeriod period, final int series) {
             this.period = period;
             this.series = series;
         }
-        
+
         /**
          *
          * @return
          */
-        public double getObservation(){
+        public double getObservation() {
             return y;
         }
+
         /**
          *
          * @return
          */
-        public double getForecast(){
+        public double getForecast() {
             return fy;
         }
+
         /**
          *
          * @return
          */
-        public double getNews(){
-            return y-fy;
+        public double getNews() {
+            return y - fy;
         }
-        
+
         /**
          *
          */
@@ -69,21 +75,21 @@ public class DfmInformationUpdates {
          *
          */
         public final int series;
-        
+
         double y, fy;
-        
+
         @Override
-        public String toString(){
-            StringBuilder builder=new StringBuilder();
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
             builder.append("var:").append(series).append('\t').append(period)
                     .append('\t').append(y).append('\t').append(fy);
             return builder.toString();
         }
     }
+
     private final List<Update> updates_ = new ArrayList<Update>();
-    
-    DfmInformationUpdates(){
-        
+
+    DfmInformationUpdates() {
     }
 
     /**
@@ -104,20 +110,9 @@ public class DfmInformationUpdates {
         TsPeriod first = null;
         for (Update update : updates_) {
             if (first == null) {
-                if (update.period.getFrequency() == freq) {
-                    first = update.period.clone();
-                } else {
-                    first = new TsPeriod(freq);
-                    first.set(update.period.lastday());
-                }
+                first = update.period.lastPeriod(freq);
             } else {
-                TsPeriod cur;
-                if (update.period.getFrequency() == freq) {
-                    cur = update.period.clone();
-                } else {
-                    cur = new TsPeriod(freq);
-                    cur.set(update.period.lastday());
-                }
+                TsPeriod cur = update.period.lastPeriod(freq);
                 if (cur.isBefore(first)) {
                     first = cur;
                 }
@@ -135,20 +130,9 @@ public class DfmInformationUpdates {
         TsPeriod last = null;
         for (Update update : updates_) {
             if (last == null) {
-                if (update.period.getFrequency() == freq) {
-                    last = update.period.clone();
-                } else {
-                    last = new TsPeriod(freq);
-                    last.set(update.period.lastday());
-                }
+                last = update.period.lastPeriod(freq);
             } else {
-                TsPeriod cur;
-                if (update.period.getFrequency() == freq) {
-                    cur = update.period.clone();
-                } else {
-                    cur = new TsPeriod(freq);
-                    cur.set(update.period.lastday());
-                }
+                TsPeriod cur = update.period.lastPeriod(freq);
                 if (cur.isAfter(last)) {
                     last = cur;
                 }
@@ -167,21 +151,10 @@ public class DfmInformationUpdates {
         TsPeriod last = null;
         for (Update update : updates_) {
             if (first == null) {
-                if (update.period.getFrequency() == freq) {
-                    first = update.period.clone();
-                } else {
-                    first = new TsPeriod(freq);
-                    first.set(update.period.lastday());
-                }
+                first = update.period.lastPeriod(freq);
                 last = first;
             } else {
-                TsPeriod cur;
-                if (update.period.getFrequency() == freq) {
-                    cur = update.period.clone();
-                } else {
-                    cur = new TsPeriod(freq);
-                    cur.set(update.period.lastday());
-                }
+                TsPeriod cur = update.period.lastPeriod(freq);
                 if (cur.isBefore(first)) {
                     first = cur;
                 }

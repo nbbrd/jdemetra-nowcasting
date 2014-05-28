@@ -18,9 +18,13 @@ package ec.tss.dfm;
 
 import ec.tss.Ts;
 import ec.tss.documents.VersionedDocument;
+import ec.tstoolkit.MetaData;
 import ec.tstoolkit.ParameterType;
 import ec.tstoolkit.algorithm.CompositeResults;
+import ec.tstoolkit.dfm.DfmInformationSet;
+import ec.tstoolkit.dfm.DfmNews;
 import ec.tstoolkit.dfm.DfmSpec;
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -54,10 +58,9 @@ public class VersionedDfmDocument extends VersionedDocument<DfmSpec, Ts[], Compo
     protected DfmDocument newDocument(DfmDocument doc) {
         if (doc != null) {
             DfmDocument ndoc=doc.clone();
-            if (ndoc.isTsFrozen()) {
-                ndoc.unfreezeTs();
-            }
-            ndoc.getSpecification().getModelSpec().setParameterType(ParameterType.Initial);
+            DfmSpec spec = ndoc.getSpecification();
+            spec.getModelSpec().setParameterType(ParameterType.Initial);
+            spec.getEstimationSpec().disable();
             ndoc.setLocked(true);
             return ndoc;
         }
@@ -69,12 +72,14 @@ public class VersionedDfmDocument extends VersionedDocument<DfmSpec, Ts[], Compo
     protected DfmDocument restore(DfmDocument document) {
         document.setLocked(false);
         document.unfreezeTs();
+        document.getMetaData().remove(MetaData.DATE);
         return document;
     }
 
     @Override
     protected DfmDocument archive(DfmDocument document) {
         document.freezeTs();
+        document.getMetaData().put(MetaData.DATE, new Date().toString());
         document.setLocked(true);
         return document;
     }
@@ -92,12 +97,45 @@ public class VersionedDfmDocument extends VersionedDocument<DfmSpec, Ts[], Compo
             }
         }
     }
+    
+    public DfmNews getRevisionsNews(int ver){
+        DfmDocument refdoc=null;
+        if (ver == -1)
+            refdoc=this.getLastVersion();
+        else
+            refdoc=this.getVersion(ver);
+        DfmResults cur=this.getCurrent().getDfmResults(),
+                prev=refdoc.getDfmResults();
+        DfmInformationSet curinfo=cur.getInput(), previnfo=prev.getInput();
+        DfmInformationSet revinfo = previnfo.revisedData(curinfo);
+        DfmNews news=new DfmNews(cur.getModel());
+        
+        if (! news.process(previnfo, revinfo))
+            return null;
+        return news;
+    }
 
+    public DfmNews getNews(int ver){
+        DfmDocument refdoc;
+        if (ver == -1)
+            refdoc=this.getLastVersion();
+        else
+            refdoc=this.getVersion(ver);
+        DfmResults cur=this.getCurrent().getDfmResults(),
+                prev=refdoc.getDfmResults();
+        DfmInformationSet curinfo=cur.getInput(), previnfo=prev.getInput();
+        DfmInformationSet revinfo = previnfo.revisedData(curinfo);
+        DfmNews news=new DfmNews(cur.getModel());
+        
+        if (! news.process(revinfo, curinfo))
+            return null;
+        return news;
+    }
+    
     public void unlockModel() {
         DfmDocument current = getCurrent();
         if (current != null) {
             current.setLocked(false);
-            clearVersions(0);
         }
     }
 

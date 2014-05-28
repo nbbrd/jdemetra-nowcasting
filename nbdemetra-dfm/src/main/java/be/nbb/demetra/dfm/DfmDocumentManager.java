@@ -53,6 +53,26 @@ public class DfmDocumentManager extends AbstractWorkspaceItemManager<VersionedDf
                 return null;
             }
         });
+        DocumentUIServices.getDefault().register(VersionedDfmDocument.class, new DocumentUIServices.AbstractUIFactory<DfmSpec, VersionedDfmDocument>() {
+            @Override
+            public IProcDocumentView<VersionedDfmDocument> getDocumentView(VersionedDfmDocument document) {
+                return new ProcDocumentViewFactory<VersionedDfmDocument>() {
+                    {
+                        registerFromLookup(VersionedDfmDocument.class);
+                    }
+
+                    @Override
+                    public Id getPreferredView() {
+                        return new LinearId("");
+                    }
+                }.create(document);
+            }
+
+            @Override
+            public IObjectDescriptor<DfmSpec> getSpecificationDescriptor(VersionedDfmDocument doc) {
+                return null;
+            }
+        });
     }
 
     public static final LinearId ID = new LinearId(DfmProcessingFactory.DESCRIPTOR.family, "documents", DfmProcessingFactory.DESCRIPTOR.name);

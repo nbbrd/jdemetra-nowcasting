@@ -18,6 +18,7 @@ package be.nbb.demetra.dfm.output;
 
 import com.google.common.base.Optional;
 import ec.tss.dfm.DfmDocument;
+import ec.tss.dfm.DfmProcessingFactory;
 import ec.tss.dfm.DfmResults;
 import ec.tstoolkit.utilities.DefaultInformationExtractor;
 import ec.tstoolkit.utilities.Id;
@@ -41,7 +42,7 @@ abstract class DfmResultsItemFactory extends ComposedProcDocumentItemFactory<Dfm
 
         @Override
         public Optional<DfmResults> retrieve(DfmDocument source) {
-            return Optional.fromNullable(source.getResults().get("dfm", DfmResults.class));
+            return Optional.fromNullable(source.getResults().get(DfmProcessingFactory.DFM, DfmResults.class));
         }
     }
 }

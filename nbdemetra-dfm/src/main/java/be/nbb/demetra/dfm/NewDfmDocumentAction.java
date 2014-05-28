@@ -68,11 +68,14 @@ public final class NewDfmDocumentAction implements ActionListener {
         final DfmModelSpecViewTopComponent modelView = new DfmModelSpecViewTopComponent(doc, controller);
         final DfmExecViewTopComponent execView = new DfmExecViewTopComponent(doc, controller);
         final DfmOutputViewTopComponent outputView = new DfmOutputViewTopComponent(doc, controller);
+        final DfmNewsViewTopComponent newsView = new DfmNewsViewTopComponent(doc, controller);
         
         MultiViewDescription[] descriptions = {
             new QuickAndDirtyDescription("Model", modelView),
             new QuickAndDirtyDescription("Processing", execView),
-            new QuickAndDirtyDescription("Output", outputView),};
+            new QuickAndDirtyDescription("Output", outputView),
+            new QuickAndDirtyDescription("News", newsView)}
+                ;
         
         final TopComponent result = MultiViewFactory.createMultiView(descriptions, descriptions[0]);
         result.setName(doc.getDisplayName());
@@ -103,7 +106,7 @@ public final class NewDfmDocumentAction implements ActionListener {
         });
         doc.setView(result);
         DfmDocument cur = doc.getElement().getCurrent();
-        if (cur.getSpecification().getModelSpec().isSpecified()) {
+        if (cur.getSpecification().getModelSpec().isDefined()) {
             controller.setDfmState(DONE);
         }
         return result;

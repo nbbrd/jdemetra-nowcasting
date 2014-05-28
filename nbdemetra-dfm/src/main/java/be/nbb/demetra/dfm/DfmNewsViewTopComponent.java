@@ -7,24 +7,18 @@ package be.nbb.demetra.dfm;
 
 import ec.nbdemetra.ui.NbComponents;
 import ec.nbdemetra.ws.WorkspaceItem;
-import ec.tss.dfm.DfmDocument;
 import ec.tss.dfm.VersionedDfmDocument;
+import ec.tstoolkit.dfm.DfmNews;
 import ec.ui.view.tsprocessing.DefaultProcessingViewer;
 import static ec.ui.view.tsprocessing.DefaultProcessingViewer.Type.NONE;
-import ec.util.various.swing.FontAwesome;
 import static ec.util.various.swing.FontAwesome.FA_COGS;
 import static ec.util.various.swing.FontAwesome.FA_EXCLAMATION_TRIANGLE;
 import static ec.util.various.swing.FontAwesome.FA_INFO_CIRCLE;
 import static ec.util.various.swing.FontAwesome.FA_SPINNER;
 import java.awt.BorderLayout;
 import java.awt.Component;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JToolBar;
-import javax.swing.SwingConstants;
 import org.netbeans.api.settings.ConvertAsProperties;
 import org.openide.windows.TopComponent;
 import org.openide.util.NbBundle.Messages;
@@ -33,40 +27,38 @@ import org.openide.util.NbBundle.Messages;
  * Top component which displays something.
  */
 @ConvertAsProperties(
-        dtd = "-//be.nbb.demetra.dfm//DfmOutputView//EN",
+        dtd = "-//be.nbb.demetra.dfm//DfmNewsView//EN",
         autostore = false
 )
 @TopComponent.Description(
-        preferredID = "DfmOutputViewTopComponent",
+        preferredID = "DfmNewstViewTopComponent",
         //iconBase="SET/PATH/TO/ICON/HERE", 
         persistenceType = TopComponent.PERSISTENCE_NEVER
 )
 @TopComponent.Registration(mode = "editor", openAtStartup = false)
 @Messages({
-    "CTL_DfmOutputViewAction=DfmOutputView",
-    "CTL_DfmOutputViewTopComponent=DfmOutputView Window",
-    "HINT_DfmOutputViewTopComponent=This is a DfmOutputView window"
+    "CTL_DfmNewsViewAction=DfmNewsView",
+    "CTL_DfmONewsViewTopComponent=DfmNewsView Window",
+    "HINT_DfmNewsViewTopComponent=This is a DfmNewsView window"
 })
-public final class DfmOutputViewTopComponent extends AbstractDfmDocumentTopComponent {
+public final class DfmNewsViewTopComponent extends AbstractDfmDocumentTopComponent {
 
-    private final XLabel label;
+    private final DfmOutputViewTopComponent.XLabel label;
+    private final DefaultProcessingViewer<VersionedDfmDocument> processingViewer;
 
-    private final DefaultProcessingViewer<DfmDocument> processingViewer;
-
-    public DfmOutputViewTopComponent() {
+    public DfmNewsViewTopComponent() {
         this(null, new DfmController());
     }
 
-    DfmOutputViewTopComponent(WorkspaceItem<VersionedDfmDocument> document, DfmController controller) {
+    DfmNewsViewTopComponent(WorkspaceItem<VersionedDfmDocument> document, DfmController controller) {
         super(document, controller);
         initComponents();
-        this.label = new XLabel();
-
-        this.processingViewer = new DefaultProcessingViewer<DfmDocument>(NONE) {
+ 
+        this.label = new DfmOutputViewTopComponent.XLabel();
+        this.processingViewer = new DefaultProcessingViewer<VersionedDfmDocument>(NONE) {
         };
-
         processingViewer.setHeaderVisible(false);
-
+        
     }
 
     /**
@@ -105,7 +97,7 @@ public final class DfmOutputViewTopComponent extends AbstractDfmDocumentTopCompo
         return toolbar;
     }
 
-    private void switchTo(Component c) {
+     private void switchTo(Component c) {
         removeAll();
         add(c, BorderLayout.CENTER);
     }
@@ -113,47 +105,15 @@ public final class DfmOutputViewTopComponent extends AbstractDfmDocumentTopCompo
     private void updateChart() {
         switch (controller.getDfmState()) {
             case DONE:
-                processingViewer.setDocument(getDocument().getElement().getCurrent());
+                processingViewer.setDocument(getDocument().getElement());
+                DfmNews rnews=getDocument().getElement().getRevisionsNews(-1);
+                DfmNews news=getDocument().getElement().getNews(-1);
                 switchTo(processingViewer);
-//                    switchTo(label.with(FA_EXCLAMATION_TRIANGLE, "No data produced"));
                 break;
-            case CANCELLED:
-                switchTo(label.with(FA_INFO_CIRCLE, "Cancelled"));
-                break;
-            case CANCELLING:
-                switchTo(label.with(FA_SPINNER, "Cancelling"));
-                break;
-            case FAILED:
-                switchTo(label.with(FA_EXCLAMATION_TRIANGLE, "Failed"));
-                break;
-            case READY:
-                processingViewer.setDocument(null);
-                switchTo(label.with(FA_COGS, "Ready"));
-                break;
-            case STARTED:
-                switchTo(label.with(FA_SPINNER, "Started"));
+            default:
+                switchTo(label.with(FA_EXCLAMATION_TRIANGLE, "No news analysis"));
                 break;
         }
     }
 
-    static final class XLabel extends JLabel {
-
-        public XLabel() {
-            setOpaque(true);
-            JList resource = new JList();
-            setBackground(resource.getSelectionForeground());
-            setForeground(resource.getSelectionBackground());
-            setFont(resource.getFont().deriveFont(resource.getFont().getSize2D() * 2));
-            setHorizontalAlignment(SwingConstants.CENTER);
-            //
-            setHorizontalTextPosition(JLabel.CENTER);
-            setVerticalTextPosition(JLabel.BOTTOM);
-        }
-
-        public XLabel with(FontAwesome icon, String text) {
-            setIcon(icon.getIcon(getForeground(), getFont().getSize2D() * 2));
-            setText(text);
-            return this;
-        }
-    }
 }

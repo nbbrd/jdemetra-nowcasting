@@ -29,6 +29,7 @@ import ec.tstoolkit.mssf2.MSmoother;
 import ec.tstoolkit.mssf2.MSmoothingResults;
 import ec.tstoolkit.mssf2.MultivariateSsfData;
 import ec.tstoolkit.timeseries.simplets.TsDomain;
+import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
 import java.util.List;
 
@@ -78,6 +79,8 @@ public class DfmNews {
         oldset_ = oldSet;
         newset_ = newSet;
         updates_ = oldset_.updates(newset_);
+        if (updates_.updates().isEmpty())
+            return false;
         computeDomains();
         Matrix M = oldset_.generateMatrix(fullDomain_);
         if (!smoothOldData(M)) {
@@ -122,9 +125,11 @@ public class DfmNews {
      * Updates the news with the forecasts computed on the old data
      */
     private void updateNews() {
+        TsFrequency freq=first_.getFrequency();
         for (Update update : updates_.updates()) {
+            
             update.y = newset_.series(update.series).get(update.period);
-            int pos = update.period.minus(first_);
+            int pos = update.period.lastPeriod(freq).minus(first_);
             update.fy = ssf_.ZX(pos, update.series, srslts_.A(pos));
         }
     }
@@ -172,6 +177,7 @@ public class DfmNews {
     }
 
     private void computeNewsCovariance() {
+        TsFrequency freq=last_.getFrequency();
         List<Update> updates = updates_.updates();
         int n = updates.size();
         int c = model_.getBlockLength();
@@ -185,11 +191,11 @@ public class DfmNews {
         DataBlock tmp = new DataBlock(d);
         for (int i = 0; i < n; ++i) {
             Update iupdate = updates.get(i);
-            int istart = last_.minus(iupdate.period);
+            int istart = last_.minus(iupdate.period.lastPeriod(freq));
             for (int j = 0; j <= i; ++j) {
                 Update jupdate = updates.get(j);
                 // copy the right covariance
-                int jstart = last_.minus(jupdate.period);
+                int jstart = last_.minus(jupdate.period.lastPeriod(freq));
                 V.set(0);
                 for (int r = 0; r < nb; ++r) {
                     for (int s = 0; s < nb; ++s) {
@@ -264,9 +270,10 @@ public class DfmNews {
         DataBlock vcol = vcols.getData();
         DataBlock tmp = new DataBlock(d);
         int istart = last_.minus(p);
+        TsFrequency freq=last_.getFrequency();
         for (int j = 0; j < n; ++j) {
             Update jupdate = updates.get(j);
-            int jstart = last_.minus(jupdate.period);
+            int jstart = last_.minus(jupdate.period.lastPeriod(freq));
             V.set(0);
             for (int r = 0; r < nb; ++r) {
                 for (int s = 0; s < nb; ++s) {

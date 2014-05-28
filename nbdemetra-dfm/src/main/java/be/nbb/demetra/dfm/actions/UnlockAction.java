@@ -53,12 +53,13 @@ public final class UnlockAction extends AbstractViewAction<AbstractDfmDocumentTo
         if (doc == null) {
             return;
         }
-        if (doc.getCurrent().isTsFrozen()) {
+        if (doc.getCurrent().isLocked()) {
             NotifyDescriptor nd = new NotifyDescriptor.Confirmation(UNLOCK_MESSAGE, NotifyDescriptor.OK_CANCEL_OPTION);
             if (DialogDisplayer.getDefault().notify(nd) != NotifyDescriptor.OK_OPTION) {
                 return;
             }
             doc.unlockModel();
+            doc.clearVersions(0);
         }
 
     }

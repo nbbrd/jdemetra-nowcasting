@@ -18,6 +18,7 @@ package ec.tss.dfm;
 
 import ec.tss.Ts;
 import ec.tss.documents.MultiTsDocument;
+import ec.tstoolkit.ParameterType;
 import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.algorithm.ProcessingContext;
 import ec.tstoolkit.dfm.DfmEstimationSpec;
@@ -89,7 +90,9 @@ public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> impl
     }
 
     public void forceSpecification(DfmEstimationSpec espec) {
-        DfmSpec spec = getSpecification().cloneDefinition();
+        DfmSpec spec = getSpecification().clone();
+        if ( ! spec.getModelSpec().setParameterType(ParameterType.Initial))
+            spec= getSpecification().cloneDefinition();
         if (espec != null) {
             spec.setEstimationSpec(espec);
         }
@@ -103,7 +106,15 @@ public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> impl
         }
     }
     
-    public void forceComputation(){
-        forceSpecification(null);
+    public void forceFullComputation(){
+        DfmSpec spec = getSpecification().cloneDefinition();
+        boolean locked = isLocked();
+        if (locked) {
+            setLocked(false);
+        }
+        setSpecification(spec);
+        if (locked) {
+            setLocked(true);
+        }
     }
 }
