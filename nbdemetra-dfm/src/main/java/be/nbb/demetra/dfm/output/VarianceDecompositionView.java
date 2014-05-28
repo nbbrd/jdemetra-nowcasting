@@ -94,7 +94,7 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
         chart.setValueFormat(new DecimalFormat("#.###"));
         chart.setPeriodFormat(new DateFormat() {
             final Calendar cal = Calendar.getInstance();
-            final DecimalFormat f = new DecimalFormat("0000");
+            final DecimalFormat f = new DecimalFormat("###0");
 
             @Override
             public StringBuffer format(Date date, StringBuffer toAppendTo, FieldPosition fieldPosition) {
@@ -179,11 +179,11 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
             Matrix matrix = toMatrix(dfmResults.get(), comboBox.getSelectedIndex());
             TsPeriod start = new TsPeriod(TsFrequency.Yearly, 2000, 0);
             TsXYDatasets.Builder b = TsXYDatasets.builder();
-            int i = 1;
+            int i = 0;
             for (DataBlock o : matrix.rowList()) {
                 double[] data = new double[o.getLength()];
                 o.copyTo(data, 0);
-                b.add(i == matrix.getRowsCount() - 1 ? "Noise" : ("F" + i++), new TsData(start, data, true));
+                b.add(i == matrix.getRowsCount() - 1 ? "Noise" : ("F" + ++i), new TsData(start, data, true));
             }
             chart.setDataset(b.build());
         } else {
