@@ -58,7 +58,7 @@ public class HtmlFitResiduals extends AbstractHtmlElement implements IHtmlElemen
         List<DynamicFactorModel.MeasurementDescriptor> descriptors = rslts.getModel().getMeasurements();
         int nbSeries = rslts.getDescriptions().length;
 
-        stream.open(new HtmlTable(0, NB_SIZE * 3));
+        stream.open(new HtmlTable(0, SERIES_SIZE + (NB_SIZE * 2)));
 
         // HEADERS
         stream.open(HtmlTag.TABLEROW);
@@ -83,7 +83,7 @@ public class HtmlFitResiduals extends AbstractHtmlElement implements IHtmlElemen
         // DATA
         for (int i = 0; i < nbSeries; i++) {
             stream.open(HtmlTag.TABLEROW);
-            stream.write(new HtmlTableCell(String.valueOf(i + 1), SERIES_SIZE, HtmlStyle.Center, HtmlStyle.Bold));
+            stream.write(new HtmlTableCell(rslts.getDescription(i).description, SERIES_SIZE, HtmlStyle.Left));
 
             double stdev = Math.sqrt(descriptors.get(i).var);
             stream.write(new HtmlTableCell(Double.isNaN(stdev) ? "" : df2.format(stdev), SERIES_SIZE, HtmlStyle.Center));
@@ -96,18 +96,6 @@ public class HtmlFitResiduals extends AbstractHtmlElement implements IHtmlElemen
             stream.close(HtmlTag.TABLEROW);
         }
 
-        stream.close(HtmlTag.TABLE);
-        
-        // LEGEND
-        stream.newLine().write(HtmlTag.HEADER2, h2, "Legend").newLine();
-        
-        stream.open(new HtmlTable(0, SERIES_SIZE + NB_SIZE));
-        for (int i = 0; i < nbSeries; i++) {
-            stream.open(HtmlTag.TABLEROW);
-            stream.write(new HtmlTableCell(String.valueOf(i + 1), NB_SIZE, HtmlStyle.Center, HtmlStyle.Bold));
-            stream.write(new HtmlTableCell(rslts.getDescription(i).description, SERIES_SIZE, HtmlStyle.Left));
-            stream.close(HtmlTag.TABLEROW);
-        }
         stream.close(HtmlTag.TABLE);
     }
     
