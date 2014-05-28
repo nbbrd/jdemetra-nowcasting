@@ -18,9 +18,9 @@
 package be.nbb.demetra.dfm.output;
 
 import com.google.common.base.Optional;
+import ec.tss.Ts;
 import ec.tss.dfm.DfmDocument;
 import ec.tss.dfm.DfmProcessingFactory;
-import ec.tss.Ts;
 import ec.tss.documents.DocumentManager;
 import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.information.InformationSet;
@@ -38,7 +38,7 @@ import org.openide.util.lookup.ServiceProvider;
  *
  * @author Jean Palate
  */
-@ServiceProvider(service = ProcDocumentItemFactory.class, position = 200310)
+@ServiceProvider(service = ProcDocumentItemFactory.class, position = 200320)
 public class ForecastsGridFactory extends DfmDocumentItemFactory {
 
     public ForecastsGridFactory() {
