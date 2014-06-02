@@ -18,11 +18,8 @@
 package be.nbb.demetra.dfm.output.html;
 
 import ec.tss.dfm.DfmSeriesDescriptor;
-import ec.tss.dfm.VersionedDfmDocument;
 import ec.tss.html.AbstractHtmlElement;
 import ec.tss.html.HtmlStream;
-import ec.tss.html.HtmlTag;
-import ec.tstoolkit.MetaData;
 import ec.tstoolkit.dfm.DfmInformationUpdates;
 import ec.tstoolkit.dfm.DfmNews;
 import java.io.IOException;
