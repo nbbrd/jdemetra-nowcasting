@@ -104,6 +104,8 @@ public class VersionedDfmDocument extends VersionedDocument<DfmSpec, Ts[], Compo
             refdoc=this.getLastVersion();
         else
             refdoc=this.getVersion(ver);
+        if (refdoc == null)
+            return null;
         DfmResults cur=this.getCurrent().getDfmResults(),
                 prev=refdoc.getDfmResults();
         DfmInformationSet curinfo=cur.getInput(), previnfo=prev.getInput();
@@ -121,6 +123,8 @@ public class VersionedDfmDocument extends VersionedDocument<DfmSpec, Ts[], Compo
             refdoc=this.getLastVersion();
         else
             refdoc=this.getVersion(ver);
+        if (refdoc == null)
+            return null;
         DfmResults cur=this.getCurrent().getDfmResults(),
                 prev=refdoc.getDfmResults();
         DfmInformationSet curinfo=cur.getInput(), previnfo=prev.getInput();

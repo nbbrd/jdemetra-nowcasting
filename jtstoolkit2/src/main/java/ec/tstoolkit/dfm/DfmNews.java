@@ -41,7 +41,7 @@ import java.util.List;
  */
 public class DfmNews {
 
-    private MSmoothingResults srslts_;
+    private MSmoothingResults srslts0_, srslts1_;
     private final DynamicFactorModel model_;
     private DynamicFactorModel modelex_;
     private final IMSsf ssf_;
@@ -67,7 +67,18 @@ public class DfmNews {
         model_ = model;
         ssf_ = model_.ssfRepresentation();
     }
+    
+    public DfmInformationSet getOldInformationSet(){
+        return this.oldset_;
+    }
 
+    public DfmInformationSet getNewInformationSet(){
+        return this.newset_;
+    }
+    
+    public DynamicFactorModel getModel(){
+        return model_;
+    }
     /**
      * Computes the news between two consecutive information set
      *
@@ -87,11 +98,21 @@ public class DfmNews {
             return false;
         }
         updateNews();
-        if (!smoothNewData(M)) {
+        if (!smoothNewDataEx(M)) {
             return false;
         }
         computeNewsCovariance();
         return true;
+    }
+    
+    public double getOldForecast(int series, TsPeriod p){
+        int pos=p.lastPeriod(fullDomain_.getFrequency()).minus(fullDomain_.getStart());
+        return ssf_.ZX(pos, series, srslts0_.A(pos));
+    }
+
+    public double getNewForecast(int series, TsPeriod p){
+        int pos=p.lastPeriod(fullDomain_.getFrequency()).minus(fullDomain_.getStart());
+        return ssf_.ZX(pos, series, getNewSmoothingResults().A(pos));
     }
 
     private void computeDomains() {
@@ -100,7 +121,10 @@ public class DfmNews {
         fullDomain_ = idomain.union(newset_.getCurrentDomain());
         last_ = fullDomain_.getLast();
         first_ = fullDomain_.getStart();
-
+    }
+    
+    public TsDomain getNewsDomain(){
+        return nDomain_;
     }
 
     /**
@@ -113,14 +137,24 @@ public class DfmNews {
     private boolean smoothOldData(Matrix M) {
         MultivariateSsfData ssfData = new MultivariateSsfData(M.subMatrix().transpose(), null);
         MSmoother smoother = new MSmoother();
-        srslts_ = new MSmoothingResults();
+        srslts0_ = new MSmoothingResults();
         int last = fullDomain_.search(nDomain_.getStart());
-        srslts_.setSavingStart(last);
+        srslts0_.setSavingStart(last);
         smoother.setStopPosition(last);
         smoother.setCalcVariance(false);
-        return smoother.process(ssf_, ssfData, srslts_);
+        return smoother.process(ssf_, ssfData, srslts0_);
     }
 
+    private boolean smoothNewData(Matrix M) {
+        MultivariateSsfData ssfData = new MultivariateSsfData(M.subMatrix().transpose(), null);
+        MSmoother smoother = new MSmoother();
+        srslts1_ = new MSmoothingResults();
+        int last = fullDomain_.search(nDomain_.getStart());
+        srslts1_.setSavingStart(last);
+        smoother.setStopPosition(last);
+        smoother.setCalcVariance(false);
+        return smoother.process(ssf_, ssfData, srslts1_);
+    }
     /**
      * Updates the news with the forecasts computed on the old data
      */
@@ -130,7 +164,7 @@ public class DfmNews {
             
             update.y = newset_.series(update.series).get(update.period);
             int pos = update.period.lastPeriod(freq).minus(first_);
-            update.fy = ssf_.ZX(pos, update.series, srslts_.A(pos));
+            update.fy = ssf_.ZX(pos, update.series, srslts0_.A(pos));
         }
     }
 
@@ -139,7 +173,7 @@ public class DfmNews {
      *
      * @return
      */
-    private boolean smoothNewData(Matrix M) {
+    private boolean smoothNewDataEx(Matrix M) {
         // extends the model
         modelex_ = model_.clone();
         modelex_.setBlockLength(model_.getBlockLength() + last_.minus(nDomain_.getStart()) + 1);
@@ -164,10 +198,21 @@ public class DfmNews {
      *
      * @return
      */
-    public MSmoothingResults getSmoothingResults() {
-        return srslts_;
+    public MSmoothingResults getOldSmoothingResults() {
+        return srslts0_;
     }
 
+    /**
+     *
+     * @return
+     */
+    public MSmoothingResults getNewSmoothingResults() {
+        if (srslts1_ == null){
+         Matrix M = newset_.generateMatrix(fullDomain_);
+            smoothNewData(M);
+        }
+        return srslts1_;
+    }
     /**
      *
      * @return

@@ -106,8 +106,6 @@ public final class DfmNewsViewTopComponent extends AbstractDfmDocumentTopCompone
         switch (controller.getDfmState()) {
             case DONE:
                 processingViewer.setDocument(getDocument().getElement());
-                DfmNews rnews=getDocument().getElement().getRevisionsNews(-1);
-                DfmNews news=getDocument().getElement().getNews(-1);
                 switchTo(processingViewer);
                 break;
             default:

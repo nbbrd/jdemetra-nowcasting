@@ -60,6 +60,7 @@ public final class UnlockAction extends AbstractViewAction<AbstractDfmDocumentTo
             }
             doc.unlockModel();
             doc.clearVersions(0);
+            
         }
 
     }

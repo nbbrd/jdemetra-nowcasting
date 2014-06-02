@@ -475,7 +475,7 @@ public class DynamicFactorModelTest {
 //            System.out.println(component[i]);
     }
 
-    //@Test
+    @Test
     public void testNews() {
         long q0 = System.currentTimeMillis();
         DfmNews news = new DfmNews(dmodel);
@@ -502,9 +502,9 @@ public class DynamicFactorModelTest {
         System.out.println(e);
         DfmMonitor monitor = new DfmMonitor();
         monitor.process(dmodel, s);
-        double x = news.getSsf().ZX(0, 25, monitor.getSmoothingResults().A(dd.getColumnsCount() - 1));
+        double x = news.getOldForecast(25,s[25].getLastPeriod());
         System.out.println(x);
-        x = news.getSsf().ZX(0, 25, news.getSmoothingResults().A(dd.getColumnsCount() - 1));
+        x = news.getNewForecast(25,s[25].getLastPeriod());
         System.out.println(x);
         System.out.println(n);
         System.out.println(w);
