@@ -22,12 +22,12 @@ import ec.nbdemetra.ui.DemetraUI;
 import ec.nbdemetra.ui.NbComponents;
 import ec.nbdemetra.ui.awt.PopupListener;
 import ec.nbdemetra.ui.properties.ListSelection;
-import ec.tss.dfm.DfmDocument;
 import ec.tss.Ts;
 import ec.tss.TsCollection;
 import ec.tss.TsFactory;
 import ec.tss.TsInformationType;
 import ec.tss.datatransfer.TssTransferSupport;
+import ec.tss.dfm.DfmDocument;
 import ec.tstoolkit.Parameter;
 import ec.tstoolkit.ParameterType;
 import ec.tstoolkit.dfm.DfmSpec;
@@ -78,6 +78,7 @@ public final class DfmModelSpecView extends JComponent {
     }
 
     public static final String MODEL_PROPERTY = "model";
+    public static final String MODEL_CHANGED_PROPERTY = "modelChanged";
     //
     private final XTable view;
     private DfmDocument model;
@@ -120,6 +121,8 @@ public final class DfmModelSpecView extends JComponent {
             view.getColumnModel().getColumn(i + 3).setPreferredWidth(10);
         }
         view.setEnabled(!model.isLocked());
+        
+        firePropertyChange(MODEL_CHANGED_PROPERTY, null, model);
     }
 
     //<editor-fold defaultstate="collapsed" desc="Getters/Setters">
@@ -224,7 +227,7 @@ public final class DfmModelSpecView extends JComponent {
             }
             if (!ms.equals(xms)) {
                 model.setSpecification(spec);
-             //   firePropertyChange(MODEL_PROPERTY, null, model);
+                firePropertyChange(MODEL_CHANGED_PROPERTY, null, model);
             }
         }
 

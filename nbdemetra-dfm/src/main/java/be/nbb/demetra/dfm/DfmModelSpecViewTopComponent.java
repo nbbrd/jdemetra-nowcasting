@@ -5,7 +5,7 @@
  */
 package be.nbb.demetra.dfm;
 
-import static be.nbb.demetra.dfm.DfmModelSpecView.MODEL_PROPERTY;
+import static be.nbb.demetra.dfm.DfmModelSpecView.MODEL_CHANGED_PROPERTY;
 import ec.nbdemetra.ui.DemetraUiIcon;
 import ec.nbdemetra.ui.NbComponents;
 import ec.nbdemetra.ui.properties.OpenIdePropertySheetBeanEditor;
@@ -27,8 +27,8 @@ import javax.swing.JComponent;
 import javax.swing.JToolBar;
 import org.netbeans.api.settings.ConvertAsProperties;
 import static org.openide.util.ImageUtilities.createDisabledIcon;
-import org.openide.windows.TopComponent;
 import org.openide.util.NbBundle.Messages;
+import org.openide.windows.TopComponent;
 
 /**
  * Top component which displays something.
@@ -64,7 +64,7 @@ public final class DfmModelSpecViewTopComponent extends AbstractDfmDocumentTopCo
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
                 switch (evt.getPropertyName()) {
-                    case MODEL_PROPERTY:
+                    case MODEL_CHANGED_PROPERTY:
                         getController().setDfmState(DfmController.DfmState.READY);
                         break;
                 }
