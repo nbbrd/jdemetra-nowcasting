@@ -23,12 +23,10 @@ import ec.nbdemetra.ui.NbComponents;
 import ec.nbdemetra.ui.awt.PopupListener;
 import ec.nbdemetra.ui.properties.ListSelection;
 import ec.tss.dfm.DfmDocument;
-import ec.tss.DynamicTsVariable;
 import ec.tss.Ts;
 import ec.tss.TsCollection;
 import ec.tss.TsFactory;
 import ec.tss.TsInformationType;
-import ec.tss.TsMoniker;
 import ec.tss.datatransfer.TssTransferSupport;
 import ec.tstoolkit.Parameter;
 import ec.tstoolkit.ParameterType;
@@ -36,9 +34,6 @@ import ec.tstoolkit.dfm.DfmSpec;
 import ec.tstoolkit.dfm.DynamicFactorModel.MeasurementType;
 import ec.tstoolkit.dfm.MeasurementSpec;
 import ec.tstoolkit.dfm.MeasurementSpec.Transformation;
-import ec.tstoolkit.timeseries.regression.ITsVariable;
-import ec.tstoolkit.timeseries.regression.TsVariable;
-import ec.tstoolkit.timeseries.regression.TsVariables;
 import ec.util.grid.swing.XTable;
 import ec.util.various.swing.BasicSwingLauncher;
 import ec.util.various.swing.JCommand;
@@ -224,12 +219,12 @@ public final class DfmModelSpecView extends JComponent {
                     ms.setFactorsTransformation((MeasurementType) aValue);
                     break;
                 default:
-                    ms.getCoefficients()[columnIndex - 3].setType(((Boolean) aValue).booleanValue() ? ParameterType.Undefined : ParameterType.Fixed);
+                    ms.getCoefficients()[columnIndex - 3].setType(((Boolean) aValue) ? ParameterType.Undefined : ParameterType.Fixed);
                     break;
             }
             if (!ms.equals(xms)) {
                 model.setSpecification(spec);
-                firePropertyChange(MODEL_PROPERTY, null, model);
+             //   firePropertyChange(MODEL_PROPERTY, null, model);
             }
         }
 
