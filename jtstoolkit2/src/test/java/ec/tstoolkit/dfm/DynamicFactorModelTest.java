@@ -304,7 +304,7 @@ public class DynamicFactorModelTest {
         System.out.println(q1 - q0);
     }
 
-    @Test
+    //@Test
     public void testVar2bis() {
         long q0 = System.currentTimeMillis();
         //for (int k = 0; k < 10; ++k) {
@@ -323,7 +323,7 @@ public class DynamicFactorModelTest {
         System.out.println(q1 - q0);
     }
 
-    @Test
+    //@Test
     public void testVar3() {
         long q0 = System.currentTimeMillis();
         Likelihood ll = new Likelihood();
@@ -359,7 +359,7 @@ public class DynamicFactorModelTest {
         System.out.println(q1 - q0);
     }
 
-    @Test
+    //@Test
     public void testVarU() {
         long q0 = System.currentTimeMillis();
         Likelihood ll = new Likelihood();
@@ -496,15 +496,15 @@ public class DynamicFactorModelTest {
             System.out.println(update);
         }
         DataBlock n = news.news();
-        DataBlock w = news.weights(25, s[25].getLastPeriod());
+        DataBlock w = news.weights(23, s[23].getLastPeriod());
         double e = n.dot(w);
         System.out.println("Test news");
         System.out.println(e);
         DfmMonitor monitor = new DfmMonitor();
         monitor.process(dmodel, s);
-        double x = news.getOldForecast(25,s[25].getLastPeriod());
+        double x = news.getOldForecast(23, s[23].getLastPeriod());
         System.out.println(x);
-        x = news.getNewForecast(25,s[25].getLastPeriod());
+        x = news.getNewForecast(23, s[23].getLastPeriod());
         System.out.println(x);
         System.out.println(n);
         System.out.println(w);

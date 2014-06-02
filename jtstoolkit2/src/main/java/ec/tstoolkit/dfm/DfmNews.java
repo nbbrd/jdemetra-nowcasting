@@ -67,18 +67,19 @@ public class DfmNews {
         model_ = model;
         ssf_ = model_.ssfRepresentation();
     }
-    
-    public DfmInformationSet getOldInformationSet(){
+
+    public DfmInformationSet getOldInformationSet() {
         return this.oldset_;
     }
 
-    public DfmInformationSet getNewInformationSet(){
+    public DfmInformationSet getNewInformationSet() {
         return this.newset_;
     }
-    
-    public DynamicFactorModel getModel(){
+
+    public DynamicFactorModel getModel() {
         return model_;
     }
+
     /**
      * Computes the news between two consecutive information set
      *
@@ -90,8 +91,9 @@ public class DfmNews {
         oldset_ = oldSet;
         newset_ = newSet;
         updates_ = oldset_.updates(newset_);
-        if (updates_.updates().isEmpty())
+        if (updates_.updates().isEmpty()) {
             return false;
+        }
         computeDomains();
         Matrix M = oldset_.generateMatrix(fullDomain_);
         if (!smoothOldData(M)) {
@@ -104,14 +106,14 @@ public class DfmNews {
         computeNewsCovariance();
         return true;
     }
-    
-    public double getOldForecast(int series, TsPeriod p){
-        int pos=p.lastPeriod(fullDomain_.getFrequency()).minus(fullDomain_.getStart());
+
+    public double getOldForecast(int series, TsPeriod p) {
+        int pos = p.lastPeriod(fullDomain_.getFrequency()).minus(fullDomain_.getStart());
         return ssf_.ZX(pos, series, srslts0_.A(pos));
     }
 
-    public double getNewForecast(int series, TsPeriod p){
-        int pos=p.lastPeriod(fullDomain_.getFrequency()).minus(fullDomain_.getStart());
+    public double getNewForecast(int series, TsPeriod p) {
+        int pos = p.lastPeriod(fullDomain_.getFrequency()).minus(fullDomain_.getStart());
         return ssf_.ZX(pos, series, getNewSmoothingResults().A(pos));
     }
 
@@ -122,8 +124,8 @@ public class DfmNews {
         last_ = fullDomain_.getLast();
         first_ = fullDomain_.getStart();
     }
-    
-    public TsDomain getNewsDomain(){
+
+    public TsDomain getNewsDomain() {
         return nDomain_;
     }
 
@@ -155,13 +157,14 @@ public class DfmNews {
         smoother.setCalcVariance(false);
         return smoother.process(ssf_, ssfData, srslts1_);
     }
+
     /**
      * Updates the news with the forecasts computed on the old data
      */
     private void updateNews() {
-        TsFrequency freq=first_.getFrequency();
+        TsFrequency freq = first_.getFrequency();
         for (Update update : updates_.updates()) {
-            
+
             update.y = newset_.series(update.series).get(update.period);
             int pos = update.period.lastPeriod(freq).minus(first_);
             update.fy = ssf_.ZX(pos, update.series, srslts0_.A(pos));
@@ -207,12 +210,13 @@ public class DfmNews {
      * @return
      */
     public MSmoothingResults getNewSmoothingResults() {
-        if (srslts1_ == null){
-         Matrix M = newset_.generateMatrix(fullDomain_);
+        if (srslts1_ == null) {
+            Matrix M = newset_.generateMatrix(fullDomain_);
             smoothNewData(M);
         }
         return srslts1_;
     }
+
     /**
      *
      * @return
@@ -222,7 +226,7 @@ public class DfmNews {
     }
 
     private void computeNewsCovariance() {
-        TsFrequency freq=last_.getFrequency();
+        TsFrequency freq = last_.getFrequency();
         List<Update> updates = updates_.updates();
         int n = updates.size();
         int c = model_.getBlockLength();
@@ -246,7 +250,7 @@ public class DfmNews {
                     for (int s = 0; s < nb; ++s) {
                         V.subMatrix(r * c, r * c + c, s * c, s * c + c).copy(
                                 mcov_.subMatrix(r * xc + istart, r * xc + istart + c,
-                                s * xc + jstart, s * xc + jstart + c));
+                                        s * xc + jstart, s * xc + jstart + c));
                     }
                 }
 
@@ -315,7 +319,7 @@ public class DfmNews {
         DataBlock vcol = vcols.getData();
         DataBlock tmp = new DataBlock(d);
         int istart = last_.minus(p);
-        TsFrequency freq=last_.getFrequency();
+        TsFrequency freq = last_.getFrequency();
         for (int j = 0; j < n; ++j) {
             Update jupdate = updates.get(j);
             int jstart = last_.minus(jupdate.period.lastPeriod(freq));
@@ -324,7 +328,7 @@ public class DfmNews {
                 for (int s = 0; s < nb; ++s) {
                     V.subMatrix(r * c, r * c + c, s * c, s * c + c).copy(
                             mcov_.subMatrix(r * xc + istart, r * xc + istart + c,
-                            s * xc + jstart, s * xc + jstart + c));
+                                    s * xc + jstart, s * xc + jstart + c));
                 }
             }
             tmp.set(0);
