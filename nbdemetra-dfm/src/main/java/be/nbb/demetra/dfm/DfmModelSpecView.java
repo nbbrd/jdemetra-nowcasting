@@ -138,7 +138,7 @@ public final class DfmModelSpecView extends JComponent {
         }
         DfmDocument old = this.model;
         this.model = model != null ? model : new DfmDocument();
-        variables.replace(model.getInput());
+        variables.replace(this.model.getInput());
         firePropertyChange(MODEL_PROPERTY, old, this.model);
     }
 
