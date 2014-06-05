@@ -28,6 +28,7 @@ import ec.tstoolkit.mssf2.MFilteringResults;
 import ec.tstoolkit.mssf2.MSmoother;
 import ec.tstoolkit.mssf2.MSmoothingResults;
 import ec.tstoolkit.mssf2.MultivariateSsfData;
+import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDomain;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
@@ -120,6 +121,16 @@ public class DfmNews {
     private void computeDomains() {
         TsDomain idomain = oldset_.getCurrentDomain();
         nDomain_ = updates_.updatesDomain(idomain.getFrequency());
+        for (int i=0; i<oldset_.getSeriesCount(); ++i){
+            TsData s=oldset_.series(i);
+            int j=s.getLength();
+            while (j>0 && s.isMissing(j-1))
+                --j;
+            TsPeriod last=s.getStart().plus(j).lastPeriod(nDomain_.getFrequency());
+            int n=nDomain_.getStart().minus(last);
+            if (n > 0)
+                nDomain_=nDomain_.extend(n, 0);
+        }
         fullDomain_ = idomain.union(newset_.getCurrentDomain());
         last_ = fullDomain_.getLast();
         first_ = fullDomain_.getStart();
