@@ -96,7 +96,6 @@ public class NewsImpactsView extends JPanel {
     private final JComboBox combobox;
     private final JSplitPane splitPane;
     private final JTimeSeriesChart chartImpacts;
-    private final CustomSwingColorSchemeSupport defaultColorSchemeSupport;
     private TsCollection collection;
 
     public NewsImpactsView() {
@@ -114,13 +113,6 @@ public class NewsImpactsView extends JPanel {
                 updateChart();
             }
         });
-
-        defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
-            @Override
-            public ColorScheme getColorScheme() {
-                return DemetraUI.getInstance().getColorScheme();
-            }
-        };
 
         grid.addMouseListener(new PopupListener.PopupAdapter(buildGridMenu().getPopupMenu()));
 
@@ -190,6 +182,13 @@ public class NewsImpactsView extends JPanel {
         chart.setNoDataMessage("No data produced");
         return chart;
     }
+    
+    private final CustomSwingColorSchemeSupport defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
+        @Override
+        public ColorScheme getColorScheme() {
+            return DemetraUI.getInstance().getColorScheme();
+        }
+    };
 
     //<editor-fold defaultstate="collapsed" desc="Menus">
     private JMenu newColorSchemeMenu() {
@@ -509,7 +508,7 @@ public class NewsImpactsView extends JPanel {
                 coll.addObservation(periods.get(j).middle(), impacts.get(j).get(i));
             }
             TsData data = coll.make(freq, TsAggregationType.None).times(stdev);
-            result.quietAdd(TsFactory.instance.createTs(description.description + " (" + i + ")", null, data));
+            result.quietAdd(TsFactory.instance.createTs(description.description, null, data));
         }
 
         return result;

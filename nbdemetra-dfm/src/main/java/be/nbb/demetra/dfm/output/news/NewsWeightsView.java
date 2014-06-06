@@ -99,8 +99,6 @@ public class NewsWeightsView extends JPanel {
     private final JTimeSeriesChart chartForecast;
     private TsCollection collection;
 
-    private final CustomSwingColorSchemeSupport defaultColorSchemeSupport;
-
     public NewsWeightsView() {
         setLayout(new BorderLayout());
 
@@ -116,13 +114,6 @@ public class NewsWeightsView extends JPanel {
                 updateChart();
             }
         });
-
-        defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
-            @Override
-            public ColorScheme getColorScheme() {
-                return DemetraUI.getInstance().getColorScheme();
-            }
-        };
 
         grid.addMouseListener(new PopupListener.PopupAdapter(buildGridMenu().getPopupMenu()));
 
@@ -182,6 +173,13 @@ public class NewsWeightsView extends JPanel {
         chart.setNoDataMessage("No data produced");
         return chart;
     }
+    
+    private final CustomSwingColorSchemeSupport defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
+        @Override
+        public ColorScheme getColorScheme() {
+            return DemetraUI.getInstance().getColorScheme();
+        }
+    };
 
     //<editor-fold defaultstate="collapsed" desc="Menus">
     private JMenu newColorSchemeMenu() {
