@@ -136,7 +136,7 @@ public class DfmNews {
         first_ = fullDomain_.getStart();
     }
 
-    public TsDomain getNewsDomain() {
+    public TsDomain getDomain() {
         return nDomain_;
     }
 
