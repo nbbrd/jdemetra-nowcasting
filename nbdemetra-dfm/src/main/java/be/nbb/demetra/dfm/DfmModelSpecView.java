@@ -131,13 +131,12 @@ public final class DfmModelSpecView extends JComponent {
     }
 
     public void setModel(DfmDocument model) {
-        if (this.model == model) {
+        if (this.model == model && (model == null || check(model.getInput()))) {
             return;
         }
-        DfmDocument old = this.model;
         this.model = model != null ? model : new DfmDocument();
         variables.replace(this.model.getInput());
-        firePropertyChange(MODEL_PROPERTY, old, this.model);
+        firePropertyChange(MODEL_PROPERTY, null, this.model);
     }
 
     public void updateModel() {
@@ -167,6 +166,18 @@ public final class DfmModelSpecView extends JComponent {
         JMenu result = new JMenu();
         result.add(new ApplyToAllCommand().toAction(view)).setText("Apply to all");
         return result;
+    }
+
+    private boolean check(Ts[] input) {
+        if (input == null)
+            return variables.isEmpty();
+        if (input.length != variables.getCount())
+            return false;
+        for (int i=0; i<input.length; ++i){
+            if (input[i] != variables.get(i))
+                return false;
+        }
+        return true;
     }
 
     private final class ModelSpecModel extends AbstractTableModel {

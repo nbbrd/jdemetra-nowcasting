@@ -143,7 +143,7 @@ public class DfmNews {
     /**
      * Computes the smoothed states corresponding to the old data set. The
      * variance of the smoothed states are not computed. The states are saved
-     * till the period corresponding to the first news.
+     * till the period corresponding to the domain of the news.
      *
      * @param M
      */

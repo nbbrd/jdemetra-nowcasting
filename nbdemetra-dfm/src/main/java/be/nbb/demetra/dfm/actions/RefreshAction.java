@@ -38,31 +38,35 @@ public final class RefreshAction extends AbstractViewAction<AbstractDfmDocumentT
     @Override
     protected void refreshAction() {
         AbstractDfmDocumentTopComponent ui = this.context();
-        enabled = ui != null && ui.getDocument().getElement().getCurrent().isTsFrozen();
+        enabled = ui != null;
     }
 
     @Override
     protected void process(AbstractDfmDocumentTopComponent ui) {
         AbstractDfmDocumentTopComponent top = this.context();
         VersionedDfmDocument element = top.getDocument().getElement();
-        refresh(element);
+        if (! refresh(element))
+            return;
         ui.getController().setDfmState(DfmController.DfmState.READY);
         if (element.getCurrent().getSpecification().getModelSpec().isSpecified()) {
-            boolean ok=element.getCurrent().update();
+            boolean ok = element.getCurrent().update();
             ui.getController().setDfmState(ok ? DfmController.DfmState.DONE : DfmController.DfmState.FAILED);
         }
     }
 
-    public static void refresh(VersionedDfmDocument doc) {
+    public static boolean refresh(VersionedDfmDocument doc) {
         if (doc == null) {
-            return;
+            return false;
         }
         if (doc.getCurrent().isTsFrozen()) {
             NotifyDescriptor nd = new NotifyDescriptor.Confirmation(REFRESH_MESSAGE, NotifyDescriptor.OK_CANCEL_OPTION);
             if (DialogDisplayer.getDefault().notify(nd) != NotifyDescriptor.OK_OPTION) {
-                return;
+                return false;
             }
             doc.refreshData();
+            return true;
+        } else {
+            return false;
         }
 
     }

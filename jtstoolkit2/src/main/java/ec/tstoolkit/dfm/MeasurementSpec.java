@@ -64,6 +64,8 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
                 coeff[i] = new Parameter();
             }
         }
+        mean=Double.NaN;
+        stdev=Double.NaN;
         var = new Parameter();
     }
 

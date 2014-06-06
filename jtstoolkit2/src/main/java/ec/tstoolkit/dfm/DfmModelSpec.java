@@ -308,7 +308,7 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
         return dfm;
     }
 
-    void clear() {
+    public void clear() {
         vspec.clear();
         for (MeasurementSpec m : mspecs) {
             m.clear();
