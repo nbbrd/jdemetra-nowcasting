@@ -375,7 +375,6 @@ public class ResidualsMatrixView extends JPanel {
     private class HeatMapCellRenderer extends DefaultTableCellRenderer {
 
         private JToolTip tooltip;
-        private DecimalFormat df = new DecimalFormat("0.000");
 
         public HeatMapCellRenderer() {
             setHorizontalAlignment(TRAILING);

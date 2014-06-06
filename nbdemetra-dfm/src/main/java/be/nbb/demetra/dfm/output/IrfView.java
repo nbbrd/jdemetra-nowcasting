@@ -61,7 +61,7 @@ final class IrfView extends javax.swing.JPanel {
     private Optional<DfmResults> dfmResults;
 
     /**
-     * Creates new form VarianceDecompositionView
+     * Creates new form IrfView
      */
     public IrfView() {
         initComponents();
@@ -94,7 +94,7 @@ final class IrfView extends javax.swing.JPanel {
         chart.setValueFormat(new DecimalFormat("#.###"));
         chart.setPeriodFormat(new DateFormat() {
             final Calendar cal = Calendar.getInstance();
-            final DecimalFormat f = new DecimalFormat("0000");
+            final DecimalFormat f = new DecimalFormat("###0");
 
             @Override
             public StringBuffer format(Date date, StringBuffer toAppendTo, FieldPosition fieldPosition) {

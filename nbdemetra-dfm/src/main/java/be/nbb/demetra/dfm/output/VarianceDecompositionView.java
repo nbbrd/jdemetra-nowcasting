@@ -197,9 +197,6 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
 
     private static DefaultComboBoxModel toComboBoxModel(DfmSeriesDescriptor[] data) {
         DefaultComboBoxModel result = new DefaultComboBoxModel(data);
-//        for (int i = 0; i < data.getSeriesCount(); i++) {
-//            result.addElement("Var " + (i + 1));
-//        }
         return result;
     }
 

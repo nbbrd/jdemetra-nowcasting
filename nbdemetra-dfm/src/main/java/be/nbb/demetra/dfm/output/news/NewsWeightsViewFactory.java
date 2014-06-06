@@ -14,12 +14,10 @@
  * See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
-package be.nbb.demetra.dfm.output;
+package be.nbb.demetra.dfm.output.news;
 
-import be.nbb.demetra.dfm.output.html.HtmlNews;
-import be.nbb.demetra.dfm.output.html.HtmlVersions;
+import be.nbb.demetra.dfm.output.DfmNewsItemFactory;
 import com.google.common.base.Optional;
-import ec.tss.dfm.DfmResults;
 import ec.tss.dfm.VersionedDfmDocument;
 import ec.tstoolkit.dfm.DfmNews;
 import ec.tstoolkit.utilities.Id;
@@ -35,15 +33,16 @@ import org.openide.util.lookup.ServiceProvider;
  *
  * @author Jean Palate
  */
-@ServiceProvider(service = ProcDocumentItemFactory.class, position = 300010)
-public class RevisionNewsViewFactory extends DfmNewsItemFactory {
+@ServiceProvider(service = ProcDocumentItemFactory.class, position = 300040)
+public class NewsWeightsViewFactory extends DfmNewsItemFactory {
 
-    public RevisionNewsViewFactory() {
-        super(Updates.REVISIONS, newId(), newItemUI());
+    public NewsWeightsViewFactory() {
+        super(DfmNewsItemFactory.Updates.NEWS, newId(), newItemUI());
+        setAsync(true);
     }
 
     private static Id newId() {
-        return new LinearId("Revisions", "Summary");
+        return new LinearId("News", "Weights");
     }
 
     private static ItemUI<IProcDocumentView<VersionedDfmDocument>, Optional<DfmNews>> newItemUI() {
@@ -51,7 +50,9 @@ public class RevisionNewsViewFactory extends DfmNewsItemFactory {
             @Override
             public JComponent getView(IProcDocumentView<VersionedDfmDocument> host, Optional<DfmNews> information) {
                 if (information.isPresent()) {
-                    return host.getToolkit().getHtmlViewer(new HtmlNews(host.getDocument().getCurrent().getDfmResults().getDescriptions(), information.get()));
+                    NewsWeightsView v = new NewsWeightsView();
+                    v.setResults(host.getDocument().getCurrent().getDfmResults(), information.get());
+                    return v;
                 } else {
                     return null;
                 }

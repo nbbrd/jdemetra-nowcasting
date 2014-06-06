@@ -17,12 +17,8 @@
 package be.nbb.demetra.dfm.output;
 
 import com.google.common.base.Optional;
-import ec.tss.dfm.DfmDocument;
-import ec.tss.dfm.DfmProcessingFactory;
-import ec.tss.dfm.DfmResults;
 import ec.tss.dfm.VersionedDfmDocument;
 import ec.tstoolkit.dfm.DfmNews;
-import ec.tstoolkit.utilities.DefaultInformationExtractor;
 import ec.tstoolkit.utilities.Id;
 import ec.ui.view.tsprocessing.ComposedProcDocumentItemFactory;
 import ec.ui.view.tsprocessing.DocumentInformationExtractor;
@@ -33,7 +29,7 @@ import ec.ui.view.tsprocessing.ItemUI;
  *
  * @author Philippe Charles
  */
-abstract class DfmNewsItemFactory extends ComposedProcDocumentItemFactory<VersionedDfmDocument, Optional<DfmNews>> {
+public abstract class DfmNewsItemFactory extends ComposedProcDocumentItemFactory<VersionedDfmDocument, Optional<DfmNews>> {
 
     protected static enum Updates{
         NONE, NEWS, REVISIONS

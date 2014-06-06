@@ -21,6 +21,7 @@ import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.util.various.swing.BasicSwingLauncher;
 import java.awt.BorderLayout;
 import javax.swing.JPanel;
+import javax.swing.JToolBar;
 
 /**
  *
@@ -36,6 +37,7 @@ public class ConfidenceGraphDemo extends JPanel {
         
         graph.setData(Data.P, stdev);
         
+        JToolBar bar = new JToolBar();
         add(graph, BorderLayout.CENTER);
         
     }

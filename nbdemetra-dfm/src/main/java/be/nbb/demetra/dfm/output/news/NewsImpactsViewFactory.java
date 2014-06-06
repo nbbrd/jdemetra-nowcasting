@@ -14,9 +14,9 @@
  * See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
-package be.nbb.demetra.dfm.output;
+package be.nbb.demetra.dfm.output.news;
 
-import be.nbb.demetra.dfm.output.html.HtmlNews;
+import be.nbb.demetra.dfm.output.DfmNewsItemFactory;
 import com.google.common.base.Optional;
 import ec.tss.dfm.VersionedDfmDocument;
 import ec.tstoolkit.dfm.DfmNews;
@@ -33,15 +33,16 @@ import org.openide.util.lookup.ServiceProvider;
  *
  * @author Jean Palate
  */
-@ServiceProvider(service = ProcDocumentItemFactory.class, position = 300020)
-public class NewsViewFactory extends DfmNewsItemFactory {
+@ServiceProvider(service = ProcDocumentItemFactory.class, position = 300050)
+public class NewsImpactsViewFactory extends DfmNewsItemFactory {
 
-    public NewsViewFactory() {
+    public NewsImpactsViewFactory() {
         super(DfmNewsItemFactory.Updates.NEWS, newId(), newItemUI());
+        setAsync(true);
     }
 
     private static Id newId() {
-        return new LinearId("News", "Summary");
+        return new LinearId("News", "Impacts");
     }
 
     private static ItemUI<IProcDocumentView<VersionedDfmDocument>, Optional<DfmNews>> newItemUI() {
@@ -49,7 +50,9 @@ public class NewsViewFactory extends DfmNewsItemFactory {
             @Override
             public JComponent getView(IProcDocumentView<VersionedDfmDocument> host, Optional<DfmNews> information) {
                 if (information.isPresent()) {
-                    return host.getToolkit().getHtmlViewer(new HtmlNews(host.getDocument().getCurrent().getDfmResults().getDescriptions(), information.get()));
+                    NewsImpactsView v = new NewsImpactsView();
+                    v.setResults(host.getDocument().getCurrent().getDfmResults(), information.get());
+                    return v;
                 } else {
                     return null;
                 }
