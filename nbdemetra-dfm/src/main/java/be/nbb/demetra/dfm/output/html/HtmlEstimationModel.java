@@ -72,7 +72,7 @@ public class HtmlEstimationModel extends AbstractHtmlElement implements IHtmlEle
         HtmlTableCell h = new HtmlTableCell("Series", SERIES_SIZE, HtmlStyle.Bold, HtmlStyle.Left);
         h.rowspan = 2;
         stream.write(h);
-        h = new HtmlTableCell("Simple mean", NB_SIZE, HtmlStyle.Bold, HtmlStyle.Center);
+        h = new HtmlTableCell("Sample mean", NB_SIZE, HtmlStyle.Bold, HtmlStyle.Center);
         h.rowspan = 2;
         stream.write(h);
         h = new HtmlTableCell("Stdev", NB_SIZE, HtmlStyle.Bold, HtmlStyle.Center);

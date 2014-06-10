@@ -191,8 +191,8 @@ public class NewsWeightsView extends JPanel {
             @Override
             public String apply(int series, int obs) {
                 return chartForecast.getSeriesFormatter().apply(series)
-                        + " - " + chartForecast.getPeriodFormat().format(chartForecast.getDataset().getX(series, obs))
-                        + "\n" + chartForecast.getValueFormat().format(chartForecast.getDataset().getY(series, obs));
+                        + "\nPeriod : " + chartForecast.getPeriodFormat().format(chartForecast.getDataset().getX(series, obs))
+                        + "\nValue : " + chartForecast.getValueFormat().format(chartForecast.getDataset().getY(series, obs));
             }
         });
 
@@ -378,7 +378,8 @@ public class NewsWeightsView extends JPanel {
 
     private List<String> titles;
     private List<String> rows;
-    private List<TsPeriod> periods;
+    private List<TsPeriod> newPeriods;
+    private List<TsPeriod> oldPeriods;
     private List<TsPeriod> ref_periods;
     private List<Double> all_revisions;
     private List<Double> old_forecasts;
@@ -389,24 +390,26 @@ public class NewsWeightsView extends JPanel {
 
     private void calculateData() {
         DataBlock n = doc.news();
-        DfmInformationSet data = doc.getNewInformationSet();
+        DfmInformationSet dataNew = doc.getNewInformationSet();
+        DfmInformationSet dataOld = doc.getOldInformationSet();
         int selected = combobox.getSelectedIndex();
-        TsData s = data.series(selected);
+        TsData sNew = dataNew.series(selected);
+        TsData sOld = dataOld.series(selected);
         TsFrequency freq = doc.getDomain().getFrequency();
-        periods = new ArrayList<>();
+        newPeriods = new ArrayList<>();
+        oldPeriods = new ArrayList<>();
         all_revisions = new ArrayList<>();
         all_weights = new ArrayList<>();
         old_forecasts = new ArrayList<>();
         new_forecasts = new ArrayList<>();
-        for (int j = s.getLength() - 1; j >= 0; --j) {
-            if (s.isMissing(j)) {
-                TsPeriod p = s.getDomain().get(j).lastPeriod(freq);
+        for (int j = sNew.getLength() - 1; j >= 0; --j) {
+            if (sNew.isMissing(j)) {
+                TsPeriod p = sNew.getDomain().get(j).lastPeriod(freq);
                 if (p.isNotBefore(doc.getDomain().getStart())) {
-                    periods.add(p);
+                    newPeriods.add(p);
 
                     DataBlock weights = doc.weights(selected, p); // Get weights
                     all_revisions.add(n.dot(weights));
-                    old_forecasts.add(doc.getOldForecast(selected, p));
                     new_forecasts.add(doc.getNewForecast(selected, p));
                     all_weights.add(weights);
                 }
@@ -414,8 +417,21 @@ public class NewsWeightsView extends JPanel {
                 break;
             }
         }
+        
+        for (int j = sOld.getLength() - 1; j >= 0; --j) {
+            if (sOld.isMissing(j)) {
+                TsPeriod p = sOld.getDomain().get(j).lastPeriod(freq);
+                if (p.isNotBefore(doc.getDomain().getStart())) {
+                    oldPeriods.add(p);
+                    old_forecasts.add(doc.getOldForecast(selected, p));
+                }
+            } else {
+                break;
+            }
+        }
 
-        Collections.reverse(periods);
+        Collections.reverse(newPeriods);
+        Collections.reverse(oldPeriods);
         Collections.reverse(all_revisions);
         Collections.reverse(old_forecasts);
         Collections.reverse(new_forecasts);
@@ -447,7 +463,7 @@ public class NewsWeightsView extends JPanel {
         titles.add("Reference Period");
         titles.add("Expected Value");
         titles.add("Observated Value");
-        for (TsPeriod p : periods) {
+        for (TsPeriod p : newPeriods) {
             titles.add("Weight " + p.toString());
         }
     }
@@ -457,20 +473,21 @@ public class NewsWeightsView extends JPanel {
         int selectedIndex = combobox.getSelectedIndex();
         double stdev = desc[selectedIndex].stdev;
         double mean = desc[selectedIndex].mean;
-
-        TsData serie = dfmResults.getTheData()[selectedIndex].plus(mean);
+        DfmInformationSet dataOld = doc.getOldInformationSet();
+        TsData serieOld = dataOld.series(selectedIndex).times(stdev).plus(mean);
+        TsData serieNew = dfmResults.getTheData()[selectedIndex].plus(mean);
         TsDataCollector coll = new TsDataCollector();
         for (int i = 0; i < old_forecasts.size(); i++) {
-            coll.addObservation(periods.get(i).middle(), old_forecasts.get(i));
+            coll.addObservation(oldPeriods.get(i).middle(), old_forecasts.get(i));
         }
-        TsData oldF = coll.make(serie.getFrequency(), TsAggregationType.None).times(stdev).plus(mean);
+        TsData oldF = coll.make(serieOld.getFrequency(), TsAggregationType.None).times(stdev).plus(mean);
         coll.clear();
         for (int i = 0; i < new_forecasts.size(); i++) {
-            coll.addObservation(periods.get(i).middle(), new_forecasts.get(i));
+            coll.addObservation(newPeriods.get(i).middle(), new_forecasts.get(i));
         }
-        TsData newF = coll.make(serie.getFrequency(), TsAggregationType.None).times(stdev).plus(mean);
-        TsData old_serie = serie.update(oldF);
-        TsData new_serie = serie.update(newF);
+        TsData newF = coll.make(serieNew.getFrequency(), TsAggregationType.None).times(stdev).plus(mean);
+        TsData old_serie = serieOld.update(oldF);
+        TsData new_serie = serieNew.update(newF);
 
         result.quietAdd(TsFactory.instance.createTs("Old Forecasts", null, old_serie));
         result.quietAdd(TsFactory.instance.createTs("New Forecasts", null, new_serie));
@@ -478,7 +495,7 @@ public class NewsWeightsView extends JPanel {
         chartForecast.setDashPredicate(new ObsPredicate() {
             @Override
             public boolean apply(int series, int obs) {
-                return obs >= chartForecast.getDataset().getItemCount(series) - old_forecasts.size();
+                return obs >= chartForecast.getDataset().getItemCount(series) - (series == 0 ? old_forecasts.size() : new_forecasts.size());
             }
         });
 

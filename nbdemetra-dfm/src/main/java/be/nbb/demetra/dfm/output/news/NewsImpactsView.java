@@ -170,8 +170,9 @@ public class NewsImpactsView extends JPanel {
             @Override
             public String apply(int series, int obs) {
                 return chartImpacts.getSeriesFormatter().apply(series)
-                        + " - " + chartImpacts.getPeriodFormat().format(chartImpacts.getDataset().getX(series, obs))
-                        + "\n" + chartImpacts.getValueFormat().format(chartImpacts.getDataset().getY(series, obs));
+                        + " [" + ref_periods.get(series) + "]"
+                        + "\nImpact for : " + chartImpacts.getPeriodFormat().format(chartImpacts.getDataset().getX(series, obs))
+                        + "\nContribution : " + chartImpacts.getValueFormat().format(chartImpacts.getDataset().getY(series, obs));
             }
         });
 
