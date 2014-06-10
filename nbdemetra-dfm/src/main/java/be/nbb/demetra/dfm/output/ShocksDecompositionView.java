@@ -113,7 +113,7 @@ final class ShocksDecompositionView extends javax.swing.JPanel {
             @Override
             public String apply(int series, int obs) {
                 return chart.getSeriesFormatter().apply(series)
-                        + " - " + chart.getPeriodFormat().format(chart.getDataset().getX(series, obs))
+                        + "\n" + chart.getPeriodFormat().format(chart.getDataset().getX(series, obs))
                         + "\n" + chart.getValueFormat().format(chart.getDataset().getY(series, obs));
             }
         });

@@ -24,7 +24,6 @@ import ec.tss.TsFactory;
 import ec.tss.datatransfer.TssTransferSupport;
 import ec.tss.dfm.DfmResults;
 import ec.tss.dfm.DfmSeriesDescriptor;
-import ec.tss.tsproviders.utils.Formatters;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.dfm.DfmInformationSet;
 import ec.tstoolkit.dfm.DfmInformationUpdates;
@@ -39,6 +38,7 @@ import ec.ui.list.TsPeriodTableCellRenderer;
 import ec.util.chart.ColorScheme;
 import ec.util.chart.ObsFunction;
 import ec.util.chart.SeriesFunction;
+import ec.util.chart.SeriesPredicate;
 import ec.util.chart.TimeSeriesChart;
 import ec.util.chart.swing.ColorSchemeIcon;
 import ec.util.chart.swing.JTimeSeriesChart;
@@ -76,12 +76,9 @@ import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
-import javax.swing.JToolTip;
-import javax.swing.SwingConstants;
-import javax.swing.table.DefaultTableCellRenderer;
 
 /**
- *
+ * View displaying News impacts values in a table and a chart
  * @author Mats Maggi
  */
 public class NewsImpactsView extends JPanel {
@@ -180,6 +177,8 @@ public class NewsImpactsView extends JPanel {
 
         chart.setColorSchemeSupport(defaultColorSchemeSupport);
         chart.setNoDataMessage("No data produced");
+        
+        chart.setLegendVisibilityPredicate(SeriesPredicate.alwaysFalse());
         return chart;
     }
     
@@ -380,6 +379,7 @@ public class NewsImpactsView extends JPanel {
         int selected = combobox.getSelectedIndex();
         TsData s = data.series(selected);
         TsFrequency freq = doc.getDomain().getFrequency();
+        double stdev = desc[selected].stdev;
         periods = new ArrayList<>();
         all_revisions = new ArrayList<>();
         old_forecasts = new ArrayList<>();
@@ -392,12 +392,12 @@ public class NewsImpactsView extends JPanel {
                     periods.add(p);
 
                     DataBlock weights = doc.weights(selected, p); // Get weights
-                    all_revisions.add(n.dot(weights));
+                    all_revisions.add(n.dot(weights) * stdev);
                     old_forecasts.add(doc.getOldForecast(selected, p));
                     new_forecasts.add(doc.getNewForecast(selected, p));
                     impacts.add(new DataBlock(weights.getLength()));
                     for (int k = 0; k < weights.getLength(); k++) {
-                        impacts.get(impacts.size() - 1).set(k, n.get(k) * weights.get(k));
+                        impacts.get(impacts.size() - 1).set(k, n.get(k) * weights.get(k) * stdev);
                     }
                 }
             } else {
@@ -442,35 +442,6 @@ public class NewsImpactsView extends JPanel {
         }
     }
 
-    private class DoubleTableCellRenderer extends DefaultTableCellRenderer {
-
-        private JToolTip tooltip;
-
-        public DoubleTableCellRenderer() {
-            setHorizontalAlignment(SwingConstants.TRAILING);
-            tooltip = super.createToolTip();
-        }
-
-        @Override
-        public JToolTip createToolTip() {
-            tooltip.setBackground(getBackground());
-            tooltip.setForeground(getForeground());
-            return tooltip;
-        }
-
-        @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-            if (value instanceof Double) {
-                DemetraUI demetraUI = DemetraUI.getInstance();
-                Formatters.Formatter<Number> format = demetraUI.getDataFormat().numberFormatter();
-                setText(format.formatAsString((Double) value));
-            }
-
-            return this;
-        }
-    }
-
     private void updateChart() {
         if (doc != null) {
             DfmInformationUpdates details = doc.newsDetails();
@@ -489,14 +460,13 @@ public class NewsImpactsView extends JPanel {
     private TsCollection toCollection() {
         TsCollection result = TsFactory.instance.createTsCollection();
         int selectedIndex = combobox.getSelectedIndex();
-        double stdev = desc[selectedIndex].stdev;
         TsFrequency freq = dfmResults.getTheData()[selectedIndex].getFrequency();
 
         TsDataCollector coll = new TsDataCollector();
         for (int i = 0; i < all_revisions.size(); i++) {
             coll.addObservation(periods.get(i).middle(), all_revisions.get(i));
         }
-        TsData revisions = coll.make(freq, TsAggregationType.None).times(stdev);
+        TsData revisions = coll.make(freq, TsAggregationType.None);
         result.quietAdd(TsFactory.instance.createTs("Forecast revision", null, revisions));
 
         DfmInformationUpdates details = doc.newsDetails();
@@ -507,7 +477,7 @@ public class NewsImpactsView extends JPanel {
             for (int j = 0; j < periods.size(); j++) {
                 coll.addObservation(periods.get(j).middle(), impacts.get(j).get(i));
             }
-            TsData data = coll.make(freq, TsAggregationType.None).times(stdev);
+            TsData data = coll.make(freq, TsAggregationType.None);
             result.quietAdd(TsFactory.instance.createTs(description.description, null, data));
         }
 

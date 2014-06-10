@@ -30,8 +30,8 @@ import javax.swing.JComponent;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
- *
- * @author Jean Palate
+ * Factory creating the News weights view
+ * @author Mats Maggi
  */
 @ServiceProvider(service = ProcDocumentItemFactory.class, position = 300040)
 public class NewsWeightsViewFactory extends DfmNewsItemFactory {

@@ -82,10 +82,16 @@ import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableCellRenderer;
 
 /**
+ * View displaying News weights values in a table and a chart
  *
  * @author Mats Maggi
  */
 public class NewsWeightsView extends JPanel {
+
+    private enum SeriesType {
+
+        OLD_FORECASTS, NEW_FORECASTS
+    }
 
     public static final String RESULTS_PROPERTY = "results";
 
@@ -143,11 +149,32 @@ public class NewsWeightsView extends JPanel {
         add(splitPane, BorderLayout.CENTER);
     }
 
+    //<editor-fold defaultstate="collapsed" desc="Getters / Setters">
     public void setResults(DfmResults results, DfmNews doc) {
         this.dfmResults = results;
         this.doc = doc;
         this.desc = dfmResults.getDescriptions();
         firePropertyChange(RESULTS_PROPERTY, null, results);
+    }
+    //</editor-fold>    
+
+    //<editor-fold defaultstate="collapsed" desc="Components creation">
+    private JGrid createGrid() {
+        final JGrid result = new JGrid();
+        result.setOddBackground(null);
+        result.setRowRenderer(new GridRowHeaderRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                JLabel result = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                result.setToolTipText(result.getText());
+                return result;
+            }
+        });
+
+        result.setDefaultRenderer(TsPeriod.class, new TsPeriodTableCellRenderer());
+        result.setDefaultRenderer(Double.class, new DoubleTableCellRenderer());
+
+        return result;
     }
 
     private JTimeSeriesChart createChart() {
@@ -173,13 +200,48 @@ public class NewsWeightsView extends JPanel {
         chart.setNoDataMessage("No data produced");
         return chart;
     }
-    
-    private final CustomSwingColorSchemeSupport defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
-        @Override
-        public ColorScheme getColorScheme() {
-            return DemetraUI.getInstance().getColorScheme();
+    //</editor-fold>
+
+    //<editor-fold defaultstate="collapsed" desc="Components updates">
+    private void updateComboBox() {
+        if (desc != null && desc.length != 0) {
+            combobox.setModel(toComboBoxModel(desc));
+            combobox.setEnabled(true);
+        } else {
+            combobox.setModel(new DefaultComboBoxModel());
+            combobox.setEnabled(false);
         }
-    };
+    }
+
+    private void updateGridModel() {
+        if (doc != null) {
+            DfmInformationUpdates details = doc.newsDetails();
+            List<DfmInformationUpdates.Update> updates = details.updates();
+            if (updates.isEmpty()) {
+                grid.setModel(null);
+            } else {
+                grid.setModel(createModel());
+            }
+        } else {
+            grid.setModel(null);
+        }
+    }
+
+    private void updateChart() {
+        if (doc != null) {
+            DfmInformationUpdates details = doc.newsDetails();
+            List<DfmInformationUpdates.Update> updates = details.updates();
+            if (updates.isEmpty()) {
+                chartForecast.setDataset(null);
+            } else {
+                collection = toCollection();
+                chartForecast.setDataset(TsXYDatasets.from(collection));
+            }
+        } else {
+            chartForecast.setDataset(null);
+        }
+    }
+    //</editor-fold>
 
     //<editor-fold defaultstate="collapsed" desc="Menus">
     private JMenu newColorSchemeMenu() {
@@ -238,48 +300,7 @@ public class NewsWeightsView extends JPanel {
     }
     //</editor-fold>
 
-    private JGrid createGrid() {
-        final JGrid result = new JGrid();
-        result.setOddBackground(null);
-        result.setRowRenderer(new GridRowHeaderRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                JLabel result = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                result.setToolTipText(result.getText());
-                return result;
-            }
-        });
-
-        result.setDefaultRenderer(TsPeriod.class, new TsPeriodTableCellRenderer());
-        result.setDefaultRenderer(Double.class, new DoubleTableCellRenderer());
-
-        return result;
-    }
-
-    private void updateGridModel() {
-        if (doc != null) {
-            DfmInformationUpdates details = doc.newsDetails();
-            List<DfmInformationUpdates.Update> updates = details.updates();
-            if (updates.isEmpty()) {
-                grid.setModel(null);
-            } else {
-                grid.setModel(createModel());
-            }
-        } else {
-            grid.setModel(null);
-        }
-    }
-
-    private void updateComboBox() {
-        if (desc != null && desc.length != 0) {
-            combobox.setModel(toComboBoxModel(desc));
-            combobox.setEnabled(true);
-        } else {
-            combobox.setModel(new DefaultComboBoxModel());
-            combobox.setEnabled(false);
-        }
-    }
-
+    //<editor-fold defaultstate="collapsed" desc="Models">
     private static DefaultComboBoxModel toComboBoxModel(DfmSeriesDescriptor[] data) {
         DefaultComboBoxModel result = new DefaultComboBoxModel(data);
         return result;
@@ -353,6 +374,7 @@ public class NewsWeightsView extends JPanel {
             }
         };
     }
+    //</editor-fold>
 
     private List<String> titles;
     private List<String> rows;
@@ -430,50 +452,6 @@ public class NewsWeightsView extends JPanel {
         }
     }
 
-    private class DoubleTableCellRenderer extends DefaultTableCellRenderer {
-
-        private JToolTip tooltip;
-
-        public DoubleTableCellRenderer() {
-            setHorizontalAlignment(SwingConstants.TRAILING);
-            tooltip = super.createToolTip();
-        }
-
-        @Override
-        public JToolTip createToolTip() {
-            tooltip.setBackground(getBackground());
-            tooltip.setForeground(getForeground());
-            return tooltip;
-        }
-
-        @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-            if (value instanceof Double) {
-                DemetraUI demetraUI = DemetraUI.getInstance();
-                Formatters.Formatter<Number> format = demetraUI.getDataFormat().numberFormatter();
-                setText(format.formatAsString((Double) value));
-            }
-
-            return this;
-        }
-    }
-
-    private void updateChart() {
-        if (doc != null) {
-            DfmInformationUpdates details = doc.newsDetails();
-            List<DfmInformationUpdates.Update> updates = details.updates();
-            if (updates.isEmpty()) {
-                chartForecast.setDataset(null);
-            } else {
-                collection = toCollection();
-                chartForecast.setDataset(TsXYDatasets.from(collection));
-            }
-        } else {
-            chartForecast.setDataset(null);
-        }
-    }
-
     private TsCollection toCollection() {
         TsCollection result = TsFactory.instance.createTsCollection();
         int selectedIndex = combobox.getSelectedIndex();
@@ -507,6 +485,14 @@ public class NewsWeightsView extends JPanel {
         return result;
     }
 
+    //<editor-fold defaultstate="collapsed" desc="JTimeSeriesChart utilities">
+    private final CustomSwingColorSchemeSupport defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
+        @Override
+        public ColorScheme getColorScheme() {
+            return DemetraUI.getInstance().getColorScheme();
+        }
+    };
+
     private abstract class CustomSwingColorSchemeSupport extends SwingColorSchemeSupport {
 
         @Override
@@ -532,11 +518,7 @@ public class NewsWeightsView extends JPanel {
                 throw new RuntimeException();
         }
     }
-
-    private enum SeriesType {
-
-        OLD_FORECASTS, NEW_FORECASTS
-    }
+    //</editor-fold>
 
     private static final class CopyCommand extends JCommand<NewsWeightsView> {
 
@@ -558,6 +540,48 @@ public class NewsWeightsView extends JPanel {
         @Override
         public JCommand.ActionAdapter toAction(NewsWeightsView c) {
             return super.toAction(c).withWeakPropertyChangeListener(c, RESULTS_PROPERTY);
+        }
+    }
+
+    private class DoubleTableCellRenderer extends DefaultTableCellRenderer {
+
+        private JToolTip tooltip;
+        private Color colorOld;
+        private Color colorNew;
+
+        public DoubleTableCellRenderer() {
+            setHorizontalAlignment(SwingConstants.TRAILING);
+            tooltip = super.createToolTip();
+            colorOld = defaultColorSchemeSupport.withAlpha(defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.RED), 50);
+            colorNew = defaultColorSchemeSupport.withAlpha(defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.BLUE), 50);
+        }
+
+        @Override
+        public JToolTip createToolTip() {
+            tooltip.setBackground(getBackground());
+            tooltip.setForeground(getForeground());
+            return tooltip;
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            setBackground(null);
+            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            if (value instanceof Double) {
+                DemetraUI demetraUI = DemetraUI.getInstance();
+                Formatters.Formatter<Number> format = demetraUI.getDataFormat().numberFormatter();
+                setText(format.formatAsString((Double) value));
+            }
+
+            if (column > 2 && !isSelected) {
+                if (row == rows.size() - 2) {
+                    setBackground(colorOld);
+                } else if (row == rows.size() - 1) {
+                    setBackground(colorNew);
+                }
+            }
+
+            return this;
         }
     }
 

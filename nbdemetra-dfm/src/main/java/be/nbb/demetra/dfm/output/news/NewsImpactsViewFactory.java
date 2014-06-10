@@ -30,15 +30,14 @@ import javax.swing.JComponent;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
- *
- * @author Jean Palate
+ * Factory creating the News impacts view
+ * @author Mats Maggi
  */
 @ServiceProvider(service = ProcDocumentItemFactory.class, position = 300050)
 public class NewsImpactsViewFactory extends DfmNewsItemFactory {
 
     public NewsImpactsViewFactory() {
         super(DfmNewsItemFactory.Updates.NEWS, newId(), newItemUI());
-        setAsync(true);
     }
 
     private static Id newId() {

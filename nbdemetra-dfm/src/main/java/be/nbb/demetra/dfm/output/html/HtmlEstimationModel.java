@@ -18,6 +18,7 @@ package be.nbb.demetra.dfm.output.html;
 
 import com.google.common.base.Optional;
 import ec.tss.dfm.DfmResults;
+import ec.tss.dfm.DfmSeriesDescriptor;
 import ec.tss.html.AbstractHtmlElement;
 import ec.tss.html.HtmlStream;
 import ec.tss.html.HtmlStyle;
@@ -40,7 +41,7 @@ public class HtmlEstimationModel extends AbstractHtmlElement implements IHtmlEle
     private final Optional<DfmResults> results;
     private final DecimalFormat df5 = new DecimalFormat();
 
-    private final int SERIES_SIZE = 150;
+    private final int SERIES_SIZE = 400;
     private final int NB_SIZE = 50;
 
     public HtmlEstimationModel(Optional<DfmResults> rslts) {
@@ -62,29 +63,47 @@ public class HtmlEstimationModel extends AbstractHtmlElement implements IHtmlEle
         DfmResults rslts = results.get();
         int nbFactors = rslts.getModel().getFactorsCount();
         List<DynamicFactorModel.MeasurementDescriptor> descriptors = rslts.getModel().getMeasurements();
-
         stream.write(HtmlTag.HEADER2, h2, "Loadings").newLine();
 
-        stream.open(new HtmlTable(1, (SERIES_SIZE*2) + ((nbFactors + 1) * NB_SIZE)));
+        stream.open(new HtmlTable(1, (SERIES_SIZE) + ((nbFactors + 3) * NB_SIZE)));
 
         // HEADERS
         stream.open(HtmlTag.TABLEROW);
-        stream.write(new HtmlTableCell("Series", SERIES_SIZE, HtmlStyle.Bold, HtmlStyle.Left));
+        HtmlTableCell h = new HtmlTableCell("Series", SERIES_SIZE, HtmlStyle.Bold, HtmlStyle.Left);
+        h.rowspan = 2;
+        stream.write(h);
+        h = new HtmlTableCell("Simple mean", NB_SIZE, HtmlStyle.Bold, HtmlStyle.Center);
+        h.rowspan = 2;
+        stream.write(h);
+        h = new HtmlTableCell("Stdev", NB_SIZE, HtmlStyle.Bold, HtmlStyle.Center);
+        h.rowspan = 2;
+        stream.write(h);
+        h = new HtmlTableCell("Normalized Factors", NB_SIZE, HtmlStyle.Bold, HtmlStyle.Center);
+        h.colspan = nbFactors;
+        stream.write(h);
+        h = new HtmlTableCell("Idiosyncratic Variance", NB_SIZE, HtmlStyle.Bold, HtmlStyle.Center);
+        h.rowspan = 2;
+        h.colspan = 1;
+        stream.write(h);
+        stream.close(HtmlTag.TABLEROW);
+        stream.open(HtmlTag.TABLEROW);
         for (int i = 0; i < nbFactors; i++) {
-            stream.write(new HtmlTableCell("F" + (i+1), NB_SIZE, HtmlStyle.Bold, HtmlStyle.Center));
+            stream.write(new HtmlTableCell("F" + (i + 1), NB_SIZE, HtmlStyle.Bold, HtmlStyle.Center));
         }
-        stream.write(new HtmlTableCell("Variance", NB_SIZE, HtmlStyle.Bold, HtmlStyle.Center));
         stream.close(HtmlTag.TABLEROW);
 
+        DfmSeriesDescriptor[] descs = rslts.getDescriptions();
         // DATA
         for (int i = 0; i < rslts.getDescriptions().length; i++) {
             stream.open(HtmlTag.TABLEROW);
             stream.write(new HtmlTableCell(rslts.getDescription(i).description, SERIES_SIZE, HtmlStyle.Left));
+            stream.write(new HtmlTableCell(df5.format(descs[i].mean), NB_SIZE, HtmlStyle.Center));
+            stream.write(new HtmlTableCell(df5.format(descs[i].stdev), NB_SIZE, HtmlStyle.Center));
             for (int j = 0; j < descriptors.get(i).coeff.length; j++) {
                 String coeff = (Double.isNaN(descriptors.get(i).coeff[j])) ? "" : df5.format(descriptors.get(i).coeff[j]);
-                stream.write(new HtmlTableCell(coeff, NB_SIZE, HtmlStyle.Right));
+                stream.write(new HtmlTableCell(coeff, NB_SIZE, HtmlStyle.Center));
             }
-            stream.write(new HtmlTableCell(df5.format(descriptors.get(i).var), NB_SIZE, HtmlStyle.Right));
+            stream.write(new HtmlTableCell(df5.format(descriptors.get(i).var), NB_SIZE, HtmlStyle.Center));
             stream.close(HtmlTag.TABLEROW);
         }
 
@@ -114,7 +133,7 @@ public class HtmlEstimationModel extends AbstractHtmlElement implements IHtmlEle
         // DATA
         for (int i = 0; i < m.getRowsCount(); i++) {
             stream.open(HtmlTag.TABLEROW);
-            stream.write(new HtmlTableCell("F" + (i+1), NB_SIZE, HtmlStyle.Left, HtmlStyle.Bold));
+            stream.write(new HtmlTableCell("F" + (i + 1), NB_SIZE, HtmlStyle.Left, HtmlStyle.Bold));
             for (int j = 0; j < m.getColumnsCount(); j++) {
                 String value = (Double.isNaN(m.get(i, j))) ? "" : df5.format(m.get(i, j));
                 stream.write(new HtmlTableCell(value, NB_SIZE, HtmlStyle.Right));
@@ -138,14 +157,14 @@ public class HtmlEstimationModel extends AbstractHtmlElement implements IHtmlEle
         stream.open(HtmlTag.TABLEROW);
         stream.write(new HtmlTableCell("", NB_SIZE, HtmlStyle.Bold, HtmlStyle.Left));
         for (int i = 0; i < m.getColumnsCount(); i++) {
-            stream.write(new HtmlTableCell("F" + (i+1), NB_SIZE, HtmlStyle.Bold, HtmlStyle.Center));
+            stream.write(new HtmlTableCell("F" + (i + 1), NB_SIZE, HtmlStyle.Bold, HtmlStyle.Center));
         }
         stream.close(HtmlTag.TABLEROW);
 
         // DATA
         for (int i = 0; i < m.getRowsCount(); i++) {
             stream.open(HtmlTag.TABLEROW);
-            stream.write(new HtmlTableCell("F" + (i+1), NB_SIZE, HtmlStyle.Left, HtmlStyle.Bold));
+            stream.write(new HtmlTableCell("F" + (i + 1), NB_SIZE, HtmlStyle.Left, HtmlStyle.Bold));
             for (int j = 0; j < m.getColumnsCount(); j++) {
                 String value = (Double.isNaN(m.get(i, j))) ? "" : df5.format(m.get(i, j));
                 stream.write(new HtmlTableCell(value, NB_SIZE, HtmlStyle.Right));
