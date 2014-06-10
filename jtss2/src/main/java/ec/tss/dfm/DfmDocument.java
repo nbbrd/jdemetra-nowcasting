@@ -30,11 +30,11 @@ import ec.tstoolkit.dfm.DfmSpec;
  */
 public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> implements Cloneable {
 
-    public DfmDocument() {
+   public DfmDocument() {
         super(new DfmProcessingFactory(), null);
         setSpecification(new DfmSpec());
     }
-
+    
     public DfmDocument(ProcessingContext context) {
         super(new DfmProcessingFactory(), context);
         setSpecification(new DfmSpec());
@@ -54,6 +54,7 @@ public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> impl
             return rslts.get(DfmProcessingFactory.DFM, DfmResults.class);
         }
     }
+    
 
     @Override
     protected CompositeResults recalc(DfmSpec spec, Ts[] input) {

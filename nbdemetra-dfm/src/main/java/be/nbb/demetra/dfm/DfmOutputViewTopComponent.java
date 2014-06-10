@@ -90,6 +90,7 @@ public final class DfmOutputViewTopComponent extends AbstractDfmDocumentTopCompo
 
     @Override
     protected void onDfmStateChange() {
+        
         updateChart();
         super.onDfmStateChange();
     }

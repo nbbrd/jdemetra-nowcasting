@@ -18,10 +18,7 @@
 package be.nbb.demetra.dfm.output;
 
 import be.nbb.demetra.dfm.output.html.HtmlVersions;
-import com.google.common.base.Optional;
-import ec.tss.dfm.DfmResults;
 import ec.tss.dfm.VersionedDfmDocument;
-import ec.tstoolkit.dfm.DfmNews;
 import ec.tstoolkit.utilities.Id;
 import ec.tstoolkit.utilities.LinearId;
 import ec.ui.view.tsprocessing.ComposedProcDocumentItemFactory;
