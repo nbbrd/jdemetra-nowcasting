@@ -24,6 +24,7 @@ import ec.tss.TsFactory;
 import ec.tss.datatransfer.TssTransferSupport;
 import ec.tss.dfm.DfmResults;
 import ec.tss.dfm.DfmSeriesDescriptor;
+import ec.tss.tsproviders.utils.Formatters;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.dfm.DfmInformationSet;
 import ec.tstoolkit.dfm.DfmInformationUpdates;
@@ -34,7 +35,6 @@ import ec.tstoolkit.timeseries.simplets.TsDataCollector;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
 import ec.ui.chart.TsXYDatasets;
-import ec.ui.list.TsPeriodTableCellRenderer;
 import ec.util.chart.ColorScheme;
 import ec.util.chart.ObsFunction;
 import ec.util.chart.SeriesFunction;
@@ -76,9 +76,15 @@ import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
+import javax.swing.SwingConstants;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.table.DefaultTableCellRenderer;
 
 /**
  * View displaying News impacts values in a table and a chart
+ *
  * @author Mats Maggi
  */
 public class NewsImpactsView extends JPanel {
@@ -95,13 +101,15 @@ public class NewsImpactsView extends JPanel {
     private final JTimeSeriesChart chartImpacts;
     private TsCollection collection;
 
+    private final ListSelectionListener gridListener, chartListener;
+
     public NewsImpactsView() {
         setLayout(new BorderLayout());
 
-        this.grid = createGrid();
         chartImpacts = createChart();
+        grid = createGrid();
 
-        this.combobox = new JComboBox();
+        combobox = new JComboBox();
 
         combobox.addItemListener(new ItemListener() {
             @Override
@@ -128,7 +136,7 @@ public class NewsImpactsView extends JPanel {
         chartImpacts.setPopupMenu(createChartMenu().getPopupMenu());
         splitPane = NbComponents.newJSplitPane(JSplitPane.VERTICAL_SPLIT, grid, chartImpacts);
         splitPane.setResizeWeight(0.5);
-        
+
         addPropertyChangeListener(new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
@@ -141,6 +149,58 @@ public class NewsImpactsView extends JPanel {
             }
         });
 
+        gridListener = new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                if (e.getValueIsAdjusting()) {
+                    return;
+                }
+                chartImpacts.getSelectionModel().removeListSelectionListener(chartListener);
+                chartImpacts.getSelectionModel().clearSelection();
+                ListSelectionModel model = (ListSelectionModel) e.getSource();
+                if (!model.isSelectionEmpty()) {
+                    for (int i = 0; i < grid.getSelectedRows().length; i++) {
+                        int row = grid.getSelectedRows()[i];
+                        if (row < collection.getCount() - 1) {
+                            chartImpacts.getSelectionModel().addSelectionInterval(row + 1, row + 1);
+                        } else if (row == rows.size() - 3) {
+                            chartImpacts.getSelectionModel().addSelectionInterval(0, 0);
+                        }
+                    }
+                }
+                chartImpacts.getSelectionModel().addListSelectionListener(chartListener);
+            }
+        };
+
+        chartListener = new ListSelectionListener() {
+
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                if (e.getValueIsAdjusting()) {
+                    return;
+                }
+
+                grid.getSelectionModel().removeListSelectionListener(gridListener);
+                grid.getSelectionModel().clearSelection();
+                ListSelectionModel model = (ListSelectionModel) e.getSource();
+                if (!model.isSelectionEmpty()) {
+                    for (int i = model.getMinSelectionIndex(); i <= model.getMaxSelectionIndex(); i++) {
+                        if (model.isSelectedIndex(i)) {
+                            if (i == 0) {
+                                grid.getSelectionModel().addSelectionInterval(rows.size() - 3, rows.size() - 3);
+                            } else {
+                                grid.getSelectionModel().addSelectionInterval(i - 1, i - 1);
+                            }
+                        }
+                    }
+                }
+                grid.getSelectionModel().addListSelectionListener(gridListener);
+            }
+        };
+
+        grid.getSelectionModel().addListSelectionListener(gridListener);
+        chartImpacts.getSelectionModel().addListSelectionListener(chartListener);
+
         updateComboBox();
         updateGridModel();
         updateChart();
@@ -148,7 +208,7 @@ public class NewsImpactsView extends JPanel {
         add(combobox, BorderLayout.NORTH);
         add(splitPane, BorderLayout.CENTER);
     }
-    
+
     public void setResults(DfmResults results, DfmNews doc) {
         this.dfmResults = results;
         this.doc = doc;
@@ -170,7 +230,6 @@ public class NewsImpactsView extends JPanel {
             @Override
             public String apply(int series, int obs) {
                 return chartImpacts.getSeriesFormatter().apply(series)
-                        + " [" + ref_periods.get(series) + "]"
                         + "\nImpact for : " + chartImpacts.getPeriodFormat().format(chartImpacts.getDataset().getX(series, obs))
                         + "\nContribution : " + chartImpacts.getValueFormat().format(chartImpacts.getDataset().getY(series, obs));
             }
@@ -178,11 +237,21 @@ public class NewsImpactsView extends JPanel {
 
         chart.setColorSchemeSupport(defaultColorSchemeSupport);
         chart.setNoDataMessage("No data produced");
-        
+
+        chart.addPropertyChangeListener(JTimeSeriesChart.COLOR_SCHEME_SUPPORT_PROPERTY, new PropertyChangeListener() {
+
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                grid.setDefaultRenderer(TsPeriod.class, new TsPeriodTableCellRenderer());
+                grid.setDefaultRenderer(Double.class, new DoubleTableCellRenderer());
+                grid.repaint();
+            }
+        });
+
         chart.setLegendVisibilityPredicate(SeriesPredicate.alwaysFalse());
         return chart;
     }
-    
+
     private final CustomSwingColorSchemeSupport defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
         @Override
         public ColorScheme getColorScheme() {
@@ -261,6 +330,7 @@ public class NewsImpactsView extends JPanel {
 
         result.setDefaultRenderer(TsPeriod.class, new TsPeriodTableCellRenderer());
         result.setDefaultRenderer(Double.class, new DoubleTableCellRenderer());
+        ((DefaultTableCellRenderer) result.getTableHeader().getDefaultRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
 
         return result;
     }
@@ -435,11 +505,11 @@ public class NewsImpactsView extends JPanel {
 
     private void createColumnTitles() {
         titles = new ArrayList<>();
-        titles.add("Reference Period");
-        titles.add("Expected Value");
-        titles.add("Observated Value");
+        titles.add("<html><p style=\"text-align:center\">Reference<br>Period</p></html>");
+        titles.add("<html><p style=\"text-align:center\">Expected<br>Value</p></html>");
+        titles.add("<html><p style=\"text-align:center\">Observed<br>Value</p></html>");
         for (TsPeriod p : periods) {
-            titles.add("Impact " + p.toString());
+            titles.add("<html><p style=\"text-align:center\">Impact<br>" + p.toString() + "</p><html>");
         }
     }
 
@@ -479,7 +549,8 @@ public class NewsImpactsView extends JPanel {
                 coll.addObservation(periods.get(j).middle(), impacts.get(j).get(i));
             }
             TsData data = coll.make(freq, TsAggregationType.None);
-            result.quietAdd(TsFactory.instance.createTs(description.description, null, data));
+            result.quietAdd(TsFactory.instance.createTs(description.description
+                    + " [" + ref_periods.get(i).toString() + "]", null, data));
         }
 
         return result;
@@ -532,6 +603,62 @@ public class NewsImpactsView extends JPanel {
         @Override
         public JCommand.ActionAdapter toAction(NewsImpactsView c) {
             return super.toAction(c).withWeakPropertyChangeListener(c, RESULTS_PROPERTY);
+        }
+    }
+
+    private class DoubleTableCellRenderer extends DefaultTableCellRenderer {
+
+        private final Color colorRevisions;
+
+        public DoubleTableCellRenderer() {
+            setHorizontalAlignment(SwingConstants.TRAILING);
+            colorRevisions = CustomSwingColorSchemeSupport.withAlpha(defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.RED), 50);
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            setBackground(null);
+            setIcon(null);
+            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            if (value instanceof Double) {
+                DemetraUI demetraUI = DemetraUI.getInstance();
+                Formatters.Formatter<Number> format = demetraUI.getDataFormat().numberFormatter();
+                setText(format.formatAsString((Double) value));
+            }
+
+            if (column > 2 && !isSelected) {
+                if (row == rows.size() - 3) {
+                    setBackground(colorRevisions);
+                }
+            }
+
+            return this;
+        }
+    }
+
+    private class TsPeriodTableCellRenderer extends DefaultTableCellRenderer {
+
+        private final ColorIcon icon;
+        private final List<Integer> colors;
+
+        public TsPeriodTableCellRenderer() {
+            setHorizontalAlignment(SwingConstants.LEADING);
+            icon = new ColorIcon();
+            colors = chartImpacts.getColorSchemeSupport().getColorScheme().getLineColors();
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            setIcon(null);
+            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            if (value instanceof TsPeriod) {
+                setText(((TsPeriod) value).toString());
+
+                icon.setColor(new Color(colors.get(row % colors.size())));
+                setIcon(icon);
+            }
+
+            return this;
         }
     }
 }

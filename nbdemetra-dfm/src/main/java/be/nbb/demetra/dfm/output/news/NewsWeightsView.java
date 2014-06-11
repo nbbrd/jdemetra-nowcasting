@@ -77,7 +77,6 @@ import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
-import javax.swing.JToolTip;
 import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableCellRenderer;
 
@@ -173,6 +172,7 @@ public class NewsWeightsView extends JPanel {
 
         result.setDefaultRenderer(TsPeriod.class, new TsPeriodTableCellRenderer());
         result.setDefaultRenderer(Double.class, new DoubleTableCellRenderer());
+        ((DefaultTableCellRenderer)result.getTableHeader().getDefaultRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
 
         return result;
     }
@@ -457,14 +457,14 @@ public class NewsWeightsView extends JPanel {
         rows.add("Old Forecast");
         rows.add("New Forecast");
     }
-
+    
     private void createColumnTitles() {
         titles = new ArrayList<>();
-        titles.add("Reference Period");
-        titles.add("Expected Value");
-        titles.add("Observated Value");
+        titles.add("<html><p style=\"text-align:center\">Reference<br>Period</p></html>");
+        titles.add("<html><p style=\"text-align:center\">Expected<br>Value</p></html>");
+        titles.add("<html><p style=\"text-align:center\">Observed<br>Value</p></html>");
         for (TsPeriod p : newPeriods) {
-            titles.add("Weight " + p.toString());
+            titles.add("<html><p style=\"text-align:center\">Weight<br>" + p.toString() + "</p><html>");
         }
     }
 
@@ -562,22 +562,13 @@ public class NewsWeightsView extends JPanel {
 
     private class DoubleTableCellRenderer extends DefaultTableCellRenderer {
 
-        private JToolTip tooltip;
-        private Color colorOld;
-        private Color colorNew;
+        private final Color colorOld;
+        private final Color colorNew;
 
         public DoubleTableCellRenderer() {
             setHorizontalAlignment(SwingConstants.TRAILING);
-            tooltip = super.createToolTip();
-            colorOld = defaultColorSchemeSupport.withAlpha(defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.RED), 50);
-            colorNew = defaultColorSchemeSupport.withAlpha(defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.BLUE), 50);
-        }
-
-        @Override
-        public JToolTip createToolTip() {
-            tooltip.setBackground(getBackground());
-            tooltip.setForeground(getForeground());
-            return tooltip;
+            colorOld = CustomSwingColorSchemeSupport.withAlpha(defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.RED), 50);
+            colorNew = CustomSwingColorSchemeSupport.withAlpha(defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.BLUE), 50);
         }
 
         @Override

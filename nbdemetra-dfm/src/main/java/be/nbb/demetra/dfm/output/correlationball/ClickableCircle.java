@@ -37,6 +37,7 @@ import javax.swing.JComponent;
 public class ClickableCircle extends JComponent {
 
     private int index;
+    private String title;
     private final List<Path> paths;
     public final static String HIGHLIGHT = "HIGHLIGHT";
 
@@ -70,6 +71,15 @@ public class ClickableCircle extends JComponent {
         if (c instanceof CorrelationBall) {
             ((CorrelationBall) c).changeHighlight(index);
         }
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+        setToolTipText(this.title);
     }
 
     public List<Path> getPaths() {

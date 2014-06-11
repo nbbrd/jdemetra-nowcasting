@@ -22,15 +22,12 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.Paint;
 import java.awt.Point;
-import java.awt.RadialGradientPaint;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Path2D;
-import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.JPanel;
@@ -90,6 +87,7 @@ public class CorrelationBall extends JPanel {
 
         for (int i = 0; i < matrix.length; i++) {
             ClickableCircle c = new ClickableCircle(i);
+            c.setTitle(titles.get(i));
             circles.add(c);
             add(c);
             for (int j = 0; j < matrix[i].length; j++) {
@@ -208,16 +206,6 @@ public class CorrelationBall extends JPanel {
                 }
             }
         }
-
-        Paint paint;
-        int w = getWidth() - (space * 2) - 10;
-        paint = new RadialGradientPaint(new Point2D.Double(getWidth() / 2.0,
-                getWidth() / 2.0), radius,
-                new float[]{0.8f, 1.0f},
-                new Color[]{new Color(255, 255, 255, 0),
-                    new Color(1.0f, 1.0f, 1.0f, 0.5f)});
-        g2d.setPaint(paint);
-        g2d.fillOval(space + 5, space + 5, w, w);
 
         paintLines(g2d);
     }
