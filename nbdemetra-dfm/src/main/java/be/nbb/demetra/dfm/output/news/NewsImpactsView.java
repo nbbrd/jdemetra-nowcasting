@@ -100,11 +100,23 @@ public class NewsImpactsView extends JPanel {
     private final JSplitPane splitPane;
     private final JTimeSeriesChart chartImpacts;
     private TsCollection collection;
+    private final DemetraUI demetraUI;
+    private Formatters.Formatter<Number> formatter;
+    private CustomSwingColorSchemeSupport defaultColorSchemeSupport;
 
     private final ListSelectionListener gridListener, chartListener;
 
     public NewsImpactsView() {
         setLayout(new BorderLayout());
+
+        demetraUI = DemetraUI.getInstance();
+        formatter = demetraUI.getDataFormat().numberFormatter();
+        defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
+            @Override
+            public ColorScheme getColorScheme() {
+                return demetraUI.getColorScheme();
+            }
+        };
 
         chartImpacts = createChart();
         grid = createGrid();
@@ -205,6 +217,20 @@ public class NewsImpactsView extends JPanel {
         updateGridModel();
         updateChart();
 
+        demetraUI.addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                switch (evt.getPropertyName()) {
+                    case DemetraUI.DATA_FORMAT_PROPERTY:
+                        onDataFormatChanged();
+                        break;
+                    case DemetraUI.COLOR_SCHEME_NAME_PROPERTY:
+                        onColorSchemeChanged();
+                        break;
+                }
+            }
+        });
+
         add(combobox, BorderLayout.NORTH);
         add(splitPane, BorderLayout.CENTER);
     }
@@ -230,8 +256,8 @@ public class NewsImpactsView extends JPanel {
             @Override
             public String apply(int series, int obs) {
                 return chartImpacts.getSeriesFormatter().apply(series)
-                        + "\nImpact for : " + chartImpacts.getPeriodFormat().format(chartImpacts.getDataset().getX(series, obs))
-                        + "\nContribution : " + chartImpacts.getValueFormat().format(chartImpacts.getDataset().getY(series, obs));
+                        + "\nImpact for : " + collection.get(series).getTsData().getDomain().get(obs).toString()
+                        + "\nContribution : " + formatter.format(chartImpacts.getDataset().getY(series, obs));
             }
         });
 
@@ -239,12 +265,9 @@ public class NewsImpactsView extends JPanel {
         chart.setNoDataMessage("No data produced");
 
         chart.addPropertyChangeListener(JTimeSeriesChart.COLOR_SCHEME_SUPPORT_PROPERTY, new PropertyChangeListener() {
-
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
-                grid.setDefaultRenderer(TsPeriod.class, new TsPeriodTableCellRenderer());
-                grid.setDefaultRenderer(Double.class, new DoubleTableCellRenderer());
-                grid.repaint();
+                onGridColorSchemeChanged();
             }
         });
 
@@ -252,12 +275,26 @@ public class NewsImpactsView extends JPanel {
         return chart;
     }
 
-    private final CustomSwingColorSchemeSupport defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
-        @Override
-        public ColorScheme getColorScheme() {
-            return DemetraUI.getInstance().getColorScheme();
-        }
-    };
+    private void onColorSchemeChanged() {
+        defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
+            @Override
+            public ColorScheme getColorScheme() {
+                return demetraUI.getColorScheme();
+            }
+        };
+        chartImpacts.setColorSchemeSupport(defaultColorSchemeSupport);
+    }
+
+    private void onDataFormatChanged() {
+        formatter = demetraUI.getDataFormat().numberFormatter();
+        onGridColorSchemeChanged();
+    }
+
+    private void onGridColorSchemeChanged() {
+        grid.setDefaultRenderer(TsPeriod.class, new TsPeriodTableCellRenderer(chartImpacts.getColorSchemeSupport().getColorScheme()));
+        grid.setDefaultRenderer(Double.class, new DoubleTableCellRenderer(formatter));
+        grid.repaint();
+    }
 
     //<editor-fold defaultstate="collapsed" desc="Menus">
     private JMenu newColorSchemeMenu() {
@@ -328,8 +365,8 @@ public class NewsImpactsView extends JPanel {
             }
         });
 
-        result.setDefaultRenderer(TsPeriod.class, new TsPeriodTableCellRenderer());
-        result.setDefaultRenderer(Double.class, new DoubleTableCellRenderer());
+        result.setDefaultRenderer(TsPeriod.class, new TsPeriodTableCellRenderer(chartImpacts.getColorSchemeSupport().getColorScheme()));
+        result.setDefaultRenderer(Double.class, new DoubleTableCellRenderer(formatter));
         ((DefaultTableCellRenderer) result.getTableHeader().getDefaultRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
 
         return result;
@@ -458,14 +495,15 @@ public class NewsImpactsView extends JPanel {
         impacts = new ArrayList<>();
         for (int j = s.getLength() - 1; j >= 0; --j) {
             if (s.isMissing(j)) {
-                TsPeriod p = s.getDomain().get(j).lastPeriod(freq);
-                if (p.isNotBefore(doc.getDomain().getStart())) {
+                TsPeriod p = s.getDomain().get(j);
+                TsPeriod pI = p.lastPeriod(freq);
+                if (pI.isNotBefore(doc.getDomain().getStart())) {
                     periods.add(p);
 
-                    DataBlock weights = doc.weights(selected, p); // Get weights
+                    DataBlock weights = doc.weights(selected, pI); // Get weights
                     all_revisions.add(n.dot(weights) * stdev);
-                    old_forecasts.add(doc.getOldForecast(selected, p));
-                    new_forecasts.add(doc.getNewForecast(selected, p));
+                    old_forecasts.add(doc.getOldForecast(selected, pI));
+                    new_forecasts.add(doc.getNewForecast(selected, pI));
                     impacts.add(new DataBlock(weights.getLength()));
                     for (int k = 0; k < weights.getLength(); k++) {
                         impacts.get(impacts.size() - 1).set(k, n.get(k) * weights.get(k) * stdev);
@@ -609,9 +647,11 @@ public class NewsImpactsView extends JPanel {
     private class DoubleTableCellRenderer extends DefaultTableCellRenderer {
 
         private final Color colorRevisions;
+        private final Formatters.Formatter<Number> formatter;
 
-        public DoubleTableCellRenderer() {
+        public DoubleTableCellRenderer(Formatters.Formatter<Number> format) {
             setHorizontalAlignment(SwingConstants.TRAILING);
+            this.formatter = format;
             colorRevisions = CustomSwingColorSchemeSupport.withAlpha(defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.RED), 50);
         }
 
@@ -621,9 +661,7 @@ public class NewsImpactsView extends JPanel {
             setIcon(null);
             super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             if (value instanceof Double) {
-                DemetraUI demetraUI = DemetraUI.getInstance();
-                Formatters.Formatter<Number> format = demetraUI.getDataFormat().numberFormatter();
-                setText(format.formatAsString((Double) value));
+                setText(formatter.formatAsString((Double) value));
             }
 
             if (column > 2 && !isSelected) {
@@ -641,10 +679,10 @@ public class NewsImpactsView extends JPanel {
         private final ColorIcon icon;
         private final List<Integer> colors;
 
-        public TsPeriodTableCellRenderer() {
+        public TsPeriodTableCellRenderer(ColorScheme colorScheme) {
             setHorizontalAlignment(SwingConstants.LEADING);
             icon = new ColorIcon();
-            colors = chartImpacts.getColorSchemeSupport().getColorScheme().getLineColors();
+            colors = colorScheme.getLineColors();
         }
 
         @Override

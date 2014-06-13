@@ -34,7 +34,6 @@ import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.AbstractAction;
@@ -69,8 +68,6 @@ public class ResidualsMatrixView extends JPanel {
 
     private double lowValue;
     private double highValue;
-
-    private static final DecimalFormat df3 = new DecimalFormat("0.000");
 
     private final JZoomableGrid matrix;
     private Optional<DfmResults> results;

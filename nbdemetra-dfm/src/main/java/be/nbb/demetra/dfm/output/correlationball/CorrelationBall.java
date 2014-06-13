@@ -28,19 +28,29 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Path2D;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JMenu;
 import javax.swing.JPanel;
+import javax.swing.JSlider;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 /**
  *
  * @author Mats Maggi
  */
 public class CorrelationBall extends JPanel {
+    
+    public static final String COLOR_SCALE_PROPERTY = "scale";
 
     private double min, max;
     private final float maxStroke = 4f;
     private final float minStroke = .1f;
+    private double colorScale = 1.0;
     
     // Heat map colour settings.
     private final Color highValueColour = new Color(0, 82, 163);
@@ -67,7 +77,45 @@ public class CorrelationBall extends JPanel {
             }
 
         });
+    }
+    
+    public JMenu buildGridMenu() {
+        JMenu result = new JMenu();
+        
+        JMenu scale = new JMenu("Color Scale");
+        final JSlider slider = new JSlider(1, 100, 1);
+        {
+            slider.setPreferredSize(new Dimension(50, slider.getPreferredSize().height));
+            slider.addChangeListener(new ChangeListener() {
+                @Override
+                public void stateChanged(ChangeEvent e) {
+                    setColorScale((double)slider.getValue()/10.0);
+                }
+            });
+            addPropertyChangeListener(COLOR_SCALE_PROPERTY, new PropertyChangeListener() {
+                @Override
+                public void propertyChange(PropertyChangeEvent evt) {
+                    slider.setValue((int)(getColorScale()*10.0));
+                }
+            });
+        }
+        scale.add(slider);
+        for (final double o : new double[]{0.1, 0.5, 1.0, 5.0, 10.0}) {
+            scale.add(new JCheckBoxMenuItem(CorrelationBallCommand.applyColorScale(o).toAction(this))).setText(String.valueOf(o));
+        }
+        result.add(scale);
 
+        return result;
+    }
+
+    public double getColorScale() {
+        return colorScale;
+    }
+
+    public void setColorScale(double scale) {
+        double old = this.colorScale;
+        this.colorScale = scale >= 0.1 && scale <= 10.0 ? scale : 1.0;
+        firePropertyChange(COLOR_SCALE_PROPERTY, old, this.colorScale);
     }
 
     private double[][] matrix;
@@ -105,7 +153,7 @@ public class CorrelationBall extends JPanel {
         
         updateColourDistance();
 
-        updateUI();
+        repaint();
     }
 
     public void changeHighlight(int index) {
@@ -265,7 +313,7 @@ public class CorrelationBall extends JPanel {
     }
     
     private int getColourPosition(double percentPosition) {
-        return (int) Math.round(colourValueDistance * Math.pow(percentPosition, 1.0));
+        return (int) Math.round(colourValueDistance * Math.pow(percentPosition, getColorScale()));
     }
     
     private int changeColourValue(int colourValue, int colourDistance) {

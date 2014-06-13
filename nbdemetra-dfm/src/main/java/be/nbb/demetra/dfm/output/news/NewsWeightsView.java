@@ -104,13 +104,26 @@ public class NewsWeightsView extends JPanel {
     private final JTimeSeriesChart chartForecast;
     private TsCollection collection;
 
+    private final DemetraUI demetraUI;
+    private Formatters.Formatter<Number> formatter;
+    private CustomSwingColorSchemeSupport defaultColorSchemeSupport;
+
     public NewsWeightsView() {
         setLayout(new BorderLayout());
 
-        this.grid = createGrid();
-        chartForecast = createChart();
+        demetraUI = DemetraUI.getInstance();
+        formatter = demetraUI.getDataFormat().numberFormatter();
+        defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
+            @Override
+            public ColorScheme getColorScheme() {
+                return demetraUI.getColorScheme();
+            }
+        };
 
-        this.combobox = new JComboBox();
+        chartForecast = createChart();
+        grid = createGrid();
+
+        combobox = new JComboBox();
 
         combobox.addItemListener(new ItemListener() {
             @Override
@@ -144,8 +157,39 @@ public class NewsWeightsView extends JPanel {
         updateGridModel();
         updateChart();
 
+        demetraUI.addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                switch (evt.getPropertyName()) {
+                    case DemetraUI.DATA_FORMAT_PROPERTY:
+                        onDataFormatChanged();
+                        break;
+                    case DemetraUI.COLOR_SCHEME_NAME_PROPERTY:
+                        onColorSchemeChanged();
+                        break;
+                }
+
+            }
+        });
+
         add(combobox, BorderLayout.NORTH);
         add(splitPane, BorderLayout.CENTER);
+    }
+    
+    private void onColorSchemeChanged() {
+        defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
+            @Override
+            public ColorScheme getColorScheme() {
+                return demetraUI.getColorScheme();
+            }
+        };
+        chartForecast.setColorSchemeSupport(defaultColorSchemeSupport);
+    }
+    
+    private void onDataFormatChanged() {
+        formatter = demetraUI.getDataFormat().numberFormatter();
+        grid.setDefaultRenderer(Double.class, new DoubleTableCellRenderer(formatter));
+        grid.repaint();
     }
 
     //<editor-fold defaultstate="collapsed" desc="Getters / Setters">
@@ -171,8 +215,8 @@ public class NewsWeightsView extends JPanel {
         });
 
         result.setDefaultRenderer(TsPeriod.class, new TsPeriodTableCellRenderer());
-        result.setDefaultRenderer(Double.class, new DoubleTableCellRenderer());
-        ((DefaultTableCellRenderer)result.getTableHeader().getDefaultRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
+        result.setDefaultRenderer(Double.class, new DoubleTableCellRenderer(formatter));
+        ((DefaultTableCellRenderer) result.getTableHeader().getDefaultRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
 
         return result;
     }
@@ -191,8 +235,8 @@ public class NewsWeightsView extends JPanel {
             @Override
             public String apply(int series, int obs) {
                 return chartForecast.getSeriesFormatter().apply(series)
-                        + "\nPeriod : " + chartForecast.getPeriodFormat().format(chartForecast.getDataset().getX(series, obs))
-                        + "\nValue : " + chartForecast.getValueFormat().format(chartForecast.getDataset().getY(series, obs));
+                        + "\nPeriod : " + collection.get(series).getTsData().getDomain().get(obs).toString()
+                        + "\nValue : " + formatter.format(chartForecast.getDataset().getY(series, obs));
             }
         });
 
@@ -404,26 +448,28 @@ public class NewsWeightsView extends JPanel {
         new_forecasts = new ArrayList<>();
         for (int j = sNew.getLength() - 1; j >= 0; --j) {
             if (sNew.isMissing(j)) {
-                TsPeriod p = sNew.getDomain().get(j).lastPeriod(freq);
-                if (p.isNotBefore(doc.getDomain().getStart())) {
+                TsPeriod p = sNew.getDomain().get(j);
+                TsPeriod pN = p.lastPeriod(freq);
+                if (pN.isNotBefore(doc.getDomain().getStart())) {
                     newPeriods.add(p);
 
-                    DataBlock weights = doc.weights(selected, p); // Get weights
+                    DataBlock weights = doc.weights(selected, pN); // Get weights
                     all_revisions.add(n.dot(weights));
-                    new_forecasts.add(doc.getNewForecast(selected, p));
+                    new_forecasts.add(doc.getNewForecast(selected, pN));
                     all_weights.add(weights);
                 }
             } else {
                 break;
             }
         }
-        
+
         for (int j = sOld.getLength() - 1; j >= 0; --j) {
             if (sOld.isMissing(j)) {
-                TsPeriod p = sOld.getDomain().get(j).lastPeriod(freq);
-                if (p.isNotBefore(doc.getDomain().getStart())) {
+                TsPeriod p = sOld.getDomain().get(j);
+                TsPeriod pO = p.lastPeriod(freq);
+                if (pO.isNotBefore(doc.getDomain().getStart())) {
                     oldPeriods.add(p);
-                    old_forecasts.add(doc.getOldForecast(selected, p));
+                    old_forecasts.add(doc.getOldForecast(selected, pO));
                 }
             } else {
                 break;
@@ -457,7 +503,7 @@ public class NewsWeightsView extends JPanel {
         rows.add("Old Forecast");
         rows.add("New Forecast");
     }
-    
+
     private void createColumnTitles() {
         titles = new ArrayList<>();
         titles.add("<html><p style=\"text-align:center\">Reference<br>Period</p></html>");
@@ -503,13 +549,6 @@ public class NewsWeightsView extends JPanel {
     }
 
     //<editor-fold defaultstate="collapsed" desc="JTimeSeriesChart utilities">
-    private final CustomSwingColorSchemeSupport defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
-        @Override
-        public ColorScheme getColorScheme() {
-            return DemetraUI.getInstance().getColorScheme();
-        }
-    };
-
     private abstract class CustomSwingColorSchemeSupport extends SwingColorSchemeSupport {
 
         @Override
@@ -564,9 +603,11 @@ public class NewsWeightsView extends JPanel {
 
         private final Color colorOld;
         private final Color colorNew;
+        private final Formatters.Formatter<Number> formatter;
 
-        public DoubleTableCellRenderer() {
+        public DoubleTableCellRenderer(Formatters.Formatter<Number> formatter) {
             setHorizontalAlignment(SwingConstants.TRAILING);
+            this.formatter = formatter;
             colorOld = CustomSwingColorSchemeSupport.withAlpha(defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.RED), 50);
             colorNew = CustomSwingColorSchemeSupport.withAlpha(defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.BLUE), 50);
         }
@@ -576,9 +617,7 @@ public class NewsWeightsView extends JPanel {
             setBackground(null);
             super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             if (value instanceof Double) {
-                DemetraUI demetraUI = DemetraUI.getInstance();
-                Formatters.Formatter<Number> format = demetraUI.getDataFormat().numberFormatter();
-                setText(format.formatAsString((Double) value));
+                setText(formatter.formatAsString((Double) value));
             }
 
             if (column > 2 && !isSelected) {
