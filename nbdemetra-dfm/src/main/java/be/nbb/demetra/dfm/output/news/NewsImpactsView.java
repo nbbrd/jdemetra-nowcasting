@@ -167,20 +167,20 @@ public class NewsImpactsView extends JPanel {
                 if (e.getValueIsAdjusting()) {
                     return;
                 }
-                chartImpacts.getSelectionModel().removeListSelectionListener(chartListener);
-                chartImpacts.getSelectionModel().clearSelection();
+                chartImpacts.getSeriesSelectionModel().removeListSelectionListener(chartListener);
+                chartImpacts.getSeriesSelectionModel().clearSelection();
                 ListSelectionModel model = (ListSelectionModel) e.getSource();
                 if (!model.isSelectionEmpty()) {
                     for (int i = 0; i < grid.getSelectedRows().length; i++) {
                         int row = grid.getSelectedRows()[i];
                         if (row < collection.getCount() - 1) {
-                            chartImpacts.getSelectionModel().addSelectionInterval(row + 1, row + 1);
+                            chartImpacts.getSeriesSelectionModel().addSelectionInterval(row + 1, row + 1);
                         } else if (row == rows.size() - 3) {
-                            chartImpacts.getSelectionModel().addSelectionInterval(0, 0);
+                            chartImpacts.getSeriesSelectionModel().addSelectionInterval(0, 0);
                         }
                     }
                 }
-                chartImpacts.getSelectionModel().addListSelectionListener(chartListener);
+                chartImpacts.getSeriesSelectionModel().addListSelectionListener(chartListener);
             }
         };
 
