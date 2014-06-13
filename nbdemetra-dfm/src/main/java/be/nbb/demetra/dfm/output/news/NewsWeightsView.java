@@ -21,6 +21,7 @@ import ec.nbdemetra.ui.NbComponents;
 import ec.nbdemetra.ui.awt.PopupListener;
 import ec.tss.TsCollection;
 import ec.tss.TsFactory;
+import ec.tss.datatransfer.TsDragRenderer;
 import ec.tss.datatransfer.TssTransferSupport;
 import ec.tss.dfm.DfmResults;
 import ec.tss.dfm.DfmSeriesDescriptor;
@@ -58,6 +59,7 @@ import ec.util.various.swing.JCommand;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.ItemEvent;
@@ -66,18 +68,23 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
+import javax.swing.TransferHandler;
+import static javax.swing.TransferHandler.COPY;
 import javax.swing.table.DefaultTableCellRenderer;
 
 /**
@@ -175,7 +182,7 @@ public class NewsWeightsView extends JPanel {
         add(combobox, BorderLayout.NORTH);
         add(splitPane, BorderLayout.CENTER);
     }
-    
+
     private void onColorSchemeChanged() {
         defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
             @Override
@@ -185,7 +192,7 @@ public class NewsWeightsView extends JPanel {
         };
         chartForecast.setColorSchemeSupport(defaultColorSchemeSupport);
     }
-    
+
     private void onDataFormatChanged() {
         formatter = demetraUI.getDataFormat().numberFormatter();
         grid.setDefaultRenderer(Double.class, new DoubleTableCellRenderer(formatter));
@@ -242,6 +249,8 @@ public class NewsWeightsView extends JPanel {
 
         chart.setColorSchemeSupport(defaultColorSchemeSupport);
         chart.setNoDataMessage("No data produced");
+        chart.setTransferHandler(new TsCollectionTransferHandler());
+
         return chart;
     }
     //</editor-fold>
@@ -629,6 +638,45 @@ public class NewsWeightsView extends JPanel {
             }
 
             return this;
+        }
+    }
+
+    private TsCollection dragSelection = null;
+
+    protected Transferable transferableOnSelection() {
+        TsCollection col = TsFactory.instance.createTsCollection();
+
+        ListSelectionModel model = chartForecast.getSeriesSelectionModel();
+        if (!model.isSelectionEmpty()) {
+            for (int i = model.getMinSelectionIndex(); i <= model.getMaxSelectionIndex(); i++) {
+                if (model.isSelectedIndex(i)) {
+                    col.quietAdd(collection.get(i));
+                }
+            }
+        }
+        dragSelection = col;
+        return TssTransferSupport.getInstance().fromTsCollection(dragSelection);
+    }
+
+    public class TsCollectionTransferHandler extends TransferHandler {
+
+        @Override
+        public int getSourceActions(JComponent c) {
+            transferableOnSelection();
+            TsDragRenderer r = dragSelection.getCount() < 10 ? TsDragRenderer.asChart() : TsDragRenderer.asCount();
+            Image image = r.getTsDragRendererImage(Arrays.asList(dragSelection.toArray()));
+            setDragImage(image);
+            return COPY;
+        }
+
+        @Override
+        protected Transferable createTransferable(JComponent c) {
+            return transferableOnSelection();
+        }
+
+        @Override
+        public boolean canImport(TransferHandler.TransferSupport support) {
+            return false;
         }
     }
 
