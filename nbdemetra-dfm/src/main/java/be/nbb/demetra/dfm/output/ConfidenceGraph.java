@@ -28,6 +28,13 @@ import ec.util.chart.ColorScheme.KnownColor;
 import ec.util.chart.swing.Charts;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.Paint;
+import java.awt.Shape;
+import java.awt.Stroke;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.geom.Ellipse2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -44,8 +51,10 @@ import org.jfree.chart.entity.XYItemEntity;
 import org.jfree.chart.plot.DatasetRenderingOrder;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.AbstractRenderer;
 import org.jfree.chart.renderer.xy.XYDifferenceRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.data.xy.XYDataset;
 
 /**
  *
@@ -84,11 +93,15 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
     // How many RGB steps there are between the high and low colours.
     private int colourValueDistance;
 
+    private final RevealObs revealObs;
+
     public ConfidenceGraph() {
-        this.chartPanel = new ChartPanel(createMarginViewChart());
-        this.data = new ConfidenceData(null, null);
+        chartPanel = new ChartPanel(createMarginViewChart());
+        data = new ConfidenceData(null, null);
+        revealObs = new RevealObs();
 
         Charts.avoidScaling(chartPanel);
+        Charts.enableFocusOnClick(chartPanel);
 
         setLayout(new BorderLayout());
         add(chartPanel, BorderLayout.CENTER);
@@ -106,7 +119,10 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
                 }
             }
         });
+
         chartPanel.addChartMouseListener(new HighlightChartMouseListener2());
+        chartPanel.addKeyListener(revealObs);
+        
         highlight = null;
 
         onDataFormatChange();
@@ -171,22 +187,7 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
         XYPlot plot = result.getXYPlot();
         plot.setDatasetRenderingOrder(DatasetRenderingOrder.FORWARD);
 
-        XYLineAndShapeRenderer main = new XYLineAndShapeRenderer(true, false) {
-            @Override
-            public boolean getItemShapeVisible(int series, int item) {
-                XYPlot plot = (XYPlot) result.getPlot();
-                if (highlight != null && highlight.getDataset().equals(plot.getDataset(MAIN_INDEX))) {
-                    return highlight.getSeriesIndex() == series && highlight.getItem() == item;
-                } else {
-                    return false;
-                }
-            }
-        };
-        main.setBaseShape(new Ellipse2D.Double(-3, -3, 6, 6));
-        main.setAutoPopulateSeriesPaint(false);
-        main.setAutoPopulateSeriesShape(false);
-        main.setAutoPopulateSeriesStroke(false);
-        main.setBaseStroke(TsCharts.getStrongStroke(LinesThickness.Thin));
+        XYLineAndShapeRenderer main = new LineRenderer();
         plot.setRenderer(MAIN_INDEX, main);
 
         for (int i = 0; i < indexes.length - 1; i++) {
@@ -291,12 +292,6 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
 
         @Override
         public void chartMouseClicked(ChartMouseEvent event) {
-            // FIXME: drag problem if you put mousePressed code here
-            if (event.getEntity() instanceof XYItemEntity) {
-                XYItemEntity xxx = (XYItemEntity) event.getEntity();
-                TsPeriod p = new TsPeriod(data.series.getFrequency(), new Date(xxx.getDataset().getX(0, xxx.getItem()).longValue()));
-                System.out.println(data.series.get(xxx.getItem()) + " - " + data.series.get(p));
-            }
         }
 
         @Override
@@ -380,5 +375,115 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
         colourValueDistance = Math.abs(r1 - r2);
         colourValueDistance += Math.abs(g1 - g2);
         colourValueDistance += Math.abs(b1 - b2);
+    }
+
+    private static final Shape ITEM_SHAPE = new Ellipse2D.Double(-3, -3, 6, 6);
+
+    private class LineRenderer extends XYLineAndShapeRenderer {
+
+        public LineRenderer() {
+            setBaseItemLabelsVisible(true);
+            setAutoPopulateSeriesShape(false);
+            setAutoPopulateSeriesFillPaint(false);
+            setAutoPopulateSeriesOutlineStroke(false);
+            setBaseShape(ITEM_SHAPE);
+            setUseFillPaint(true);
+        }
+
+        @Override
+        public boolean getItemShapeVisible(int series, int item) {
+            return revealObs.isEnabled() || isObsHighlighted(series, item);
+        }
+
+        private boolean isObsHighlighted(int series, int item) {
+            XYPlot plot = (XYPlot) chartPanel.getChart().getPlot();
+            if (highlight != null && highlight.getDataset().equals(plot.getDataset(MAIN_INDEX))) {
+                return highlight.getSeriesIndex() == series && highlight.getItem() == item;
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public boolean isItemLabelVisible(int series, int item) {
+            return isObsHighlighted(series, item);
+        }
+
+        @Override
+        public Paint getSeriesPaint(int series) {
+            return themeSupport.getLineColor(MAIN_COLOR);
+        }
+
+        @Override
+        public Paint getItemPaint(int series, int item) {
+            return themeSupport.getLineColor(MAIN_COLOR);
+        }
+
+        @Override
+        public Paint getItemFillPaint(int series, int item) {
+            return chartPanel.getChart().getPlot().getBackgroundPaint();
+        }
+
+        @Override
+        public Stroke getSeriesStroke(int series) {
+            return TsCharts.getStrongStroke(LinesThickness.Thin);
+        }
+
+        @Override
+        public Stroke getItemOutlineStroke(int series, int item) {
+            return TsCharts.getStrongStroke(LinesThickness.Thin);
+        }
+
+        @Override
+        protected void drawItemLabel(Graphics2D g2, PlotOrientation orientation, XYDataset dataset, int series, int item, double x, double y, boolean negative) {
+            String label = generateLabel();
+            Font font = chartPanel.getFont();
+            Paint paint = chartPanel.getChart().getPlot().getBackgroundPaint();
+            Paint fillPaint = themeSupport.getLineColor(MAIN_COLOR);
+            Stroke outlineStroke = AbstractRenderer.DEFAULT_STROKE;
+            Charts.drawItemLabelAsTooltip(g2, x, y, 3d, label, font, paint, fillPaint, paint, outlineStroke);
+        }
+
+        private String generateLabel() {
+            TsPeriod p = new TsPeriod(data.series.getFrequency(), new Date(highlight.getDataset().getX(0, highlight.getItem()).longValue()));
+            String label = "Period : " + p.toString() + "\nValue : ";
+            label += themeSupport.getDataFormat().numberFormatter().formatAsString(data.series.get(p));
+            return label;
+        }
+    };
+
+    private final class RevealObs implements KeyListener {
+
+        private boolean enabled = false;
+
+        @Override
+        public void keyTyped(KeyEvent e) {
+        }
+
+        @Override
+        public void keyPressed(KeyEvent e) {
+            if (e.getKeyChar() == 'r') {
+                setEnabled(true);
+            }
+        }
+
+        @Override
+        public void keyReleased(KeyEvent e) {
+            if (e.getKeyChar() == 'r') {
+                setEnabled(false);
+            }
+        }
+
+        private void setEnabled(boolean enabled) {
+            if (this.enabled != enabled) {
+                this.enabled = enabled;
+                firePropertyChange("revealObs", !enabled, enabled);
+                chartPanel.getChart().fireChartChanged();
+            }
+        }
+
+        public boolean isEnabled() {
+            return enabled;
+        }
     }
 }

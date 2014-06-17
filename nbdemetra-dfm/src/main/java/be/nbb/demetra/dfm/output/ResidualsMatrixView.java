@@ -24,6 +24,7 @@ import ec.tss.tsproviders.utils.Formatters.Formatter;
 import ec.tstoolkit.dfm.DynamicFactorModel;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.ui.interfaces.IZoomableGrid;
+import ec.util.chart.swing.SwingColorSchemeSupport;
 import ec.util.grid.swing.AbstractGridModel;
 import ec.util.grid.swing.GridModel;
 import ec.util.grid.swing.GridRowHeaderRenderer;
@@ -324,27 +325,8 @@ public class ResidualsMatrixView extends JPanel {
         colourValueDistance += Math.abs(b1 - b2);
     }
 
-    /**
-     * Calculate the relative luminance of a given color
-     *
-     * @see http://en.wikipedia.org/wiki/Luminance_(relative)
-     * @param c Color
-     * @return Relative luminance value
-     */
-    private double getLuminance(Color c) {
-        double r, g, b;
-        r = c.getRed();
-        g = c.getGreen();
-        b = c.getBlue();
-        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    }
-
-    private Color getForegroundColor(double luminance) {
-        if (luminance > 127) {
-            return Color.BLACK;
-        } else {
-            return Color.WHITE;
-        }
+    private static Color getForegroundColor(double luminance) {
+        return (luminance > 127) ? Color.BLACK : Color.WHITE;
     }
 
     private double min(Matrix values) {
@@ -407,7 +389,7 @@ public class ResidualsMatrixView extends JPanel {
                 if (heatMapVisible) {
                     Color c = getCellColour(Math.abs(number.doubleValue()));
                     l.setBackground(c);
-                    l.setForeground(getForegroundColor(getLuminance(c)));
+                    l.setForeground(getForegroundColor(SwingColorSchemeSupport.getLuminance(c)));
                 } else {
                     l.setBackground(table.getBackground());
                     l.setForeground(table.getForeground());

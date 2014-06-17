@@ -218,7 +218,7 @@ public class NewsImpactsView extends JPanel {
         };
 
         grid.getSelectionModel().addListSelectionListener(gridListener);
-        chartImpacts.getSelectionModel().addListSelectionListener(chartListener);
+        chartImpacts.getSeriesSelectionModel().addListSelectionListener(chartListener);
 
         updateComboBox();
         updateGridModel();
