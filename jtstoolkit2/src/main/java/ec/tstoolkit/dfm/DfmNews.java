@@ -50,6 +50,8 @@ public class DfmNews {
     private DfmInformationUpdates updates_;
     private Matrix mcov_, lcov_;
     private TsPeriod first_, last_;
+
+    private int ext_ = 2;
     /**
      * "Complete" domain, which is the union of the domains of the old
      * information set and of the new information set
@@ -59,6 +61,8 @@ public class DfmNews {
      * domain containing all the news
      */
     private TsDomain nDomain_;
+
+    private TsDomain iDomain0_, iDomain1_;
 
     /**
      *
@@ -95,7 +99,18 @@ public class DfmNews {
         if (updates_.updates().isEmpty()) {
             return false;
         }
+        TsDomain d0 = oldset_.getCurrentDomain();
+        TsDomain d1 = newset_.getCurrentDomain();
+        fullDomain_ = d0.union(d1);
+        last_ = fullDomain_.getLast();
+        first_ = fullDomain_.getStart();
+
         computeDomains();
+        return calcNews();
+    }
+
+    private boolean calcNews() {
+        computeNewsDomain();
         Matrix M = oldset_.generateMatrix(fullDomain_);
         if (!smoothOldData(M)) {
             return false;
@@ -110,30 +125,54 @@ public class DfmNews {
 
     public double getOldForecast(int series, TsPeriod p) {
         int pos = p.lastPeriod(fullDomain_.getFrequency()).minus(fullDomain_.getStart());
-        return ssf_.ZX(pos, series, srslts0_.A(pos));
+        DataBlock A = getOldSmoothingResults().A(pos);
+        return A != null ? ssf_.ZX(pos, series, A) : Double.NaN;
     }
 
     public double getNewForecast(int series, TsPeriod p) {
         int pos = p.lastPeriod(fullDomain_.getFrequency()).minus(fullDomain_.getStart());
-        return ssf_.ZX(pos, series, getNewSmoothingResults().A(pos));
+        DataBlock A = getNewSmoothingResults().A(pos);
+        return A != null ? ssf_.ZX(pos, series, A) : Double.NaN;
+    }
+
+    public int getMaxNewsExtensionPeriod() {
+        return ext_;
+    }
+
+    public void setMaxNewsExtensionPeriod(int n) {
+        if (n != ext_) {
+            ext_ = n;
+            calcNews();        
+        }
     }
 
     private void computeDomains() {
-        TsDomain idomain = oldset_.getCurrentDomain();
-        nDomain_ = updates_.updatesDomain(idomain.getFrequency());
-        for (int i=0; i<oldset_.getSeriesCount(); ++i){
-            TsData s=oldset_.series(i);
-            int j=s.getLength();
-            while (j>0 && s.isMissing(j-1))
-                --j;
-            TsPeriod last=s.getStart().plus(j).lastPeriod(nDomain_.getFrequency());
-            int n=nDomain_.getStart().minus(last);
-            if (n > 0)
-                nDomain_=nDomain_.extend(n, 0);
-        }
-        fullDomain_ = idomain.union(newset_.getCurrentDomain());
+        TsDomain d0 = oldset_.getCurrentDomain();
+        TsDomain d1 = newset_.getCurrentDomain();
+        fullDomain_ = d0.union(d1);
         last_ = fullDomain_.getLast();
         first_ = fullDomain_.getStart();
+        iDomain0_ = oldset_.getCommonDomain();
+        iDomain1_ = newset_.getCommonDomain();
+    }
+
+    private void computeNewsDomain() {
+        nDomain_ = updates_.updatesDomain(fullDomain_.getFrequency());
+        for (int i = 0; i < oldset_.getSeriesCount(); ++i) {
+            TsData s = oldset_.series(i);
+            int j = s.getLength();
+            while (j > 0 && s.isMissing(j - 1)) {
+                --j;
+            }
+            TsPeriod last = s.getStart().plus(j).lastPeriod(nDomain_.getFrequency());
+            int n = nDomain_.getStart().minus(last);
+            if (n > 0 && ext_ != 0) {
+                if (ext_ > 0) {
+                    n = Math.min(n, ext_ * nDomain_.getFrequency().intValue());
+                }
+                nDomain_ = nDomain_.extend(n, 0);
+            }
+        }
     }
 
     public TsDomain getDomain() {
@@ -151,7 +190,7 @@ public class DfmNews {
         MultivariateSsfData ssfData = new MultivariateSsfData(M.subMatrix().transpose(), null);
         MSmoother smoother = new MSmoother();
         srslts0_ = new MSmoothingResults();
-        int last = fullDomain_.search(nDomain_.getStart());
+        int last = fullDomain_.search(iDomain0_.getStart());
         srslts0_.setSavingStart(last);
         smoother.setStopPosition(last);
         smoother.setCalcVariance(false);
@@ -162,7 +201,7 @@ public class DfmNews {
         MultivariateSsfData ssfData = new MultivariateSsfData(M.subMatrix().transpose(), null);
         MSmoother smoother = new MSmoother();
         srslts1_ = new MSmoothingResults();
-        int last = fullDomain_.search(nDomain_.getStart());
+        int last = fullDomain_.search(iDomain1_.getStart());
         srslts1_.setSavingStart(last);
         smoother.setStopPosition(last);
         smoother.setCalcVariance(false);

@@ -23,6 +23,7 @@ import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDataTable;
 import ec.tstoolkit.timeseries.simplets.TsDataTableInfo;
 import ec.tstoolkit.timeseries.simplets.TsDomain;
+import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
 
 /**
@@ -88,6 +89,21 @@ public class DfmInformationSet {
      */
     public TsDomain getCurrentDomain() {
         return table_.getDomain();
+    }
+    
+    public TsDomain getCommonDomain(){
+        if (table_.isEmpty())
+            return null;
+        TsFrequency f=table_.getDomain().getFrequency();
+        TsDomain common=null;
+        for (int i=0; i<table_.getSeriesCount(); ++i){
+            TsDomain cur=table_.series(i).getDomain();
+            TsPeriod p0=new TsPeriod(f, cur.getStart().firstday());
+            TsPeriod p1=new TsPeriod(f, cur.getEnd().firstday());
+            TsDomain fcur=new TsDomain(p0, p1.minus(p0));
+            common= common != null ? common.intersection(fcur) : fcur;
+        }
+        return common;
     }
 
     public int getSeriesCount() {
