@@ -17,6 +17,7 @@
 package be.nbb.demetra.dfm.output;
 
 import com.google.common.base.Optional;
+import ec.nbdemetra.ui.notification.NotifyUtil;
 import ec.tss.dfm.DfmResults;
 import ec.tss.dfm.DfmSeriesDescriptor;
 import ec.tstoolkit.timeseries.simplets.TsData;
@@ -34,28 +35,28 @@ import javax.swing.JPanel;
  * @author Mats Maggi
  */
 public class ConfidenceSignalGraphView extends JPanel {
-    
+
     // Properties
     public static final String DFM_RESULTS_PROPERTY = "dfmResults";
 
     private final JComboBox comboBox;
     private final ConfidenceGraph graph;
-    
+
     private Optional<DfmResults> dfmResults;
-    
+
     public ConfidenceSignalGraphView() {
         super(new BorderLayout());
         this.graph = new ConfidenceGraph();
         this.dfmResults = Optional.absent();
         this.comboBox = new JComboBox();
-        
+
         comboBox.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
                 updateChart();
             }
         });
-        
+
         addPropertyChangeListener(new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
@@ -67,14 +68,14 @@ public class ConfidenceSignalGraphView extends JPanel {
                 }
             }
         });
-        
+
         updateComboBox();
         updateChart();
 
         add(comboBox, BorderLayout.NORTH);
         add(graph, BorderLayout.CENTER);
     }
-    
+
     //<editor-fold defaultstate="collapsed" desc="Getters/Setters">
     public Optional<DfmResults> getDfmResults() {
         return dfmResults;
@@ -86,7 +87,7 @@ public class ConfidenceSignalGraphView extends JPanel {
         firePropertyChange(DFM_RESULTS_PROPERTY, old, this.dfmResults);
     }
     //</editor-fold>
-    
+
     private void updateComboBox() {
         if (dfmResults.isPresent()) {
             comboBox.setModel(toComboBoxModel(dfmResults.get().getDescriptions()));
@@ -96,20 +97,24 @@ public class ConfidenceSignalGraphView extends JPanel {
             comboBox.setEnabled(false);
         }
     }
-    
+
     private void updateChart() {
-        if (dfmResults.isPresent() && comboBox.getSelectedIndex() != -1) {
-            DfmResults rslts = dfmResults.get();
-            int selectedIndex = comboBox.getSelectedIndex();
-            TsData signalMean = rslts.getSignalProjections()[selectedIndex];
-            TsData smoothedSignalUncertainly = rslts.getSignalUncertainty()[selectedIndex].pow(0.5);
-            
-            graph.setData(signalMean, smoothedSignalUncertainly);
-        } else {
-            graph.setData(null, null);
+        try {
+            if (dfmResults.isPresent() && comboBox.getSelectedIndex() != -1) {
+                DfmResults rslts = dfmResults.get();
+                int selectedIndex = comboBox.getSelectedIndex();
+                TsData signalMean = rslts.getSignalProjections()[selectedIndex];
+                TsData smoothedSignalUncertainly = rslts.getSignalUncertainty()[selectedIndex].pow(0.5);
+
+                graph.setData(signalMean, smoothedSignalUncertainly);
+            } else {
+                graph.setData(null, null);
+            }
+        } catch (ArrayIndexOutOfBoundsException ex) {
+            NotifyUtil.error("Error !", "An exception has occured while displaying the results", ex);
         }
     }
-    
+
     private static DefaultComboBoxModel toComboBoxModel(DfmSeriesDescriptor[] data) {
         DefaultComboBoxModel result = new DefaultComboBoxModel(data);
         return result;

@@ -11,6 +11,8 @@ import ec.nbdemetra.ui.DemetraUI;
 import ec.nbdemetra.ui.DemetraUiIcon;
 import ec.nbdemetra.ui.NbComponents;
 import ec.nbdemetra.ui.nodes.ExceptionNode;
+import ec.nbdemetra.ui.notification.MessageType;
+import ec.nbdemetra.ui.notification.NotifyUtil;
 import ec.nbdemetra.ui.properties.OpenIdePropertySheetBeanEditor;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.tss.dfm.DfmDocument;
@@ -32,8 +34,10 @@ import java.util.concurrent.ExecutionException;
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
 import javax.swing.SwingWorker;
@@ -47,8 +51,8 @@ import org.openide.DialogDisplayer;
 import org.openide.NotifyDescriptor;
 import org.openide.util.Cancellable;
 import static org.openide.util.ImageUtilities.createDisabledIcon;
-import org.openide.windows.TopComponent;
 import org.openide.util.NbBundle.Messages;
+import org.openide.windows.TopComponent;
 
 /**
  * Top component which displays something.
@@ -71,6 +75,7 @@ import org.openide.util.NbBundle.Messages;
 public final class DfmExecViewTopComponent extends AbstractDfmDocumentTopComponent {
 
     private DynamicTimeSeriesCollection dataset;
+    private ChartPanel sparkline;
 
     public DfmExecViewTopComponent() {
         this(null, new DfmController());
@@ -138,7 +143,7 @@ public final class DfmExecViewTopComponent extends AbstractDfmDocumentTopCompone
         clear.setToolTipText("Clear");
 
         SwingColorSchemeSupport colorSchemeSupport = SwingColorSchemeSupport.from(DemetraUI.getInstance().getColorScheme());
-        ChartPanel sparkline = (ChartPanel) toolBar.add(Charts.avoidScaling(new ChartPanel(Charts.createSparkLineChart(null))));
+        sparkline = (ChartPanel) toolBar.add(Charts.avoidScaling(new ChartPanel(Charts.createSparkLineChart(null))));
         sparkline.setPreferredSize(new Dimension(150, 16));
         sparkline.setMaximumSize(new Dimension(150, 16));
         sparkline.getChart().getXYPlot().setDataset(dataset);
@@ -226,10 +231,12 @@ public final class DfmExecViewTopComponent extends AbstractDfmDocumentTopCompone
         @Override
         protected void done() {
             if (isCancelled()) {
+                NotifyUtil.show("Cancelled !", "Processing has been cancelled", MessageType.WARNING, null, null, null);
                 controller.setDfmState(DfmState.CANCELLED);
             } else {
                 try {
                     CompositeResults results = get();
+                    NotifyUtil.show("Done !", "Processing has completed successfuly", MessageType.SUCCESS, null, createChartImage(), null);
                     controller.setDfmState(DfmState.DONE);
                 } catch (InterruptedException | ExecutionException ex) {
                     if (ex instanceof ExecutionException && ex.getCause() instanceof Exception) {
@@ -263,6 +270,10 @@ public final class DfmExecViewTopComponent extends AbstractDfmDocumentTopCompone
                 dataset.advanceTime();
                 dataset.appendData(new float[]{(float) info.information.loglikelihood});
             }
+        }
+
+        private JLabel createChartImage() {
+            return new JLabel(new ImageIcon(sparkline.getChart().createBufferedImage(150, 16)));
         }
     }
 

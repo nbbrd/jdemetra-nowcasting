@@ -48,8 +48,9 @@ public class FactorView extends JPanel {
 
     public FactorView() {
         setLayout(new BorderLayout());
-        this.dfmResults = Optional.absent();
-        this.marginView = new MarginView();
+        dfmResults = Optional.absent();
+        marginView = new MarginView();
+
         comboBox = new JComboBox();
 
         comboBox.addItemListener(new ItemListener() {
@@ -125,7 +126,7 @@ public class FactorView extends JPanel {
         int nbFactors = dfmResults.get().getModel().getFactorsCount();
         String[] factors = new String[nbFactors];
         for (int i = 1; i <= nbFactors; i++) {
-            factors[i-1] = "F" + i;
+            factors[i - 1] = "F" + i;
         }
 
         return new DefaultComboBoxModel(factors);
@@ -152,4 +153,5 @@ public class FactorView extends JPanel {
 
         public Date[] markers;
     }
+
 }
