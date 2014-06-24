@@ -17,19 +17,24 @@
 package be.nbb.demetra.dfm.output;
 
 import com.google.common.base.Optional;
+import ec.nbdemetra.ui.DemetraUI;
 import ec.tss.datatransfer.TssTransferSupport;
 import ec.tss.dfm.DfmResults;
 import ec.tss.dfm.DfmSeriesDescriptor;
+import ec.tss.tsproviders.utils.Formatters;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
 import ec.ui.chart.TsXYDatasets;
+import ec.util.chart.ColorScheme;
 import ec.util.chart.ObsFunction;
 import ec.util.chart.SeriesFunction;
 import ec.util.chart.TimeSeriesChart;
+import ec.util.chart.swing.SwingColorSchemeSupport;
 import ec.util.various.swing.JCommand;
+import java.awt.Color;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.ItemEvent;
@@ -59,6 +64,10 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
         20, 24, 28, 32, 36, 40, 48, 60, 72, 84, 96, 120, 240, 1000
     };
     private Optional<DfmResults> dfmResults;
+    
+    private final DemetraUI demetraUI;
+    private Formatters.Formatter<Number> formatter;
+    private CustomSwingColorSchemeSupport defaultColorSchemeSupport;
 
     /**
      * Creates new form VarianceDecompositionView
@@ -67,6 +76,15 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
         initComponents();
 
         this.dfmResults = Optional.absent();
+        
+        demetraUI = DemetraUI.getInstance();
+        formatter = demetraUI.getDataFormat().numberFormatter();
+        defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
+            @Override
+            public ColorScheme getColorScheme() {
+                return demetraUI.getColorScheme();
+            }
+        };
 
         comboBox.addItemListener(new ItemListener() {
             @Override
@@ -88,7 +106,7 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
             public String apply(int series, int obs) {
                 return chart.getSeriesFormatter().apply(series)
                         + " - " + chart.getPeriodFormat().format(chart.getDataset().getX(series, obs))
-                        + "\n" + chart.getValueFormat().format(chart.getDataset().getY(series, obs));
+                        + "\n" + formatter.format(chart.getDataset().getY(series, obs));
             }
         });
         chart.setValueFormat(new DecimalFormat("#.###"));
@@ -112,6 +130,8 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
                 throw new UnsupportedOperationException("Not supported yet.");
             }
         });
+        
+        chart.setColorSchemeSupport(defaultColorSchemeSupport);
 
         addPropertyChangeListener(new PropertyChangeListener() {
             @Override
@@ -126,6 +146,34 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
 
         updateComboBox();
         updateChart();
+        
+        demetraUI.addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                switch (evt.getPropertyName()) {
+                    case DemetraUI.DATA_FORMAT_PROPERTY:
+                        onDataFormatChanged();
+                        break;
+                    case DemetraUI.COLOR_SCHEME_NAME_PROPERTY:
+                        onColorSchemeChanged();
+                        break;
+                }
+            }
+        });
+    }
+    
+    private void onDataFormatChanged() {
+        formatter = demetraUI.getDataFormat().numberFormatter();
+    }
+
+    private void onColorSchemeChanged() {
+        defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
+            @Override
+            public ColorScheme getColorScheme() {
+                return demetraUI.getColorScheme();
+            }
+        };
+        chart.setColorSchemeSupport(defaultColorSchemeSupport);
     }
 
     /**
@@ -231,6 +279,14 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
         @Override
         public JCommand.ActionAdapter toAction(VarianceDecompositionView c) {
             return super.toAction(c).withWeakPropertyChangeListener(c, DFM_RESULTS_PROPERTY);
+        }
+    }
+    
+    private abstract class CustomSwingColorSchemeSupport extends SwingColorSchemeSupport {
+       
+        @Override
+        public Color getLineColor(int series) {
+            return super.getLineColor(series);
         }
     }
 
