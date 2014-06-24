@@ -20,7 +20,9 @@ import com.google.common.base.Optional;
 import ec.nbdemetra.ui.notification.NotifyUtil;
 import ec.tss.dfm.DfmResults;
 import ec.tss.dfm.DfmSeriesDescriptor;
+import ec.tstoolkit.timeseries.TsAggregationType;
 import ec.tstoolkit.timeseries.simplets.TsData;
+import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import java.awt.BorderLayout;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
@@ -103,12 +105,18 @@ public class ConfidenceSignalGraphView extends JPanel {
             if (dfmResults.isPresent() && comboBox.getSelectedIndex() != -1) {
                 DfmResults rslts = dfmResults.get();
                 int selectedIndex = comboBox.getSelectedIndex();
+                double mean = rslts.getDescription(selectedIndex).mean;
                 TsData signalMean = rslts.getSignalProjections()[selectedIndex];
                 TsData smoothedSignalUncertainly = rslts.getSignalUncertainty()[selectedIndex].pow(0.5);
+                TsData originalData = rslts.getTheData()[selectedIndex].plus(mean);
 
-                graph.setData(signalMean, smoothedSignalUncertainly);
+                if (originalData.getFrequency().equals(TsFrequency.Quarterly)) {
+                    signalMean = signalMean.changeFrequency(TsFrequency.Quarterly, TsAggregationType.Last, false);
+                    smoothedSignalUncertainly = smoothedSignalUncertainly.changeFrequency(TsFrequency.Quarterly, TsAggregationType.Last, false);
+                }
+                graph.setData(signalMean, smoothedSignalUncertainly, originalData);
             } else {
-                graph.setData(null, null);
+                graph.setData(null, null, null);
             }
         } catch (ArrayIndexOutOfBoundsException ex) {
             NotifyUtil.error("Error !", "An exception has occured while displaying the results", ex);

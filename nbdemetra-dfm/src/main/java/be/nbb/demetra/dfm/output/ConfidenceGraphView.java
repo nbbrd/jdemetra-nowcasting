@@ -16,7 +16,12 @@
  */
 package be.nbb.demetra.dfm.output;
 
+import com.google.common.base.Optional;
 import ec.tss.Ts;
+import ec.tss.dfm.DfmResults;
+import ec.tstoolkit.timeseries.TsAggregationType;
+import ec.tstoolkit.timeseries.simplets.TsData;
+import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import java.awt.BorderLayout;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
@@ -40,6 +45,7 @@ public class ConfidenceGraphView extends JPanel {
     
     private Ts[] series;
     private Ts[] stdevs;
+    private DfmResults results;
     
     public ConfidenceGraphView() {
         super(new BorderLayout());
@@ -82,19 +88,30 @@ public class ConfidenceGraphView extends JPanel {
         }
     }
     
-    public void setResults(Ts[] series, Ts[] stdevs) {
+    public void setResults(Ts[] series, Ts[] stdevs, Optional<DfmResults> results) {
         this.series = series;
         this.stdevs = stdevs;
+        this.results = results.isPresent() ? results.get() : null;
         firePropertyChange(RESULTS_PROPERTY, null, null);
     }
     
     private void updateChart() {
         if (series != null && stdevs != null && comboBox.getSelectedIndex() != -1) {
             int selectedIndex = comboBox.getSelectedIndex();
-
-            graph.setData(series[selectedIndex].getTsData(), stdevs[selectedIndex].getTsData());
+            
+            TsData serie = series[selectedIndex].getTsData();
+            TsData stdev = stdevs[selectedIndex].getTsData();
+            if (results != null) {
+                TsFrequency freq = results.getTheData()[selectedIndex].getFrequency();
+                if (freq.equals(TsFrequency.Quarterly)) {
+                    serie = serie.changeFrequency(TsFrequency.Quarterly, TsAggregationType.Last, false);
+                    stdev = stdev.changeFrequency(TsFrequency.Quarterly, TsAggregationType.Last, false);
+                }
+            }
+         
+            graph.setData(serie, stdev, null);
         } else {
-            graph.setData(null, null);
+            graph.setData(null, null, null);
         }
     }
     

@@ -325,8 +325,8 @@ public class ResidualsMatrixView extends JPanel {
         colourValueDistance += Math.abs(b1 - b2);
     }
 
-    private static Color getForegroundColor(double luminance) {
-        return (luminance > 127) ? Color.BLACK : Color.WHITE;
+    private static Color getForegroundColor(Color color) {
+        return SwingColorSchemeSupport.isDark(color) ? Color.WHITE : Color.BLACK;
     }
 
     private double min(Matrix values) {
@@ -389,7 +389,7 @@ public class ResidualsMatrixView extends JPanel {
                 if (heatMapVisible) {
                     Color c = getCellColour(Math.abs(number.doubleValue()));
                     l.setBackground(c);
-                    l.setForeground(getForegroundColor(SwingColorSchemeSupport.getLuminance(c)));
+                    l.setForeground(getForegroundColor(c));
                 } else {
                     l.setBackground(table.getBackground());
                     l.setForeground(table.getForeground());

@@ -27,7 +27,9 @@ import ec.tss.html.HtmlTag;
 import ec.tss.html.IHtmlElement;
 import ec.tstoolkit.data.DescriptiveStatistics;
 import ec.tstoolkit.dfm.DynamicFactorModel;
+import ec.tstoolkit.timeseries.TsAggregationType;
 import ec.tstoolkit.timeseries.simplets.TsData;
+import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import java.io.IOException;
 import java.util.List;
 
@@ -89,8 +91,11 @@ public class HtmlFitResiduals extends AbstractHtmlElement implements IHtmlElemen
             stream.write(new HtmlTableCell(Double.isNaN(stdev) ? "" : df2.format(stdev), SERIES_SIZE, HtmlStyle.Center));
 
             int obsCount = rslts.getTheData()[i].getObsCount();
-
-            double rho = calculateRho(rslts.getNoise()[i]);
+            TsData noise = rslts.getNoise()[i];
+            if (rslts.getTheData()[i].getFrequency().equals(TsFrequency.Quarterly)) {
+                noise = noise.changeFrequency(TsFrequency.Quarterly, TsAggregationType.Last, false);
+            }
+            double rho = calculateRho(noise);
             stream.write(new HtmlTableCell(Double.isNaN(rho) ? "" : df2.format(rho), SERIES_SIZE, HtmlStyle.Center, getRhoColor(rho, obsCount)));
 
             stream.close(HtmlTag.TABLEROW);

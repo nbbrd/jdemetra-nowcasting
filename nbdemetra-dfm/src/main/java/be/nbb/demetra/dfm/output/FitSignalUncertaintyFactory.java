@@ -32,7 +32,7 @@ import org.openide.util.lookup.ServiceProvider;
  *
  * @author Mats Maggi
  */
-@ServiceProvider(service = ProcDocumentItemFactory.class, position = 200120)
+@ServiceProvider(service = ProcDocumentItemFactory.class, position = 200320)
 public class FitSignalUncertaintyFactory extends DfmResultsItemFactory {
 
     public FitSignalUncertaintyFactory() {
@@ -41,7 +41,7 @@ public class FitSignalUncertaintyFactory extends DfmResultsItemFactory {
     }
 
     private static Id newId() {
-        return new LinearId("Estimation", "Fit", "News Uncertainty");
+        return new LinearId("Forecasts", "News Uncertainty");
     }
 
     private static ItemUI<IProcDocumentView<DfmDocument>, Optional<DfmResults>> newItemUI() {

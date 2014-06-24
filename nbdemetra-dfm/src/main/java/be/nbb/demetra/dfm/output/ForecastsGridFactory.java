@@ -38,7 +38,7 @@ import org.openide.util.lookup.ServiceProvider;
  *
  * @author Jean Palate
  */
-@ServiceProvider(service = ProcDocumentItemFactory.class, position = 200320)
+@ServiceProvider(service = ProcDocumentItemFactory.class, position = 200330)
 public class ForecastsGridFactory extends DfmDocumentItemFactory {
 
     public ForecastsGridFactory() {
@@ -46,7 +46,7 @@ public class ForecastsGridFactory extends DfmDocumentItemFactory {
     }
 
     private static Id newId() {
-        return new LinearId("Estimation", "Forecasts", "Data");
+        return new LinearId("Forecasts", "Data");
     }
 
     private static ItemUI<IProcDocumentView<DfmDocument>, Optional<CompositeResults>> newItemUI() {

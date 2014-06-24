@@ -44,7 +44,7 @@ public class ForecastsChartFactory extends DfmResultsItemFactory {
     }
 
     private static Id newId() {
-        return new LinearId("Estimation", "Forecasts", "Forecasts Uncertainty");
+        return new LinearId("Forecasts", "Forecasts Uncertainty");
     }
 
     private static ItemUI<IProcDocumentView<DfmDocument>, Optional<DfmResults>> newItemUI() {
@@ -71,7 +71,7 @@ public class ForecastsChartFactory extends DfmResultsItemFactory {
                     }
                 }
                 
-                result.setResults(input, stdevs);
+                result.setResults(input, stdevs, information);
                 return result;
             }
         };

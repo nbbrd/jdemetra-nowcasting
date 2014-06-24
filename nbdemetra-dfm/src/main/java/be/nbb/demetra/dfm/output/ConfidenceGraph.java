@@ -26,6 +26,7 @@ import ec.ui.interfaces.ITsChart.LinesThickness;
 import ec.util.chart.ColorScheme;
 import ec.util.chart.ColorScheme.KnownColor;
 import ec.util.chart.swing.Charts;
+import ec.util.various.swing.JCommand;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
@@ -39,6 +40,9 @@ import java.awt.geom.Ellipse2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.Date;
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartMouseEvent;
 import org.jfree.chart.ChartMouseListener;
@@ -64,10 +68,15 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
 
     private static final String DATA_PROPERTY = "data";
     private static final String CONFIDENCE_PROPERTY = "confidenceVisibility";
+    private static final String ORIGINAL_VISIBLE_PROPERTY = "originalVisible";
+
     private static final KnownColor MAIN_COLOR = KnownColor.RED;
+    private static final KnownColor ORIGINAL_DATA_COLOR = KnownColor.GRAY;
     private static final KnownColor CONFIDENCE_COLOR = KnownColor.BLUE;
 
-    private static final int MAIN_INDEX = 1000;
+    private static final int MAIN_INDEX = 501;
+    private static final int ORIGINAL_DATA_INDEX = 500;
+    public boolean originalVisible = true;
 
     private final int CONFIDENCE99_INDEX = 0;
     private final int CONFIDENCE95_INDEX = 10;
@@ -95,10 +104,13 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
 
     private final RevealObs revealObs;
 
-    public ConfidenceGraph() {
+    public ConfidenceGraph() {        
         chartPanel = new ChartPanel(createMarginViewChart());
-        data = new ConfidenceData(null, null);
+        chartPanel.setPopupMenu(createChartMenu());
+
+        data = new ConfidenceData(null, null, null);
         revealObs = new RevealObs();
+        
 
         Charts.avoidScaling(chartPanel);
         Charts.enableFocusOnClick(chartPanel);
@@ -111,8 +123,7 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
             public void propertyChange(PropertyChangeEvent evt) {
                 switch (evt.getPropertyName()) {
                     case DATA_PROPERTY:
-                        onDataChange();
-                        break;
+                    case ORIGINAL_VISIBLE_PROPERTY:
                     case CONFIDENCE_PROPERTY:
                         onDataChange();
                         break;
@@ -122,17 +133,39 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
 
         chartPanel.addChartMouseListener(new HighlightChartMouseListener2());
         chartPanel.addKeyListener(revealObs);
-        
+
         highlight = null;
 
         onDataFormatChange();
         onColorSchemeChange();
     }
 
+    private JPopupMenu createChartMenu() {
+        JPopupMenu menu = chartPanel.getPopupMenu();
+
+        menu.addSeparator();
+        JMenuItem item = menu.add(new JCheckBoxMenuItem(OriginalCommand.INSTANCE.toAction(this)));
+        item.setText("Show original");
+
+        return menu;
+    }
+
+    public boolean isOriginalVisible() {
+        return originalVisible;
+    }
+
+    public void setOriginalVisible(boolean original) {
+        boolean old = this.originalVisible;
+        this.originalVisible = original;
+        firePropertyChange(ORIGINAL_VISIBLE_PROPERTY, old, this.originalVisible);
+    }
+
     private void onDataChange() {
         chartPanel.getChart().setNotify(false);
 
         XYPlot plot = chartPanel.getChart().getXYPlot();
+
+        plot.setDataset(ORIGINAL_DATA_INDEX, (data.original == null || !originalVisible ? null : TsXYDatasets.from("data", data.original)));
 
         if (data.series != null && data.stdev != null) {
             plot.setDataset(MAIN_INDEX, TsXYDatasets.from("series", data.series));
@@ -187,8 +220,11 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
         XYPlot plot = result.getXYPlot();
         plot.setDatasetRenderingOrder(DatasetRenderingOrder.FORWARD);
 
-        XYLineAndShapeRenderer main = new LineRenderer();
+        XYLineAndShapeRenderer main = new LineRenderer(MAIN_INDEX);
         plot.setRenderer(MAIN_INDEX, main);
+
+        XYLineAndShapeRenderer original = new LineRenderer(ORIGINAL_DATA_INDEX);
+        plot.setRenderer(ORIGINAL_DATA_INDEX, original);
 
         for (int i = 0; i < indexes.length - 1; i++) {
             plot.setRenderer(indexes[i], getDifferenceRenderer());
@@ -243,6 +279,8 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
 
         XYLineAndShapeRenderer main = (XYLineAndShapeRenderer) plot.getRenderer(MAIN_INDEX);
         main.setBasePaint(themeSupport.getLineColor(MAIN_COLOR));
+        XYLineAndShapeRenderer original = (XYLineAndShapeRenderer) plot.getRenderer(ORIGINAL_DATA_INDEX);
+        original.setBasePaint(themeSupport.getLineColor(ORIGINAL_DATA_COLOR));
 
         for (int i = 0; i < indexes.length; i++) {
             XYDifferenceRenderer confidence = ((XYDifferenceRenderer) plot.getRenderer(indexes[i]));
@@ -272,19 +310,21 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
         themeSupport.setLocalColorScheme(colorScheme);
     }
 
-    public void setData(TsData series, TsData stdev) {
-        this.data = new ConfidenceData(series, stdev);
+    public void setData(TsData series, TsData stdev, TsData original) {
+        this.data = new ConfidenceData(series, stdev, original);
         firePropertyChange(DATA_PROPERTY, null, data);
     }
 
     private static final class ConfidenceData {
 
         final TsData series;
+        final TsData original;
         final TsData stdev;
 
-        public ConfidenceData(TsData series, TsData stdev) {
+        public ConfidenceData(TsData series, TsData stdev, TsData original) {
             this.series = series;
             this.stdev = stdev;
+            this.original = original;
         }
     }
 
@@ -381,13 +421,18 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
 
     private class LineRenderer extends XYLineAndShapeRenderer {
 
-        public LineRenderer() {
+        private final int index;
+        private final KnownColor color;
+
+        public LineRenderer(int index) {
             setBaseItemLabelsVisible(true);
             setAutoPopulateSeriesShape(false);
             setAutoPopulateSeriesFillPaint(false);
             setAutoPopulateSeriesOutlineStroke(false);
             setBaseShape(ITEM_SHAPE);
             setUseFillPaint(true);
+            this.index = index;
+            color = (this.index == MAIN_INDEX ? MAIN_COLOR : ORIGINAL_DATA_COLOR);
         }
 
         @Override
@@ -397,7 +442,7 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
 
         private boolean isObsHighlighted(int series, int item) {
             XYPlot plot = (XYPlot) chartPanel.getChart().getPlot();
-            if (highlight != null && highlight.getDataset().equals(plot.getDataset(MAIN_INDEX))) {
+            if (highlight != null && highlight.getDataset().equals(plot.getDataset(index))) {
                 return highlight.getSeriesIndex() == series && highlight.getItem() == item;
             } else {
                 return false;
@@ -411,12 +456,12 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
 
         @Override
         public Paint getSeriesPaint(int series) {
-            return themeSupport.getLineColor(MAIN_COLOR);
+            return themeSupport.getLineColor(color);
         }
 
         @Override
         public Paint getItemPaint(int series, int item) {
-            return themeSupport.getLineColor(MAIN_COLOR);
+            return themeSupport.getLineColor(color);
         }
 
         @Override
@@ -439,15 +484,16 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
             String label = generateLabel();
             Font font = chartPanel.getFont();
             Paint paint = chartPanel.getChart().getPlot().getBackgroundPaint();
-            Paint fillPaint = themeSupport.getLineColor(MAIN_COLOR);
+            Paint fillPaint = themeSupport.getLineColor(color);
             Stroke outlineStroke = AbstractRenderer.DEFAULT_STROKE;
             Charts.drawItemLabelAsTooltip(g2, x, y, 3d, label, font, paint, fillPaint, paint, outlineStroke);
         }
 
         private String generateLabel() {
             TsPeriod p = new TsPeriod(data.series.getFrequency(), new Date(highlight.getDataset().getX(0, highlight.getItem()).longValue()));
-            String label = "Period : " + p.toString() + "\nValue : ";
-            label += themeSupport.getDataFormat().numberFormatter().formatAsString(data.series.get(p));
+            String label = (index == ORIGINAL_DATA_INDEX ? "Original data\n" : "") + "Period : " + p.toString() + "\nValue : ";
+            double value = index == MAIN_INDEX ? data.series.get(p) : data.original.get(p);
+            label += themeSupport.getDataFormat().numberFormatter().formatAsString(value);
             return label;
         }
     };
@@ -484,6 +530,26 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
 
         public boolean isEnabled() {
             return enabled;
+        }
+    }
+
+    private static final class OriginalCommand extends JCommand<ConfidenceGraph> {
+
+        public static final OriginalCommand INSTANCE = new OriginalCommand();
+
+        @Override
+        public void execute(ConfidenceGraph component) throws Exception {
+            component.setOriginalVisible(!component.isOriginalVisible());
+        }
+
+        @Override
+        public boolean isSelected(ConfidenceGraph component) {
+            return component.isOriginalVisible();
+        }
+
+        @Override
+        public JCommand.ActionAdapter toAction(ConfidenceGraph component) {
+            return super.toAction(component).withWeakPropertyChangeListener(component, ORIGINAL_VISIBLE_PROPERTY);
         }
     }
 }
