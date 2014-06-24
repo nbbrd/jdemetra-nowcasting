@@ -26,7 +26,6 @@ import ec.ui.interfaces.ITsChart.LinesThickness;
 import ec.util.chart.ColorScheme;
 import ec.util.chart.ColorScheme.KnownColor;
 import ec.util.chart.swing.Charts;
-import ec.util.various.swing.JCommand;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
@@ -40,7 +39,6 @@ import java.awt.geom.Ellipse2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.Date;
-import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import org.jfree.chart.ChartFactory;
@@ -68,7 +66,7 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
 
     private static final String DATA_PROPERTY = "data";
     private static final String CONFIDENCE_PROPERTY = "confidenceVisibility";
-    private static final String ORIGINAL_VISIBLE_PROPERTY = "originalVisible";
+    public static final String ORIGINAL_VISIBLE_PROPERTY = "originalVisible";
 
     private static final KnownColor MAIN_COLOR = KnownColor.RED;
     private static final KnownColor ORIGINAL_DATA_COLOR = KnownColor.GRAY;
@@ -104,13 +102,11 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
 
     private final RevealObs revealObs;
 
-    public ConfidenceGraph() {        
+    public ConfidenceGraph() {
         chartPanel = new ChartPanel(createMarginViewChart());
-        chartPanel.setPopupMenu(createChartMenu());
 
         data = new ConfidenceData(null, null, null);
         revealObs = new RevealObs();
-        
 
         Charts.avoidScaling(chartPanel);
         Charts.enableFocusOnClick(chartPanel);
@@ -123,12 +119,15 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
             public void propertyChange(PropertyChangeEvent evt) {
                 switch (evt.getPropertyName()) {
                     case DATA_PROPERTY:
-                    case ORIGINAL_VISIBLE_PROPERTY:
                     case CONFIDENCE_PROPERTY:
                         onDataChange();
                         break;
+                    case ORIGINAL_VISIBLE_PROPERTY:
+                        onVisibilityChange();
+                        break;
                 }
             }
+
         });
 
         chartPanel.addChartMouseListener(new HighlightChartMouseListener2());
@@ -140,14 +139,17 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
         onColorSchemeChange();
     }
 
-    private JPopupMenu createChartMenu() {
+    private void onVisibilityChange() {
+        XYPlot plot = chartPanel.getChart().getXYPlot();
+        XYLineAndShapeRenderer original = (XYLineAndShapeRenderer) plot.getRenderer(ORIGINAL_DATA_INDEX);
+        original.setSeriesVisible(0, originalVisible);
+    }
+
+    public void addPopupMenuItem(JMenuItem item) {
         JPopupMenu menu = chartPanel.getPopupMenu();
 
         menu.addSeparator();
-        JMenuItem item = menu.add(new JCheckBoxMenuItem(OriginalCommand.INSTANCE.toAction(this)));
-        item.setText("Show original");
-
-        return menu;
+        menu.add(item);
     }
 
     public boolean isOriginalVisible() {
@@ -165,7 +167,7 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
 
         XYPlot plot = chartPanel.getChart().getXYPlot();
 
-        plot.setDataset(ORIGINAL_DATA_INDEX, (data.original == null || !originalVisible ? null : TsXYDatasets.from("data", data.original)));
+        plot.setDataset(ORIGINAL_DATA_INDEX, (data.original == null ? null : TsXYDatasets.from("data", data.original)));
 
         if (data.series != null && data.stdev != null) {
             plot.setDataset(MAIN_INDEX, TsXYDatasets.from("series", data.series));
@@ -530,26 +532,6 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
 
         public boolean isEnabled() {
             return enabled;
-        }
-    }
-
-    private static final class OriginalCommand extends JCommand<ConfidenceGraph> {
-
-        public static final OriginalCommand INSTANCE = new OriginalCommand();
-
-        @Override
-        public void execute(ConfidenceGraph component) throws Exception {
-            component.setOriginalVisible(!component.isOriginalVisible());
-        }
-
-        @Override
-        public boolean isSelected(ConfidenceGraph component) {
-            return component.isOriginalVisible();
-        }
-
-        @Override
-        public JCommand.ActionAdapter toAction(ConfidenceGraph component) {
-            return super.toAction(component).withWeakPropertyChangeListener(component, ORIGINAL_VISIBLE_PROPERTY);
         }
     }
 }

@@ -16,6 +16,7 @@
  */
 package be.nbb.demetra.dfm.output;
 
+import static be.nbb.demetra.dfm.output.ConfidenceGraph.ORIGINAL_VISIBLE_PROPERTY;
 import com.google.common.base.Optional;
 import ec.nbdemetra.ui.notification.NotifyUtil;
 import ec.tss.dfm.DfmResults;
@@ -23,13 +24,16 @@ import ec.tss.dfm.DfmSeriesDescriptor;
 import ec.tstoolkit.timeseries.TsAggregationType;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
+import ec.util.various.swing.JCommand;
 import java.awt.BorderLayout;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComboBox;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 
 /**
@@ -49,6 +53,8 @@ public class ConfidenceSignalGraphView extends JPanel {
     public ConfidenceSignalGraphView() {
         super(new BorderLayout());
         this.graph = new ConfidenceGraph();
+        createPopupMenu();
+        
         this.dfmResults = Optional.absent();
         this.comboBox = new JComboBox();
 
@@ -76,6 +82,12 @@ public class ConfidenceSignalGraphView extends JPanel {
 
         add(comboBox, BorderLayout.NORTH);
         add(graph, BorderLayout.CENTER);
+    }
+    
+    private void createPopupMenu() {
+        JMenuItem item = new JCheckBoxMenuItem(OriginalCommand.INSTANCE.toAction(graph));
+        item.setText("Show original data");
+        graph.addPopupMenuItem(item);
     }
 
     //<editor-fold defaultstate="collapsed" desc="Getters/Setters">
@@ -126,5 +138,25 @@ public class ConfidenceSignalGraphView extends JPanel {
     private static DefaultComboBoxModel toComboBoxModel(DfmSeriesDescriptor[] data) {
         DefaultComboBoxModel result = new DefaultComboBoxModel(data);
         return result;
+    }
+    
+    private static final class OriginalCommand extends JCommand<ConfidenceGraph> {
+
+        public static final OriginalCommand INSTANCE = new OriginalCommand();
+
+        @Override
+        public void execute(ConfidenceGraph component) throws Exception {
+            component.setOriginalVisible(!component.isOriginalVisible());
+        }
+
+        @Override
+        public boolean isSelected(ConfidenceGraph component) {
+            return component.isOriginalVisible();
+        }
+
+        @Override
+        public JCommand.ActionAdapter toAction(ConfidenceGraph component) {
+            return super.toAction(component).withWeakPropertyChangeListener(component, ORIGINAL_VISIBLE_PROPERTY);
+        }
     }
 }
