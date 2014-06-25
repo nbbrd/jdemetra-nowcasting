@@ -24,6 +24,7 @@ import ec.tss.TsFactory;
 import ec.tss.datatransfer.TssTransferSupport;
 import ec.tss.dfm.DfmResults;
 import ec.tss.dfm.DfmSeriesDescriptor;
+import ec.tss.tsproviders.utils.Formatters;
 import ec.ui.chart.TsXYDatasets;
 import ec.util.chart.ColorScheme;
 import ec.util.chart.ObsFunction;
@@ -60,6 +61,10 @@ final class FitSignalDataView extends javax.swing.JPanel {
     public static final String DFM_RESULTS_PROPERTY = "dfmResults";
 
     private Optional<DfmResults> dfmResults;
+    
+    private final DemetraUI demetraUI;
+    private Formatters.Formatter<Number> formatter;
+    private CustomSwingColorSchemeSupport defaultColorSchemeSupport;
 
     /**
      * Creates new form ShocksDecompositionView
@@ -68,6 +73,15 @@ final class FitSignalDataView extends javax.swing.JPanel {
         initComponents();
 
         this.dfmResults = Optional.absent();
+        
+        demetraUI = DemetraUI.getInstance();
+        formatter = demetraUI.getDataFormat().numberFormatter();
+        defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
+            @Override
+            public ColorScheme getColorScheme() {
+                return demetraUI.getColorScheme();
+            }
+        };
 
         comboBox.addItemListener(new ItemListener() {
             @Override
@@ -100,7 +114,7 @@ final class FitSignalDataView extends javax.swing.JPanel {
             public String apply(int series, int obs) {
                 return chart.getSeriesFormatter().apply(series)
                         + " - " + chart.getPeriodFormat().format(chart.getDataset().getX(series, obs))
-                        + "\n" + chart.getValueFormat().format(chart.getDataset().getY(series, obs));
+                        + "\n" + formatter.format(chart.getDataset().getY(series, obs));
             }
         });
         chart.setPopupMenu(createChartMenu().getPopupMenu());
@@ -121,6 +135,34 @@ final class FitSignalDataView extends javax.swing.JPanel {
 
         updateComboBox();
         updateChart();
+        
+        demetraUI.addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                switch (evt.getPropertyName()) {
+                    case DemetraUI.DATA_FORMAT_PROPERTY:
+                        onDataFormatChanged();
+                        break;
+                    case DemetraUI.COLOR_SCHEME_NAME_PROPERTY:
+                        onColorSchemeChanged();
+                        break;
+                }
+            }
+        });
+    }
+    
+    private void onDataFormatChanged() {
+        formatter = demetraUI.getDataFormat().numberFormatter();
+    }
+
+    private void onColorSchemeChanged() {
+        defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
+            @Override
+            public ColorScheme getColorScheme() {
+                return demetraUI.getColorScheme();
+            }
+        };
+        chart.setColorSchemeSupport(defaultColorSchemeSupport);
     }
 
     /**
@@ -226,13 +268,6 @@ final class FitSignalDataView extends javax.swing.JPanel {
             }
         }
     }
-
-    private final CustomSwingColorSchemeSupport defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
-        @Override
-        public ColorScheme getColorScheme() {
-            return DemetraUI.getInstance().getColorScheme();
-        }
-    };
 
     //<editor-fold defaultstate="collapsed" desc="Menus">
     private JMenu newColorSchemeMenu() {
