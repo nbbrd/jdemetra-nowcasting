@@ -497,6 +497,7 @@ public class DynamicFactorModelTest {
         }
         DataBlock n = news.news();
         DataBlock w = news.weights(23, s[23].getLastPeriod());
+          
         double e = n.dot(w);
         System.out.println("Test news");
         System.out.println(e);

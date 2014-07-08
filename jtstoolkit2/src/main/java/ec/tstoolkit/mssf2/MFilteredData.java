@@ -48,7 +48,22 @@ public class MFilteredData {
     public DataBlock A(final int t) {
         return t < m_start ? null : m_A.block(t - m_start);
     }
-
+    
+     /**
+     * Method added by David 08-July-2014 (
+     * @param idx
+     * @return
+     */
+     public double[] component(int idx) {
+        if (m_A == null) {
+            return null;
+        }
+        double[] c = new double[m_n - m_start];
+        m_A.item(idx).copyTo(c, 0);
+        return c;
+    }
+     
+    
     /**
      *
      * @param n

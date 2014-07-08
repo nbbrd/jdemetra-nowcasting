@@ -16,6 +16,7 @@
  */
 package ec.tss.dfm;
 
+import com.sun.org.apache.xerces.internal.util.TeeXMLDocumentFilterImpl;
 import ec.tstoolkit.algorithm.IProcResults;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DataBlockStorage;
@@ -200,7 +201,9 @@ public class DfmResults implements IProcResults {
     }
 
     /**
-     * Gets the TsData (time series) of smoothed factor identified as "idx",
+     * Gets the TsData (time series) of smoothed factor (ET[f(t)]) identified as "idx",
+     * @param idx
+     * @return 
      */
     public TsData getFactor(int idx) {
         if (smoothing == null) {
@@ -209,7 +212,23 @@ public class DfmResults implements IProcResults {
         TsDomain currentDomain = input.getCurrentDomain();
         return new TsData(currentDomain.getStart(), smoothing.component(idx * model.getBlockLength()), true);
     }
-
+    
+     /**
+     * Gets the TsData (time series) of Filtered (Et[f(t)]) factor identified as "idx",
+     * @param idx
+     * @return 
+   */
+    public TsData getFactor_Filtered(int idx) {
+        if (filtering == null) {
+            calcSmoothedStates();
+        }
+        TsDomain currentDomain = input.getCurrentDomain();
+        
+     //   filtering.getFilteredData().component(idx);
+        
+        return new TsData(currentDomain.getStart(), filtering.getFilteredData().component(idx * model.getBlockLength()), true);
+    }
+  
     public TsData getFactorStdev(int idx) {
         if (smoothing == null) {
             calcSmoothedStates();
@@ -224,6 +243,7 @@ public class DfmResults implements IProcResults {
         processor.process(model, input);
         smoothing = processor.getSmoothingResults();
         filtering = processor.getFilteringResults();
+        
     }
 
     public TsData[] getTheData() {
@@ -553,9 +573,11 @@ public class DfmResults implements IProcResults {
 
             } else {
                 //  TQT = new Matrix(ssf.getStateDim(),ssf.getStateDim());                 
-                Sigmax = new Matrix(r * c_, r * c_);
+             
+                // bugg found 09/05/2014    Sigmax = new Matrix(r * c_, r * c_);
+                
                 TQT = Q_.times(Q_.transpose());
-
+                Sigmax = new Matrix(TQT.subMatrix());
                 for (int i = 0; i < horizon[h]; i++) {           // ????    
                     ssf.TVT(0, TQT.subMatrix());
                     Sigmax.add(TQT);
@@ -629,16 +651,24 @@ public class DfmResults implements IProcResults {
         Rotation rot = new Rotation(angles);
         Matrix R = rot.getRotation();
         Matrix B = C.times(R);
-        Matrix TQT;
+        DataBlock ts;
+    
+
+       // Matrix TQT;
+        
         Matrix Bss = new Matrix(r * c_, r * c_); // compatible with SS
+
         for (int i = 0; i < r; i++) {
             for (int j = 0; j < r; j++) {
                 Bss.set(i * c_, j * c_, B.get(i, j));
             }
         }
 
+                
         Matrix Q_ = new Matrix(Bss.subMatrix(0, r * c_, shock * c_, shock * c_ + 1));
 
+        
+        
         if (description == null) {
             throw new Error("missing description of the data transformations, mean and standard deviation  (object of the class DfmSeriesDescriptor[] has not been defined)");
         }
@@ -649,13 +679,18 @@ public class DfmResults implements IProcResults {
                 System.err.println("The smallest forecast horizon is one period ahead, not zero");
             }
 
-            Matrix Sigmax;
+//   -->         Matrix Sigmax; 
+ 
 
             if (horizon[h] == 1) {
 
                 //  TQT = new Matrix(ssf.getStateDim(),ssf.getStateDim());    
                 //    Sigmax= new Matrix(r*c_, r*c_);
-                TQT = Q_.times(Q_.transpose());
+             
+            //--->  TQT = Q_.times(Q_.transpose()); // not correct
+              ts = Q_.column(0);
+                
+               
                 //     Sigmax.add(TQT);
                 //     for (int i=0;i<r;i++){
                 //         TQT.set(i*c_, i*c_, Q.subMatrix().get(i,i));
@@ -664,25 +699,35 @@ public class DfmResults implements IProcResults {
             } else {
                 //  TQT = new Matrix(ssf.getStateDim(),ssf.getStateDim());                 
                 //    Sigmax= new Matrix(r*c_, r*c_);
-                TQT = Q_.times(Q_.transpose());
-
+            //--->  TQT = Q_.times(Q_.transpose()); // not correct
+               
                 // [h=2]  i=0-->Q ; i=1-->TQT'; 
                 // [h=3]  i=0-->Q ; i=1-->TQT'; i=2-->T(TQT')T';
+                 ts = Q_.column(0);
                 for (int i = 0; i < horizon[h]; i++) { //      horizon[0] is always bigger than  2 (hor = 0 is nonsense and hor=1 is in the if statement ) 
-                    ssf.TVT(0, TQT.subMatrix());
+             //--->       ssf.TVT(0, TQT.subMatrix());// not correct
+                   
+                    
+                    ssf.TX(0,ts);
+                    
                     //           Sigmax.add(TQT);
 
                 }
 
             }
 
-            Sigmax = TQT.clone();
-            Matrix zvz = new Matrix(ssf.getVarsCount(), ssf.getVarsCount());
+            
+            
+    //        Matrix    zvz = new Matrix(ssf.getVarsCount(), ssf.getVarsCount());
 
-            ssf.ZVZ(0, Sigmax.subMatrix(), zvz.subMatrix());
+              //--> ssf.ZVZ(0, Sigmax.subMatrix(), zvz.subMatrix());
 
+ 
             for (int v = 0; v < N; v++) {
-                irfShock.set(v, h, zvz.get(v, v) * description[v].stdev);
+                  
+               
+ //--->          irfShock.set(v, h, zvz.get(v, v) * description[v].stdev);
+                irfShock.set(v, h, ssf.ZX(0, v, ts)* description[v].stdev);
             }
 
         }

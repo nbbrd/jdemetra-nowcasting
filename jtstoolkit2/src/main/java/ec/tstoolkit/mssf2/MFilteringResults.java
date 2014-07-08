@@ -48,6 +48,7 @@ public class MFilteringResults extends ResidualsCumulator implements
         m_var.clear();
     }
 
+
     /**
      *
      */
