@@ -69,7 +69,7 @@ public class MFilteredData {
      * @param n
      */
     public void checkSize(int n) {
-        m_e.resize(n);
+        m_e.resize(n, Double.NaN);
         m_A.resize(n);
     }
 

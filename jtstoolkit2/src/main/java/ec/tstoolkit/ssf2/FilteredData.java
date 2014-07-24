@@ -20,6 +20,7 @@ import ec.tstoolkit.utilities.Arrays2;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DataBlockStorage;
 import ec.tstoolkit.design.Development;
+import java.util.Arrays;
 
 /**
  * 
@@ -79,6 +80,7 @@ public class FilteredData {
 	Arrays2.copy(m_e, tmp, m_e.length);
 	m_e = tmp;
 	tmp = new double[DataBlockStorage.calcSize(n)];
+        Arrays.fill(tmp, Double.NaN);
 	Arrays2.copy(m_std, tmp, m_std.length);
 	m_std = tmp;
 
