@@ -1085,7 +1085,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             do {
                 TX(pos, row);
             } while (rows.next());
-            SymmetricMatrix.reinforeSymmetry(vm);
+            SymmetricMatrix.reinforceSymmetry(vm);
         }
 
         @Override

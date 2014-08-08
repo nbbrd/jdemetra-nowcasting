@@ -114,7 +114,7 @@ public abstract class BaseSmoother {
             // m_Nf = SymmetricMatrix.QuadraticForm(m_Nf, m_T);
             Utilities.TtVT(m_ssf, m_pos, m_Nf.subMatrix());
         }
-        SymmetricMatrix.reinforeSymmetry(m_Nf);
+        SymmetricMatrix.reinforceSymmetry(m_Nf);
     }
 
     /**

@@ -104,7 +104,7 @@ public class SquareRootSmoother {
             // m_Nf = SymmetricMatrix.QuadraticForm(m_Nf, m_T);
             Utilities.TtVT(m_ssf, m_pos, m_N.subMatrix());
         }
-        SymmetricMatrix.reinforeSymmetry(m_N);
+        SymmetricMatrix.reinforceSymmetry(m_N);
     }
 
     /**

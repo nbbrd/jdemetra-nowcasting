@@ -93,7 +93,7 @@ public class MFilter {
         ZM(m_state.P.subMatrix(), K.transpose());
         // computes ZPZ'; results in m_state.F
         ZM(K, F);
-        SymmetricMatrix.reinforeSymmetry(m_state.F);
+        SymmetricMatrix.reinforceSymmetry(m_state.F);
         m_ssf.addH(m_pos, F);
         cleanMissing(F);
 
