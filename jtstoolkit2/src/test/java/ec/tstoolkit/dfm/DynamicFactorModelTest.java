@@ -158,11 +158,11 @@ public class DynamicFactorModelTest {
 
     private static DynamicFactorModel.IMeasurement measurement(int i) {
         if (i == 1) {
-            return DynamicFactorModel.measurement(MeasurementType.L);
+            return DynamicFactorModel.measurement(MeasurementType.M);
         } else if (i == 2) {
-            return DynamicFactorModel.measurement(MeasurementType.CD);
+            return DynamicFactorModel.measurement(MeasurementType.Q);
         } else {
-            return DynamicFactorModel.measurement(MeasurementType.C);
+            return DynamicFactorModel.measurement(MeasurementType.YoY);
         }
     }
 

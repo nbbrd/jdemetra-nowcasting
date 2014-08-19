@@ -166,15 +166,15 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
         /**
          * Level: z*(1 0 0 0 0 0 0 0 0 0 0 0)
          */
-        L,
+        M,
         /**
          * Cumulated differences: z*(1 2 3 2 1 0 0 0 0 0 0 0)
          */
-        CD,
+        Q,
         /**
          * Cumul: z*(1 1 1 1 1 1 1 1 1 1 1 1)
          */
-        C;
+        YoY;
     }
 
     public static final class MeasurementStructure implements Comparable<MeasurementStructure> {
@@ -485,11 +485,11 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
      */
     public static IMeasurement measurement(final MeasurementType type) {
         switch (type) {
-            case C:
+            case YoY:
                 return _C.MC12;
-            case CD:
+            case Q:
                 return _CD.MCD3;
-            case L:
+            case M:
                 return _L.ML;
             default:
                 return null;
@@ -498,11 +498,11 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
 
     public static MeasurementType getMeasurementType(final IMeasurement m) {
         if (m instanceof _C) {
-            return MeasurementType.C;
+            return MeasurementType.YoY;
         } else if (m instanceof _CD) {
-            return MeasurementType.CD;
+            return MeasurementType.Q;
         } else if (m instanceof _L) {
-            return MeasurementType.L;
+            return MeasurementType.M;
         } else {
             return null;
         }
@@ -518,7 +518,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
      */
     public static IMeasurement measurement(final int len, final MeasurementType type) {
         switch (type) {
-            case C:
+            case YoY:
                 if (len == 12) {
                     return _C.MC12;
                 } else if (len == 4) {
@@ -526,13 +526,13 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
                 } else {
                     return new _C(len);
                 }
-            case CD:
+            case Q:
                 if (len == 3) {
                     return _CD.MCD3;
                 } else {
                     return new _CD(len);
                 }
-            case L:
+            case M:
                 return _L.ML;
             default:
                 return null;

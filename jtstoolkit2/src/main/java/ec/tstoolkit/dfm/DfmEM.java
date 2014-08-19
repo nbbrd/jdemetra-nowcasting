@@ -481,13 +481,13 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
             for (MeasurementDescriptor mdesc : dfm.getMeasurements()) {
                 mdesc.getStructure();
 
-                if (DynamicFactorModel.getMeasurementType(mdesc.type) == MeasurementType.C && mdesc.getLoads().equals(loads)) {
+                if (DynamicFactorModel.getMeasurementType(mdesc.type) == MeasurementType.YoY && mdesc.getLoads().equals(loads)) {
                     Lidx_Y.add(counting);
                 }
-                if (DynamicFactorModel.getMeasurementType(mdesc.type) == MeasurementType.CD && mdesc.getLoads().equals(loads)) {
+                if (DynamicFactorModel.getMeasurementType(mdesc.type) == MeasurementType.Q && mdesc.getLoads().equals(loads)) {
                     Lidx_Q.add(counting);
                 }
-                if (DynamicFactorModel.getMeasurementType(mdesc.type) == MeasurementType.L && mdesc.getLoads().equals(loads)) {
+                if (DynamicFactorModel.getMeasurementType(mdesc.type) == MeasurementType.M && mdesc.getLoads().equals(loads)) {
                     Lidx_M.add(counting);
                 }
 

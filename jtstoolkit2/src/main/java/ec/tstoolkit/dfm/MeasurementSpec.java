@@ -46,7 +46,7 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
     private double mean = Double.NaN, stdev = Double.NaN;
     private Parameter[] coeff;
     private Parameter var;
-    private DynamicFactorModel.MeasurementType type = DynamicFactorModel.MeasurementType.L;
+    private DynamicFactorModel.MeasurementType type = DynamicFactorModel.MeasurementType.M;
 
     public MeasurementSpec() {
         this(0);
@@ -64,8 +64,8 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
                 coeff[i] = new Parameter();
             }
         }
-        mean=Double.NaN;
-        stdev=Double.NaN;
+        mean = Double.NaN;
+        stdev = Double.NaN;
         var = new Parameter();
     }
 
@@ -101,11 +101,13 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
             if (Parameter.isDefault(coeff[i])) {
                 return false;
             }
-            if (!coeff[i].isFixed())
+            if (!coeff[i].isFixed()) {
                 coeff[i].setType(type);
+            }
         }
         return true;
     }
+
     @Override
     public MeasurementSpec clone() {
         try {
@@ -183,8 +185,19 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
         if (t == null) {
             return false;
         }
-        type = DynamicFactorModel.MeasurementType.valueOf(t);
-
+        switch (t) {
+            case "L":
+                type = DynamicFactorModel.MeasurementType.M;
+                break;
+            case "CD":
+                type = DynamicFactorModel.MeasurementType.Q;
+                break;
+            case "C":
+                type = DynamicFactorModel.MeasurementType.YoY;
+                break;
+            default:
+                type = DynamicFactorModel.MeasurementType.valueOf(t);
+        }
         return type != null;
     }
 

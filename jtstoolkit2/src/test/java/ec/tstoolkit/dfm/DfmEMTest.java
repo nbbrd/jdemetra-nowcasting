@@ -154,11 +154,11 @@ public class DfmEMTest {
 
     private static DynamicFactorModel.IMeasurement measurement(int i) {
         if (i == 1) {
-            return DynamicFactorModel.measurement(DynamicFactorModel.MeasurementType.L);
+            return DynamicFactorModel.measurement(DynamicFactorModel.MeasurementType.M);
         } else if (i == 2) {
-            return DynamicFactorModel.measurement(DynamicFactorModel.MeasurementType.CD);
+            return DynamicFactorModel.measurement(DynamicFactorModel.MeasurementType.Q);
         } else {
-            return DynamicFactorModel.measurement(DynamicFactorModel.MeasurementType.C);
+            return DynamicFactorModel.measurement(DynamicFactorModel.MeasurementType.YoY);
         }
     }
 

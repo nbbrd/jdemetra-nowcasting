@@ -78,19 +78,19 @@ public class DfmProcessingFactoryTest {
         MeasurementSpec mvspec = new MeasurementSpec();
         mvspec.setSeriesTransformations(new Transformation[]{Transformation.Sa, Transformation.Diff1});
         mvspec.setCoefficients(new Parameter[]{new Parameter()});
-        mvspec.setFactorsTransformation(DynamicFactorModel.MeasurementType.L);
+        mvspec.setFactorsTransformation(DynamicFactorModel.MeasurementType.M);
         mspec.getMeasurements().add(mvspec);
 
         mvspec = new MeasurementSpec();
         mvspec.setSeriesTransformations(new Transformation[]{Transformation.Sa, Transformation.Diff1});
         mvspec.setCoefficients(new Parameter[]{new Parameter()});
-        mvspec.setFactorsTransformation(DynamicFactorModel.MeasurementType.L);
+        mvspec.setFactorsTransformation(DynamicFactorModel.MeasurementType.M);
         mspec.getMeasurements().add(mvspec);
 
         mvspec = new MeasurementSpec();
          mvspec.setSeriesTransformations(new Transformation[]{Transformation.Sa, Transformation.Diff1});
         mvspec.setCoefficients(new Parameter[]{new Parameter()});
-        mvspec.setFactorsTransformation(DynamicFactorModel.MeasurementType.CD);
+        mvspec.setFactorsTransformation(DynamicFactorModel.MeasurementType.Q);
         mspec.getMeasurements().add(mvspec);
 
         //vspec.setInitialization(VarSpec.Initialization.Zero);
