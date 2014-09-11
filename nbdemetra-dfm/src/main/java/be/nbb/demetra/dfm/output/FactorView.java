@@ -19,7 +19,6 @@ package be.nbb.demetra.dfm.output;
 import com.google.common.base.Optional;
 import ec.tss.dfm.DfmResults;
 import ec.tstoolkit.timeseries.simplets.TsData;
-import ec.ui.view.MarginView;
 import java.awt.BorderLayout;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
@@ -40,7 +39,7 @@ public class FactorView extends JPanel {
     public static final String DFM_RESULTS_PROPERTY = "dfmResults";
 
     // Views
-    private MarginView marginView;
+    private FactorChart factorChart;
     private final JComboBox comboBox;
 
     // Results
@@ -49,7 +48,7 @@ public class FactorView extends JPanel {
     public FactorView() {
         setLayout(new BorderLayout());
         dfmResults = Optional.absent();
-        marginView = new MarginView();
+        factorChart = new FactorChart();
 
         comboBox = new JComboBox();
 
@@ -76,7 +75,7 @@ public class FactorView extends JPanel {
         updateChart();
 
         add(comboBox, BorderLayout.NORTH);
-        add(marginView, BorderLayout.CENTER);
+        add(factorChart, BorderLayout.CENTER);
     }
 
     public Optional<DfmResults> getDfmResults() {
@@ -101,11 +100,12 @@ public class FactorView extends JPanel {
 
     private void updateChart() {
         if (dfmResults.isPresent() && comboBox.getSelectedIndex() != -1) {
-            TsData o = null, l = null, u = null;
+            TsData o = null, f = null, l = null, u = null;
             int index = comboBox.getSelectedIndex();
             DfmResults rslts = dfmResults.get();
             if (rslts != null) {
                 o = rslts.getFactor(index);
+                f = rslts.getFactor_Filtered(index);
                 TsData e = rslts.getFactorStdev(index);
                 if (e != null) {
                     e = e.times(2);
@@ -114,11 +114,11 @@ public class FactorView extends JPanel {
                 }
             }
 
-            Information info = new Information(o, null, l, u);
+            Information info = new Information(o, f, l, u);
 
-            marginView.setData(info.original.update(info.fcasts), info.lfcasts, info.ufcasts, info.markers);
+            factorChart.setData(info.original, info.filtered, info.lfcasts, info.ufcasts);
         } else {
-            marginView = new MarginView();
+            factorChart = new FactorChart();
         }
     }
 
@@ -134,22 +134,14 @@ public class FactorView extends JPanel {
 
     public static class Information {
 
-        public Information(TsData o, TsData f, TsData l, TsData u) {
+        public Information(TsData o, TsData filtered, TsData l, TsData u) {
             original = o;
-            fcasts = f;
+            this.filtered = filtered;
             lfcasts = l;
             ufcasts = u;
         }
 
-        public Information(TsData o, TsData f, TsData ef, double c) {
-            original = o;
-            fcasts = f;
-            TsData e = ef.times(c);
-            lfcasts = TsData.subtract(f, e);
-            ufcasts = TsData.add(f, e);
-        }
-
-        final TsData original, fcasts, lfcasts, ufcasts;
+        final TsData original, filtered, lfcasts, ufcasts;
 
         public Date[] markers;
     }

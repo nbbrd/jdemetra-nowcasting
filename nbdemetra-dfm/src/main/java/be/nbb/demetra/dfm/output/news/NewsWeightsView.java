@@ -84,7 +84,6 @@ import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.TransferHandler;
-import static javax.swing.TransferHandler.COPY;
 import javax.swing.table.DefaultTableCellRenderer;
 
 /**
@@ -118,7 +117,7 @@ public class NewsWeightsView extends JPanel {
     public NewsWeightsView() {
         setLayout(new BorderLayout());
 
-        demetraUI = DemetraUI.getInstance();
+        demetraUI = DemetraUI.getDefault();
         formatter = demetraUI.getDataFormat().numberFormatter();
         defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
             @Override
@@ -195,6 +194,16 @@ public class NewsWeightsView extends JPanel {
 
     private void onDataFormatChanged() {
         formatter = demetraUI.getDataFormat().numberFormatter();
+        try {
+            chartForecast.setPeriodFormat(demetraUI.getDataFormat().newDateFormat());
+        } catch (IllegalArgumentException ex) {
+            // do nothing?
+        }
+        try {
+            chartForecast.setValueFormat(demetraUI.getDataFormat().newNumberFormat());
+        } catch (IllegalArgumentException ex) {
+            // do nothing?
+        }
         grid.setDefaultRenderer(Double.class, new DoubleTableCellRenderer(formatter));
         grid.repaint();
     }
@@ -384,7 +393,8 @@ public class NewsWeightsView extends JPanel {
                         if (rowIndex == nbRows - 3) {
                             return all_revisions.get(columnIndex - 3);
                         } else if (rowIndex == nbRows - 2) {
-                            return old_forecasts.get(columnIndex - 3);
+                            int nbNews = old_forecasts.size() - new_forecasts.size();
+                            return old_forecasts.get(columnIndex - 3 + nbNews);
                         } else {
                             return new_forecasts.get(columnIndex - 3);
                         }
@@ -455,6 +465,10 @@ public class NewsWeightsView extends JPanel {
         all_weights = new ArrayList<>();
         old_forecasts = new ArrayList<>();
         new_forecasts = new ArrayList<>();
+        
+        double mean = desc[selected].mean;
+        double stdev = desc[selected].stdev;
+        
         for (int j = sNew.getLength() - 1; j >= 0; --j) {
             if (sNew.isMissing(j)) {
                 TsPeriod p = sNew.getDomain().get(j);
@@ -464,7 +478,8 @@ public class NewsWeightsView extends JPanel {
 
                     DataBlock weights = doc.weights(selected, pN); // Get weights
                     all_revisions.add(n.dot(weights));
-                    new_forecasts.add(doc.getNewForecast(selected, pN));
+                    double newValue = (doc.getNewForecast(selected, pN) * stdev) + mean;
+                    new_forecasts.add(newValue);
                     all_weights.add(weights);
                 }
             } else {
@@ -478,7 +493,8 @@ public class NewsWeightsView extends JPanel {
                 TsPeriod pO = p.lastPeriod(freq);
                 if (pO.isNotBefore(doc.getDomain().getStart())) {
                     oldPeriods.add(p);
-                    old_forecasts.add(doc.getOldForecast(selected, pO));
+                    double oldValue = (doc.getOldForecast(selected, pO) * stdev) + mean;
+                    old_forecasts.add(oldValue);
                 }
             } else {
                 break;
@@ -535,12 +551,12 @@ public class NewsWeightsView extends JPanel {
         for (int i = 0; i < old_forecasts.size(); i++) {
             coll.addObservation(oldPeriods.get(i).middle(), old_forecasts.get(i));
         }
-        TsData oldF = coll.make(serieOld.getFrequency(), TsAggregationType.None).times(stdev).plus(mean);
+        TsData oldF = coll.make(serieOld.getFrequency(), TsAggregationType.None);
         coll.clear();
         for (int i = 0; i < new_forecasts.size(); i++) {
             coll.addObservation(newPeriods.get(i).middle(), new_forecasts.get(i));
         }
-        TsData newF = coll.make(serieNew.getFrequency(), TsAggregationType.None).times(stdev).plus(mean);
+        TsData newF = coll.make(serieNew.getFrequency(), TsAggregationType.None);
         TsData old_serie = serieOld.update(oldF);
         TsData new_serie = serieNew.update(newF);
 

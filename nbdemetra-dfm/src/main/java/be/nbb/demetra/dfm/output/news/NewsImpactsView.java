@@ -279,7 +279,7 @@ public class NewsImpactsView extends JPanel {
         });
 
         chart.setLegendVisibilityPredicate(SeriesPredicate.alwaysFalse());
-        
+
         chart.setTransferHandler(new TsCollectionTransferHandler());
         return chart;
     }
@@ -296,6 +296,17 @@ public class NewsImpactsView extends JPanel {
 
     private void onDataFormatChanged() {
         formatter = demetraUI.getDataFormat().numberFormatter();
+        try {
+            chartImpacts.setPeriodFormat(demetraUI.getDataFormat().newDateFormat());
+        } catch (IllegalArgumentException ex) {
+            // do nothing?
+        }
+        try {
+            chartImpacts.setValueFormat(demetraUI.getDataFormat().newNumberFormat());
+        } catch (IllegalArgumentException ex) {
+            // do nothing?
+        }
+        
         onGridColorSchemeChanged();
     }
 
@@ -434,7 +445,8 @@ public class NewsImpactsView extends JPanel {
                         if (rowIndex == nbRows - 3) {
                             return all_revisions.get(columnIndex - 3);
                         } else if (rowIndex == nbRows - 2) {
-                            return old_forecasts.get(columnIndex - 3);
+                            int nbNews = old_forecasts.size() - new_forecasts.size();
+                            return old_forecasts.get(columnIndex - 3 + nbNews);
                         } else {
                             return new_forecasts.get(columnIndex - 3);
                         }
@@ -491,31 +503,51 @@ public class NewsImpactsView extends JPanel {
 
     private void calculateData() {
         DataBlock n = doc.news();
-        DfmInformationSet data = doc.getNewInformationSet();
+        DfmInformationSet dataNew = doc.getNewInformationSet();
+        DfmInformationSet dataOld = doc.getOldInformationSet();
         int selected = combobox.getSelectedIndex();
-        TsData s = data.series(selected);
+        TsData sNew = dataNew.series(selected);
+        TsData sOld = dataOld.series(selected);
         TsFrequency freq = doc.getDomain().getFrequency();
-        double stdev = desc[selected].stdev;
+
         periods = new ArrayList<>();
         all_revisions = new ArrayList<>();
         old_forecasts = new ArrayList<>();
         new_forecasts = new ArrayList<>();
         impacts = new ArrayList<>();
-        for (int j = s.getLength() - 1; j >= 0; --j) {
-            if (s.isMissing(j)) {
-                TsPeriod p = s.getDomain().get(j);
-                TsPeriod pI = p.lastPeriod(freq);
-                if (pI.isNotBefore(doc.getDomain().getStart())) {
+
+        double mean = desc[selected].mean;
+        double stdev = desc[selected].stdev;
+
+        for (int j = sNew.getLength() - 1; j >= 0; --j) {
+            if (sNew.isMissing(j)) {
+                TsPeriod p = sNew.getDomain().get(j);
+                TsPeriod pN = p.lastPeriod(freq);
+                if (pN.isNotBefore(doc.getDomain().getStart())) {
                     periods.add(p);
 
-                    DataBlock weights = doc.weights(selected, pI); // Get weights
+                    DataBlock weights = doc.weights(selected, pN); // Get weights
                     all_revisions.add(n.dot(weights) * stdev);
-                    old_forecasts.add(doc.getOldForecast(selected, pI));
-                    new_forecasts.add(doc.getNewForecast(selected, pI));
+
+                    double newValue = (doc.getNewForecast(selected, pN) * stdev) + mean;
+                    new_forecasts.add(newValue);
                     impacts.add(new DataBlock(weights.getLength()));
                     for (int k = 0; k < weights.getLength(); k++) {
                         impacts.get(impacts.size() - 1).set(k, n.get(k) * weights.get(k) * stdev);
                     }
+                }
+            } else {
+                break;
+            }
+        }
+
+        for (int j = sOld.getLength() - 1; j >= 0; --j) {
+            if (sOld.isMissing(j)) {
+                TsPeriod p = sOld.getDomain().get(j);
+                TsPeriod pO = p.lastPeriod(freq);
+                if (pO.isNotBefore(doc.getDomain().getStart())) {
+                    double oldValue = (doc.getOldForecast(selected, pO) * stdev) + mean;
+                    old_forecasts.add(oldValue);
                 }
             } else {
                 break;
@@ -709,6 +741,7 @@ public class NewsImpactsView extends JPanel {
     }
 
     private TsCollection dragSelection = null;
+
     protected Transferable transferableOnSelection() {
         TsCollection col = TsFactory.instance.createTsCollection();
 
@@ -723,7 +756,7 @@ public class NewsImpactsView extends JPanel {
         dragSelection = col;
         return TssTransferSupport.getInstance().fromTsCollection(dragSelection);
     }
-    
+
     public class TsCollectionTransferHandler extends TransferHandler {
 
         @Override
