@@ -24,6 +24,8 @@ import ec.nbdemetra.ws.nodes.ItemWsNode;
 import ec.tstoolkit.utilities.Id;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import javax.swing.InputVerifier;
@@ -98,17 +100,38 @@ public final class RenameAction extends SingleNodeAction<ItemWsNode> {
         return null;
     }
 }
+
 class WsName extends NotifyDescriptor.InputLine {
 
-    WsName(final Id id, String title, String text, String input) {
+    WsName(final Id id, String title, String text, final String old) {
         super(title, text);
-        setInputText(input);
+        setInputText(old);
+        textField.addKeyListener(new KeyListener() {
+            // To handle VK_ENTER !!!
+            @Override
+            public void keyTyped(KeyEvent e) {
+            }
+
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER && !textField.getInputVerifier().verify(textField)) {
+                    e.consume();
+                }
+            }
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+            }
+        });
         textField.setInputVerifier(new InputVerifier() {
 
             @Override
             public boolean verify(JComponent input) {
                 JTextField txt = (JTextField) input;
-                String name = txt.getText();
+                String name = txt.getText().trim();
+                if (name.equals(old)) {
+                    return true;
+                }
                 if (null != WorkspaceFactory.getInstance().getActiveWorkspace().searchDocumentByName(id, name)) {
                     NotifyDescriptor nd = new NotifyDescriptor.Message(name + " is in use. You should choose another name!");
                     DialogDisplayer.getDefault().notify(nd);
