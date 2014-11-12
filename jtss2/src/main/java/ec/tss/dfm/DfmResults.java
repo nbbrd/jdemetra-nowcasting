@@ -16,7 +16,6 @@
  */
 package ec.tss.dfm;
 
-import com.sun.org.apache.xerces.internal.util.TeeXMLDocumentFilterImpl;
 import ec.tstoolkit.algorithm.IProcResults;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DataBlockStorage;
@@ -1007,7 +1006,10 @@ public class DfmResults implements IProcResults {
             Matrix temp = new Matrix(smoothing.P(t));
 
             for (int v = 0; v < N; v++) {
-                Matrix zvz = new Matrix(r * c_, r * c_);
+                //-- replaced 
+                //Matrix zvz = new Matrix(r * c_, r * c_);
+                Matrix zvz = new Matrix(N, N);
+                
                 ssf.ZVZ(0, temp.subMatrix(), zvz.subMatrix());
 
                 signalUncertainty[v][t] = zvz.get(v, v) * description[v].stdev * description[v].stdev;
