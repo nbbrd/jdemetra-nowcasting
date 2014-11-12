@@ -132,6 +132,7 @@ final class IrfView extends javax.swing.JPanel {
         });
         
         chart.setColorSchemeSupport(defaultColorSchemeSupport);
+        chart.setMouseWheelEnabled(true);
 
         addPropertyChangeListener(new PropertyChangeListener() {
             @Override

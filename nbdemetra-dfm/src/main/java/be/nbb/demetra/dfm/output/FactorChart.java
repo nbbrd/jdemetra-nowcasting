@@ -93,6 +93,7 @@ public class FactorChart extends ATsControl implements IColorSchemeAble {
         
         Charts.avoidScaling(chartPanel);
         Charts.enableFocusOnClick(chartPanel);
+        chartPanel.setMouseWheelEnabled(true);
         setLayout(new BorderLayout());
         add(chartPanel, BorderLayout.CENTER);
         

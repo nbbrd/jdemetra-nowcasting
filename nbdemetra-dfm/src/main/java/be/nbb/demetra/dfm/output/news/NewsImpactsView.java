@@ -83,7 +83,6 @@ import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.TransferHandler;
-import static javax.swing.TransferHandler.COPY;
 import javax.swing.TransferHandler.TransferSupport;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
@@ -153,6 +152,8 @@ public class NewsImpactsView extends JPanel {
         });
 
         chartImpacts.setPopupMenu(createChartMenu().getPopupMenu());
+        chartImpacts.setMouseWheelEnabled(true);
+        
         splitPane = NbComponents.newJSplitPane(JSplitPane.VERTICAL_SPLIT, grid, chartImpacts);
         splitPane.setResizeWeight(0.5);
 

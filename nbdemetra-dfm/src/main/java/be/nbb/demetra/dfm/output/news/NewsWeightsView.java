@@ -143,6 +143,7 @@ public class NewsWeightsView extends JPanel {
 
         chartForecast.setSeriesRenderer(SeriesFunction.always(TimeSeriesChart.RendererType.LINE));
         chartForecast.setPopupMenu(createChartMenu().getPopupMenu());
+        chartForecast.setMouseWheelEnabled(true);
 
         splitPane = NbComponents.newJSplitPane(JSplitPane.VERTICAL_SPLIT, grid, chartForecast);
         splitPane.setResizeWeight(0.5);
@@ -477,7 +478,7 @@ public class NewsWeightsView extends JPanel {
                     newPeriods.add(p);
 
                     DataBlock weights = doc.weights(selected, pN); // Get weights
-                    all_revisions.add(n.dot(weights));
+                    all_revisions.add(n.dot(weights) * stdev);
                     double newValue = (doc.getNewForecast(selected, pN) * stdev) + mean;
                     new_forecasts.add(newValue);
                     all_weights.add(weights);

@@ -132,6 +132,7 @@ final class VarianceDecompositionView extends javax.swing.JPanel {
         });
         
         chart.setColorSchemeSupport(defaultColorSchemeSupport);
+        chart.setMouseWheelEnabled(true);
 
         addPropertyChangeListener(new PropertyChangeListener() {
             @Override

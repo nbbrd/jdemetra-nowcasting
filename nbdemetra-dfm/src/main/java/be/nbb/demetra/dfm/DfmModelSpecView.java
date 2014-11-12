@@ -121,7 +121,7 @@ public final class DfmModelSpecView extends JComponent {
             view.getColumnModel().getColumn(i + 3).setPreferredWidth(10);
         }
         view.setEnabled(!model.isLocked());
-        
+
         firePropertyChange(MODEL_CHANGED_PROPERTY, null, model);
     }
 
@@ -165,17 +165,21 @@ public final class DfmModelSpecView extends JComponent {
     private JMenu createMenu() {
         JMenu result = new JMenu();
         result.add(new ApplyToAllCommand().toAction(view)).setText("Apply to all");
+        result.add(new RemoveVariableCommand().toAction(view)).setText("Remove");
         return result;
     }
 
     private boolean check(Ts[] input) {
-        if (input == null)
+        if (input == null) {
             return variables.isEmpty();
-        if (input.length != variables.getCount())
+        }
+        if (input.length != variables.getCount()) {
             return false;
-        for (int i=0; i<input.length; ++i){
-            if (input[i] != variables.get(i))
+        }
+        for (int i = 0; i < input.length; ++i) {
+            if (input[i] != variables.get(i)) {
                 return false;
+            }
         }
         return true;
     }
@@ -267,6 +271,18 @@ public final class DfmModelSpecView extends JComponent {
                     return MeasurementType.class;
                 default:
                     return Boolean.class;
+            }
+        }
+
+        public void removeVariable(int row) {
+            if (!model.isLocked() && row >= 0 && row < variables.getCount()) {
+                DfmSpec spec = model.getSpecification().cloneDefinition();
+                spec.getModelSpec().getMeasurements().remove(row);
+                variables.removeAt(row);
+
+                model.setInput(variables.isEmpty() ? null : variables.toArray());
+                model.setSpecification(spec);
+                firePropertyChange(MODEL_PROPERTY, null, model);
             }
         }
     }
@@ -364,6 +380,33 @@ public final class DfmModelSpecView extends JComponent {
         }
     }
 
+    private static final class RemoveVariableCommand extends JCommand<XTable> {
+
+        @Override
+        public void execute(XTable component) throws Exception {
+            if (!component.isEnabled()) {
+                return;
+            }
+
+            ModelSpecModel model = (ModelSpecModel) component.getModel();
+            int index = component.convertRowIndexToModel(component.getSelectedRows()[0]);
+            model.removeVariable(index);
+        }
+
+        @Override
+        public boolean isEnabled(XTable component) {
+            return !component.isEditing() && component.getSelectedRowCount() == 1;
+        }
+
+        @Override
+        public JCommand.ActionAdapter toAction(XTable component) {
+            return super.toAction(component)
+                    .withWeakListSelectionListener(component.getSelectionModel())
+                    .withWeakPropertyChangeListener(component, "tableCellEditor");
+        }
+
+    }
+
     private static final class OpenTsCommand extends JCommand<XTable> {
 
         @Override
@@ -371,8 +414,7 @@ public final class DfmModelSpecView extends JComponent {
             ModelSpecModel model = (ModelSpecModel) component.getModel();
             int index = component.convertRowIndexToModel(component.getSelectedRows()[0]);
             Ts cur = model.getVariables()[index];
-            String selected = cur.getName();
-            DemetraUI.getInstance().getTsAction().open(cur);
+            DemetraUI.getDefault().getTsAction().open(cur);
         }
 
         @Override
@@ -404,7 +446,7 @@ public final class DfmModelSpecView extends JComponent {
 
         @Override
         public boolean canImport(TransferSupport support) {
-            boolean result = TssTransferSupport.getInstance().canImport(support.getDataFlavors());
+            boolean result = TssTransferSupport.getDefault().canImport(support.getDataFlavors());
             if (result && support.isDrop()) {
                 support.setDropAction(COPY);
             }
@@ -413,7 +455,7 @@ public final class DfmModelSpecView extends JComponent {
 
         @Override
         public boolean importData(TransferSupport support) {
-            TsCollection col = TssTransferSupport.getInstance().toTsCollection(support.getTransferable());
+            TsCollection col = TssTransferSupport.getDefault().toTsCollection(support.getTransferable());
             if (col != null) {
                 col.query(TsInformationType.All);
                 if (!col.isEmpty()) {

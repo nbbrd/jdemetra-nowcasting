@@ -21,6 +21,7 @@ import ec.nbdemetra.ui.DemetraUI;
 import ec.tss.Ts;
 import ec.tss.TsCollection;
 import ec.tss.TsFactory;
+import ec.tss.datatransfer.TsDragRenderer;
 import ec.tss.datatransfer.TssTransferSupport;
 import ec.tss.dfm.DfmResults;
 import ec.tss.dfm.DfmSeriesDescriptor;
@@ -39,6 +40,7 @@ import static ec.util.chart.swing.JTimeSeriesChartCommand.saveImage;
 import ec.util.chart.swing.SwingColorSchemeSupport;
 import ec.util.various.swing.JCommand;
 import java.awt.Color;
+import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.ItemEvent;
@@ -46,11 +48,17 @@ import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.text.DecimalFormat;
+import java.util.Arrays;
 import java.util.Objects;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JComponent;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
+import javax.swing.ListSelectionModel;
+import javax.swing.TransferHandler;
+import static javax.swing.TransferHandler.COPY;
+import javax.swing.TransferHandler.TransferSupport;
 
 /**
  *
@@ -61,6 +69,7 @@ final class FitSignalDataView extends javax.swing.JPanel {
     public static final String DFM_RESULTS_PROPERTY = "dfmResults";
 
     private Optional<DfmResults> dfmResults;
+    private TsCollection collection;
     
     private final DemetraUI demetraUI;
     private Formatters.Formatter<Number> formatter;
@@ -120,6 +129,9 @@ final class FitSignalDataView extends javax.swing.JPanel {
         chart.setPopupMenu(createChartMenu().getPopupMenu());
         chart.setColorSchemeSupport(defaultColorSchemeSupport);
         chart.setNoDataMessage("No data produced");
+        chart.setMouseWheelEnabled(true);
+        
+        chart.setTransferHandler(new TsCollectionTransferHandler());
 
         addPropertyChangeListener(new PropertyChangeListener() {
             @Override
@@ -214,7 +226,8 @@ final class FitSignalDataView extends javax.swing.JPanel {
     private void updateChart() {
         if (dfmResults.isPresent() && comboBox.getSelectedIndex() != -1) {
             TsXYDatasets.Builder b = TsXYDatasets.builder();
-            for (Ts o : toCollection(dfmResults.get())) {
+            collection = toCollection(dfmResults.get());
+            for (Ts o : collection) {
                 b.add(o.getName(), o.getTsData());
             }
             chart.setDataset(b.build());
@@ -349,5 +362,44 @@ final class FitSignalDataView extends javax.swing.JPanel {
     private static DefaultComboBoxModel toComboBoxModel(DfmSeriesDescriptor[] desc) {
         DefaultComboBoxModel result = new DefaultComboBoxModel(desc);
         return result;
+    }
+    
+    private TsCollection dragSelection = null;
+
+    protected Transferable transferableOnSelection() {
+        TsCollection col = TsFactory.instance.createTsCollection();
+
+        ListSelectionModel model = chart.getSeriesSelectionModel();
+        if (!model.isSelectionEmpty()) {
+            for (int i = model.getMinSelectionIndex(); i <= model.getMaxSelectionIndex(); i++) {
+                if (model.isSelectedIndex(i)) {
+                    col.quietAdd(collection.get(i));
+                }
+            }
+        }
+        dragSelection = col;
+        return TssTransferSupport.getInstance().fromTsCollection(dragSelection);
+    }
+    
+    public class TsCollectionTransferHandler extends TransferHandler {
+
+        @Override
+        public int getSourceActions(JComponent c) {
+            transferableOnSelection();
+            TsDragRenderer r = dragSelection.getCount() < 10 ? TsDragRenderer.asChart() : TsDragRenderer.asCount();
+            Image image = r.getTsDragRendererImage(Arrays.asList(dragSelection.toArray()));
+            setDragImage(image);
+            return COPY;
+        }
+
+        @Override
+        protected Transferable createTransferable(JComponent c) {
+            return transferableOnSelection();
+        }
+
+        @Override
+        public boolean canImport(TransferSupport support) {
+            return false;
+        }
     }
 }

@@ -104,7 +104,7 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
 
     public ConfidenceGraph() {
         chartPanel = new ChartPanel(createMarginViewChart());
-
+        chartPanel.setMouseWheelEnabled(true);
         data = new ConfidenceData(null, null, null);
         revealObs = new RevealObs();
 
