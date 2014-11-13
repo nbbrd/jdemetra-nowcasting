@@ -46,6 +46,7 @@ import java.beans.Beans;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 import javax.swing.BorderFactory;
@@ -54,6 +55,7 @@ import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JMenu;
+import javax.swing.JPopupMenu.Separator;
 import javax.swing.JTable;
 import javax.swing.TransferHandler;
 import static javax.swing.TransferHandler.COPY;
@@ -166,6 +168,9 @@ public final class DfmModelSpecView extends JComponent {
         JMenu result = new JMenu();
         result.add(new ApplyToAllCommand().toAction(view)).setText("Apply to all");
         result.add(new RemoveVariableCommand().toAction(view)).setText("Remove");
+        result.add(new Separator());
+        result.add(new MoveVariableUpCommand().toAction(view)).setText("Move up");
+        result.add(new MoveVariableDownCommand().toAction(view)).setText("Move down");
         return result;
     }
 
@@ -281,6 +286,34 @@ public final class DfmModelSpecView extends JComponent {
                 variables.removeAt(row);
 
                 model.setInput(variables.isEmpty() ? null : variables.toArray());
+                model.setSpecification(spec);
+                firePropertyChange(MODEL_PROPERTY, null, model);
+            }
+        }
+
+        public void moveVariableUp(int row) {
+            if (!model.isLocked() && row > 0) {
+                DfmSpec spec = model.getSpecification().cloneDefinition();
+                List<MeasurementSpec> ms = spec.getModelSpec().getMeasurements();
+                Collections.swap(ms, row, row - 1);
+                List<Ts> ts = Arrays.asList(variables.toArray());
+                Collections.swap(ts, row, row - 1);
+
+                model.setInput((Ts[]) ts.toArray());
+                model.setSpecification(spec);
+                firePropertyChange(MODEL_PROPERTY, null, model);
+            }
+        }
+
+        public void moveVariableDown(int row) {
+            if (!model.isLocked() && row < variables.getCount() - 1) {
+                DfmSpec spec = model.getSpecification().cloneDefinition();
+                List<MeasurementSpec> ms = spec.getModelSpec().getMeasurements();
+                Collections.swap(ms, row, row + 1);
+                List<Ts> ts = Arrays.asList(variables.toArray());
+                Collections.swap(ts, row, row + 1);
+
+                model.setInput((Ts[]) ts.toArray());
                 model.setSpecification(spec);
                 firePropertyChange(MODEL_PROPERTY, null, model);
             }
@@ -404,7 +437,59 @@ public final class DfmModelSpecView extends JComponent {
                     .withWeakListSelectionListener(component.getSelectionModel())
                     .withWeakPropertyChangeListener(component, "tableCellEditor");
         }
+    }
 
+    private static final class MoveVariableUpCommand extends JCommand<XTable> {
+
+        @Override
+        public void execute(XTable component) throws Exception {
+            if (!component.isEnabled()) {
+                return;
+            }
+
+            ModelSpecModel model = (ModelSpecModel) component.getModel();
+            int index = component.convertRowIndexToModel(component.getSelectedRows()[0]);
+            model.moveVariableUp(index);
+        }
+
+        @Override
+        public boolean isEnabled(XTable component) {
+            return !component.isEditing() && component.getSelectedRowCount() == 1 && component.getSelectedRow() > 0;
+        }
+
+        @Override
+        public JCommand.ActionAdapter toAction(XTable component) {
+            return super.toAction(component)
+                    .withWeakListSelectionListener(component.getSelectionModel())
+                    .withWeakPropertyChangeListener(component, "tableCellEditor");
+        }
+    }
+
+    private static final class MoveVariableDownCommand extends JCommand<XTable> {
+
+        @Override
+        public void execute(XTable component) throws Exception {
+            if (!component.isEnabled()) {
+                return;
+            }
+
+            ModelSpecModel model = (ModelSpecModel) component.getModel();
+            int index = component.convertRowIndexToModel(component.getSelectedRows()[0]);
+            model.moveVariableDown(index);
+        }
+
+        @Override
+        public boolean isEnabled(XTable component) {
+            int size = component.getModel().getRowCount() - 1;
+            return !component.isEditing() && component.getSelectedRowCount() == 1 && component.getSelectedRow() < size - 1;
+        }
+
+        @Override
+        public JCommand.ActionAdapter toAction(XTable component) {
+            return super.toAction(component)
+                    .withWeakListSelectionListener(component.getSelectionModel())
+                    .withWeakPropertyChangeListener(component, "tableCellEditor");
+        }
     }
 
     private static final class OpenTsCommand extends JCommand<XTable> {
