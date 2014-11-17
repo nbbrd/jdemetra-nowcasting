@@ -394,8 +394,13 @@ public class NewsWeightsView extends JPanel {
                         if (rowIndex == nbRows - 3) {
                             return all_revisions.get(columnIndex - 3);
                         } else if (rowIndex == nbRows - 2) {
-                            int nbNews = old_forecasts.size() - new_forecasts.size();
-                            return old_forecasts.get(columnIndex - 3 + nbNews);
+                            int nbNews = newPeriods.get(0).minus(oldPeriods.get(0));
+                            int index = columnIndex - 3 + nbNews;
+                            if (index >= old_forecasts.size()) {
+                                return null;
+                            } else {
+                                return old_forecasts.get(index);
+                            }
                         } else {
                             return new_forecasts.get(columnIndex - 3);
                         }
@@ -466,10 +471,10 @@ public class NewsWeightsView extends JPanel {
         all_weights = new ArrayList<>();
         old_forecasts = new ArrayList<>();
         new_forecasts = new ArrayList<>();
-        
+
         double mean = desc[selected].mean;
         double stdev = desc[selected].stdev;
-        
+
         for (int j = sNew.getLength() - 1; j >= 0; --j) {
             if (sNew.isMissing(j)) {
                 TsPeriod p = sNew.getDomain().get(j);

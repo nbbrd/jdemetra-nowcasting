@@ -153,7 +153,7 @@ public class NewsImpactsView extends JPanel {
 
         chartImpacts.setPopupMenu(createChartMenu().getPopupMenu());
         chartImpacts.setMouseWheelEnabled(true);
-        
+
         splitPane = NbComponents.newJSplitPane(JSplitPane.VERTICAL_SPLIT, grid, chartImpacts);
         splitPane.setResizeWeight(0.5);
 
@@ -307,7 +307,7 @@ public class NewsImpactsView extends JPanel {
         } catch (IllegalArgumentException ex) {
             // do nothing?
         }
-        
+
         onGridColorSchemeChanged();
     }
 
@@ -446,8 +446,13 @@ public class NewsImpactsView extends JPanel {
                         if (rowIndex == nbRows - 3) {
                             return all_revisions.get(columnIndex - 3);
                         } else if (rowIndex == nbRows - 2) {
-                            int nbNews = old_forecasts.size() - new_forecasts.size();
-                            return old_forecasts.get(columnIndex - 3 + nbNews);
+                            int nbNews = newPeriods.get(0).minus(oldPeriods.get(0));
+                            int index = columnIndex - 3 + nbNews;
+                            if (index >= old_forecasts.size()) {
+                                return null;
+                            } else {
+                                return old_forecasts.get(index);
+                            }
                         } else {
                             return new_forecasts.get(columnIndex - 3);
                         }
@@ -493,7 +498,8 @@ public class NewsImpactsView extends JPanel {
 
     private List<String> titles;
     private List<String> rows;
-    private List<TsPeriod> periods;
+    private List<TsPeriod> newPeriods;
+    private List<TsPeriod> oldPeriods;
     private List<TsPeriod> ref_periods;
     private List<Double> all_revisions;
     private List<Double> old_forecasts;
@@ -511,7 +517,8 @@ public class NewsImpactsView extends JPanel {
         TsData sOld = dataOld.series(selected);
         TsFrequency freq = doc.getDomain().getFrequency();
 
-        periods = new ArrayList<>();
+        newPeriods = new ArrayList<>();
+        oldPeriods = new ArrayList<>();
         all_revisions = new ArrayList<>();
         old_forecasts = new ArrayList<>();
         new_forecasts = new ArrayList<>();
@@ -525,7 +532,7 @@ public class NewsImpactsView extends JPanel {
                 TsPeriod p = sNew.getDomain().get(j);
                 TsPeriod pN = p.lastPeriod(freq);
                 if (pN.isNotBefore(doc.getDomain().getStart())) {
-                    periods.add(p);
+                    newPeriods.add(p);
 
                     DataBlock weights = doc.weights(selected, pN); // Get weights
                     all_revisions.add(n.dot(weights) * stdev);
@@ -547,6 +554,7 @@ public class NewsImpactsView extends JPanel {
                 TsPeriod p = sOld.getDomain().get(j);
                 TsPeriod pO = p.lastPeriod(freq);
                 if (pO.isNotBefore(doc.getDomain().getStart())) {
+                    oldPeriods.add(p);
                     double oldValue = (doc.getOldForecast(selected, pO) * stdev) + mean;
                     old_forecasts.add(oldValue);
                 }
@@ -555,7 +563,8 @@ public class NewsImpactsView extends JPanel {
             }
         }
 
-        Collections.reverse(periods);
+        Collections.reverse(newPeriods);
+        Collections.reverse(oldPeriods);
         Collections.reverse(all_revisions);
         Collections.reverse(old_forecasts);
         Collections.reverse(new_forecasts);
@@ -587,7 +596,7 @@ public class NewsImpactsView extends JPanel {
         titles.add("<html><p style=\"text-align:center\">Reference<br>Period</p></html>");
         titles.add("<html><p style=\"text-align:center\">Expected<br>Value</p></html>");
         titles.add("<html><p style=\"text-align:center\">Observed<br>Value</p></html>");
-        for (TsPeriod p : periods) {
+        for (TsPeriod p : newPeriods) {
             titles.add("<html><p style=\"text-align:center\">Impact<br>" + p.toString() + "</p><html>");
         }
     }
@@ -614,7 +623,7 @@ public class NewsImpactsView extends JPanel {
 
         TsDataCollector coll = new TsDataCollector();
         for (int i = 0; i < all_revisions.size(); i++) {
-            coll.addObservation(periods.get(i).middle(), all_revisions.get(i));
+            coll.addObservation(newPeriods.get(i).middle(), all_revisions.get(i));
         }
         TsData revisions = coll.make(freq, TsAggregationType.None);
         result.quietAdd(TsFactory.instance.createTs("Forecast revision", null, revisions));
@@ -624,8 +633,8 @@ public class NewsImpactsView extends JPanel {
         for (int i = 0; i < updates.size(); i++) {
             coll.clear();
             DfmSeriesDescriptor description = desc[updates.get(i).series];
-            for (int j = 0; j < periods.size(); j++) {
-                coll.addObservation(periods.get(j).middle(), impacts.get(j).get(i));
+            for (int j = 0; j < newPeriods.size(); j++) {
+                coll.addObservation(newPeriods.get(j).middle(), impacts.get(j).get(i));
             }
             TsData data = coll.make(freq, TsAggregationType.None);
             result.quietAdd(TsFactory.instance.createTs(description.description
