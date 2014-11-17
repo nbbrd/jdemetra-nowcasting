@@ -99,6 +99,8 @@ public class DfmNews {
         if (updates_.updates().isEmpty()) {
             return false;
         }
+        
+        // 5 lines are useless (same methods in computeDomains())
         TsDomain d0 = oldset_.getCurrentDomain();
         TsDomain d1 = newset_.getCurrentDomain();
         fullDomain_ = d0.union(d1);
@@ -156,6 +158,10 @@ public class DfmNews {
         iDomain1_ = newset_.getCommonDomain();
     }
 
+    /**
+     * For every series, calculates the domain of the data that has been added 
+     * (from the last news until either the first news or the last available data).
+     */
     private void computeNewsDomain() {
         nDomain_ = updates_.updatesDomain(fullDomain_.getFrequency());
         for (int i = 0; i < oldset_.getSeriesCount(); ++i) {

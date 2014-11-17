@@ -16,7 +16,6 @@
  */
 package ec.tstoolkit.dfm;
 
-import ec.tstoolkit.data.DescriptiveStatistics;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.timeseries.Day;
 import ec.tstoolkit.timeseries.simplets.TsData;
@@ -62,7 +61,7 @@ public class DfmInformationSet {
                     ncur.setMissing(j);
                 }
             }
-            ndata[i]=ncur;
+            ndata[i] = ncur;
         }
         return new DfmInformationSet(ndata);
     }
@@ -90,18 +89,19 @@ public class DfmInformationSet {
     public TsDomain getCurrentDomain() {
         return table_.getDomain();
     }
-    
-    public TsDomain getCommonDomain(){
-        if (table_.isEmpty())
+
+    public TsDomain getCommonDomain() {
+        if (table_.isEmpty()) {
             return null;
-        TsFrequency f=table_.getDomain().getFrequency();
-        TsDomain common=null;
-        for (int i=0; i<table_.getSeriesCount(); ++i){
-            TsDomain cur=table_.series(i).getDomain();
-            TsPeriod p0=new TsPeriod(f, cur.getStart().firstday());
-            TsPeriod p1=new TsPeriod(f, cur.getEnd().firstday());
-            TsDomain fcur=new TsDomain(p0, p1.minus(p0));
-            common= common != null ? common.intersection(fcur) : fcur;
+        }
+        TsFrequency f = table_.getDomain().getFrequency();
+        TsDomain common = null;
+        for (int i = 0; i < table_.getSeriesCount(); ++i) {
+            TsDomain cur = table_.series(i).getDomain();
+            TsPeriod p0 = new TsPeriod(f, cur.getStart().firstday());
+            TsPeriod p1 = new TsPeriod(f, cur.getEnd().firstday());
+            TsDomain fcur = new TsDomain(p0, p1.minus(p0));
+            common = common != null ? common.intersection(fcur) : fcur;
         }
         return common;
     }
@@ -159,6 +159,16 @@ public class DfmInformationSet {
         return m;
     }
 
+    /**
+     * Fill in periods for each series where new data are present (does not take
+     * into account values that have been revised). Takes new data before first
+     * element in old dataset, new data after last element in old dataset and
+     * new data where there was a missing value. Data revisions are not being
+     * added yet.
+     *
+     * @param ndata New data
+     * @return List of newly added data
+     */
     DfmInformationUpdates updates(DfmInformationSet ndata) {
         int n = table_.getSeriesCount();
         if (n != ndata.table_.getSeriesCount()) {
@@ -176,7 +186,6 @@ public class DfmInformationSet {
                         updates.add(start.plus(j), i);
                     }
                 }
-
             }
         }
         return updates;
