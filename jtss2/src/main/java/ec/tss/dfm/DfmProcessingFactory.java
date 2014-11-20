@@ -189,7 +189,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
             }
 
             @Override
-            public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results, InformationSet info) {
+            public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results) {
                 List<MeasurementSpec> measurements = spec.getModelSpec().getMeasurements();
                 int n = input.length;
                 if (n != measurements.size()) {
@@ -291,7 +291,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
             }
 
             @Override
-            public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results, InformationSet info) {
+            public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results) {
                 DfmResults rslts = (DfmResults) results.get(DFM);
                 if (rslts == null) {
                     return IProcessing.Status.Unprocessed;
@@ -327,7 +327,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
             }
 
             @Override
-            public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results, InformationSet info) {
+            public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results) {
                 return IProcessing.Status.Valid;
             }
         };
@@ -355,7 +355,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
         IProcessingHook hook;
 
         @Override
-        public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results, InformationSet info) {
+        public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results) {
             DfmResults rslts = (DfmResults) results.get(DFM);
             if (rslts == null) {
                 return IProcessing.Status.Unprocessed;
@@ -416,7 +416,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
         IProcessingHook hook;
 
         @Override
-        public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results, InformationSet info) {
+        public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results) {
             DfmResults rslts = (DfmResults) results.get(DFM);
             if (rslts == null) {
                 return IProcessing.Status.Unprocessed;

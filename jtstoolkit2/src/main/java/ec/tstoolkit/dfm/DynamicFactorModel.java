@@ -6,6 +6,7 @@
 package ec.tstoolkit.dfm;
 
 import ec.tstoolkit.algorithm.IProcResults;
+import ec.tstoolkit.algorithm.ProcessingInformation;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DataBlockIterator;
 import ec.tstoolkit.information.InformationMapper;
@@ -1241,6 +1242,11 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
     @Override
     public boolean contains(String id) {
         return mapper.contains(id);
+    }
+    
+    @Override
+    public List<ProcessingInformation> getProcessingInformation(){
+        return Collections.EMPTY_LIST;
     }
 
     public static void fillDictionary(String prefix, Map<String, Class> map) {

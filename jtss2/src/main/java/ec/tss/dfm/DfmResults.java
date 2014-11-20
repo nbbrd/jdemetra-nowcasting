@@ -17,6 +17,7 @@
 package ec.tss.dfm;
 
 import ec.tstoolkit.algorithm.IProcResults;
+import ec.tstoolkit.algorithm.ProcessingInformation;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DataBlockStorage;
 import ec.tstoolkit.data.DescriptiveStatistics;
@@ -35,7 +36,9 @@ import ec.tstoolkit.mssf2.MSmoothingResults;
 import ec.tstoolkit.timeseries.Day;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDomain;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -1140,6 +1143,11 @@ public class DfmResults implements IProcResults {
         } else {
             return mapper.contains(id);
         }
+    }
+    
+    @Override
+    public List<ProcessingInformation> getProcessingInformation(){
+        return Collections.EMPTY_LIST;
     }
 
     public static void fillDictionary(String prefix, Map<String, Class> map) {
