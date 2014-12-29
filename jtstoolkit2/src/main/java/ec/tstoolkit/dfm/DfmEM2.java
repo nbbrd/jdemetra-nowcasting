@@ -407,7 +407,7 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
         Q.sub(Y);
         Q.mul(1.0 / dataSize);
 
-        if (correctStart_ && dfm.getInitialization() == VarSpec.Initialization.SteadyState) {
+        if (correctStart_ && dfm.getInitialization() == VarSpec.Initialization.Unconditional) {
             LbfgsMinimizer bfgs = new LbfgsMinimizer();
             //bfgs.setLineSearch(new SimpleLineSearch());
             bfgs.setMaxIter(numiter_);

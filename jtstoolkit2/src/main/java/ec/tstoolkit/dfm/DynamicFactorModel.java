@@ -544,7 +544,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
     private final int nf_;
     private TransitionDescriptor tdesc_;
     private List<MeasurementDescriptor> mdesc_ = new ArrayList<>();
-    private VarSpec.Initialization init_ = VarSpec.Initialization.SteadyState;
+    private VarSpec.Initialization init_ = VarSpec.Initialization.Unconditional;
     private Matrix V0_;
 
     /**
@@ -1035,7 +1035,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             updateTransition();
             // initial covariance
             switch (init_) {
-                case SteadyState:
+                case Unconditional:
                     m_Pf0 = getInitialVariance();
                     break;
                 case UserDefined:
