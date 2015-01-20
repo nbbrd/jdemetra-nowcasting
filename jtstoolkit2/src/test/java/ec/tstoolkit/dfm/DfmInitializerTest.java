@@ -16,6 +16,7 @@
  */
 package ec.tstoolkit.dfm;
 
+import ec.tstoolkit.timeseries.information.TsInformationSet;
 import data.Data;
 import ec.tstoolkit.algorithm.IProcessingHook;
 import ec.tstoolkit.data.DataBlock;
@@ -156,7 +157,7 @@ public class DfmInitializerTest {
         PcInitializer initializer = new PcInitializer();
         initializer.setEstimationDomain(s[0].getDomain().drop(120, 12));
         DynamicFactorModel model0 = dmodel.clone();
-        initializer.initialize(model0, new DfmInformationSet(s));
+        initializer.initialize(model0, new TsInformationSet(s));
 //        for (int i = 0; i < dmodel.getTransition().nbloks; ++i) {
 //            DataBlock factor=initializer.getPrincipalComponents(i).getFactor(0);
 //            factor.sub(factor.sum()/factor.getLength());
@@ -183,7 +184,7 @@ public class DfmInitializerTest {
         }
         DfmProcessor processor = new DfmProcessor();
         processor.setCalcVariance(false);
-        processor.process(dmodel, new DfmInformationSet(s));
+        processor.process(dmodel, new TsInformationSet(s));
         for (int i = 0; i < dmodel.getFactorsCount(); ++i) {
             DataBlock cmp = new DataBlock(processor.getSmoothingResults().component(i * dmodel.getBlockLength()));
             cmp.sub(cmp.sum() / cmp.getLength());
@@ -205,7 +206,7 @@ public class DfmInitializerTest {
         model0.normalize();
 //        model0.setInitialization(DynamicFactorModel.Initialization.Zero);
 //        DynamicFactorModel model1=model0.clone();
-        DfmInformationSet dfmInformationSet = new DfmInformationSet(s);
+        TsInformationSet dfmInformationSet = new TsInformationSet(s);
 //        DefaultInitializer initializer =new DefaultInitializer();
         initializer.initialize(model0, dfmInformationSet);
 //        initializer.initialize(model0, dfmInformationSet);
@@ -263,7 +264,7 @@ public class DfmInitializerTest {
         DynamicFactorModel model0 = dmodel.clone();
         model0.normalize();
  //       model0.setTransition(new TransitionDescriptor(3, 1));
-        DfmInformationSet dfmInformationSet = new DfmInformationSet(s);
+        TsInformationSet dfmInformationSet = new TsInformationSet(s);
 
         //DefaultInitializer initializer = new DefaultInitializer();
         PcInitializer initializer = new PcInitializer();

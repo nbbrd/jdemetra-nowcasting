@@ -16,9 +16,11 @@
  */
 package ec.tstoolkit.dfm;
 
+import ec.tstoolkit.timeseries.information.TsInformationSet;
+import ec.tstoolkit.timeseries.information.TsInformationUpdates;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DataBlockIterator;
-import ec.tstoolkit.dfm.DfmInformationUpdates.Update;
+import ec.tstoolkit.timeseries.information.TsInformationUpdates.Update;
 import ec.tstoolkit.maths.matrices.LowerTriangularMatrix;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.maths.matrices.SymmetricMatrix;
@@ -46,8 +48,8 @@ public class DfmNews {
     private final DynamicFactorModel model_;
     private DynamicFactorModel modelex_;
     private final IMSsf ssf_;
-    private DfmInformationSet oldset_, newset_;
-    private DfmInformationUpdates updates_;
+    private TsInformationSet oldset_, newset_;
+    private TsInformationUpdates updates_;
     private Matrix mcov_, lcov_;
     private TsPeriod first_, last_;
 
@@ -73,11 +75,11 @@ public class DfmNews {
         ssf_ = model_.ssfRepresentation();
     }
 
-    public DfmInformationSet getOldInformationSet() {
+    public TsInformationSet getOldInformationSet() {
         return this.oldset_;
     }
 
-    public DfmInformationSet getNewInformationSet() {
+    public TsInformationSet getNewInformationSet() {
         return this.newset_;
     }
 
@@ -92,7 +94,7 @@ public class DfmNews {
      * @param newSet The new information set
      * @return True if the news have been successfully computed
      */
-    public boolean process(DfmInformationSet oldSet, DfmInformationSet newSet) {
+    public boolean process(TsInformationSet oldSet, TsInformationSet newSet) {
         oldset_ = oldSet;
         newset_ = newSet;
         updates_ = oldset_.updates(newset_);
@@ -338,7 +340,7 @@ public class DfmNews {
      *
      * @return
      */
-    public DfmInformationUpdates newsDetails() {
+    public TsInformationUpdates newsDetails() {
         return updates_;
     }
 

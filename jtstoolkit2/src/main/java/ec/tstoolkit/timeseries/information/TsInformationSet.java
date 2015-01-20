@@ -14,8 +14,9 @@
  * See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
-package ec.tstoolkit.dfm;
+package ec.tstoolkit.timeseries.information;
 
+import ec.tstoolkit.timeseries.information.TsInformationUpdates;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.timeseries.Day;
 import ec.tstoolkit.timeseries.simplets.TsData;
@@ -29,13 +30,13 @@ import ec.tstoolkit.timeseries.simplets.TsPeriod;
  *
  * @author Jean Palate
  */
-public class DfmInformationSet {
+public class TsInformationSet {
 
     /**
      *
      * @param input
      */
-    public DfmInformationSet(TsData[] input) {
+    public TsInformationSet(TsData[] input) {
         for (int i = 0; i < input.length; ++i) {
             table_.insert(-1, input[i]);
         }
@@ -50,7 +51,7 @@ public class DfmInformationSet {
      * @param newdata
      * @return
      */
-    public DfmInformationSet revisedData(DfmInformationSet newdata) {
+    public TsInformationSet revisedData(TsInformationSet newdata) {
         TsData[] ndata = new TsData[table_.getSeriesCount()];
         for (int i = 0; i < ndata.length; ++i) {
             TsData cur = table_.series(i);
@@ -63,23 +64,23 @@ public class DfmInformationSet {
             }
             ndata[i] = ncur;
         }
-        return new DfmInformationSet(ndata);
+        return new TsInformationSet(ndata);
     }
 
-    public DfmInformationSet actualData() {
+    public TsInformationSet actualData() {
         TsData[] ndata = new TsData[table_.getSeriesCount()];
         for (int i = 0; i < ndata.length; ++i) {
             ndata[i] = table_.series(i).cleanExtremities();
         }
-        return new DfmInformationSet(ndata);
+        return new TsInformationSet(ndata);
     }
 
-    public DfmInformationSet extendTo(final Day end) {
+    public TsInformationSet extendTo(final Day end) {
         TsData[] ndata = new TsData[table_.getSeriesCount()];
         for (int i = 0; i < ndata.length; ++i) {
             ndata[i] = table_.series(i).extendTo(end);
         }
-        return new DfmInformationSet(ndata);
+        return new TsInformationSet(ndata);
     }
 
     /**
@@ -169,12 +170,12 @@ public class DfmInformationSet {
      * @param ndata New data
      * @return List of newly added data
      */
-    DfmInformationUpdates updates(DfmInformationSet ndata) {
+    public TsInformationUpdates updates(TsInformationSet ndata) {
         int n = table_.getSeriesCount();
         if (n != ndata.table_.getSeriesCount()) {
             return null;
         }
-        DfmInformationUpdates updates = new DfmInformationUpdates();
+        TsInformationUpdates updates = new TsInformationUpdates();
         for (int i = 0; i < n; ++i) {
             TsData olds = table_.series(i), news = ndata.table_.series(i);
             int del = news.getStart().minus(olds.getStart());

@@ -16,6 +16,7 @@
  */
 package ec.tstoolkit.dfm;
 
+import ec.tstoolkit.timeseries.information.TsInformationSet;
 import ec.tstoolkit.mssf2.MFilteringResults;
 import ec.tstoolkit.mssf2.MSmoothingResults;
 
@@ -24,7 +25,7 @@ import ec.tstoolkit.mssf2.MSmoothingResults;
  * @author Jean Palate
  */
 public interface IDfmProcessor {
-    boolean process(DynamicFactorModel model, DfmInformationSet info);
+    boolean process(DynamicFactorModel model, TsInformationSet info);
     
     MFilteringResults getFilteringResults();
     MSmoothingResults getSmoothingResults();

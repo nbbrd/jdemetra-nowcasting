@@ -16,6 +16,7 @@
  */
 package ec.tstoolkit.dfm;
 
+import ec.tstoolkit.timeseries.information.TsInformationSet;
 import data.Data;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DescriptiveStatistics;
@@ -189,7 +190,7 @@ public class DfmMonitorTest {
 //        dmodelc = dmodelc.compactFactors(0, 2);
         DfmMonitor monitor = new DfmMonitor();
         PcInitializer initializer = new PcInitializer();
-        DfmInformationSet info = new DfmInformationSet(s);
+        TsInformationSet info = new TsInformationSet(s);
         initializer.initialize(dmodelc, info);
         System.out.println(new DfmMapping(dmodelc).parameters());
         dmodelc = dmodel.clone();

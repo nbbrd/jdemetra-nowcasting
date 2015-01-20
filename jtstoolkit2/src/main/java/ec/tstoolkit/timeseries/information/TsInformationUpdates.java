@@ -14,7 +14,7 @@
  * See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
-package ec.tstoolkit.dfm;
+package ec.tstoolkit.timeseries.information;
 
 import ec.tstoolkit.timeseries.simplets.TsDomain;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
@@ -27,7 +27,7 @@ import java.util.List;
  *
  * @author Jean Palate
  */
-public class DfmInformationUpdates {
+public class TsInformationUpdates {
 
     /**
      *
@@ -76,7 +76,7 @@ public class DfmInformationUpdates {
          */
         public final int series;
 
-        double y, fy;
+        public double y, fy;
 
         @Override
         public String toString() {
@@ -89,7 +89,7 @@ public class DfmInformationUpdates {
 
     private final List<Update> updates_ = new ArrayList<Update>();
 
-    DfmInformationUpdates() {
+    TsInformationUpdates() {
     }
 
     /**

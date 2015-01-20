@@ -10,7 +10,7 @@ import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DescriptiveStatistics;
 import ec.tstoolkit.dfm.DfmEM;
 import ec.tstoolkit.dfm.DfmEM2;
-import ec.tstoolkit.dfm.DfmInformationSet;
+import ec.tstoolkit.timeseries.information.TsInformationSet;
 import ec.tstoolkit.dfm.DynamicFactorModel;
 import ec.tstoolkit.dfm.IDfmEstimator;
 import ec.tstoolkit.dfm.PcInitializer;
@@ -38,7 +38,7 @@ public class DfmResultsTest {
     static final int N = 500;
     static final boolean stressTest = false;
 
-    static DfmInformationSet dfmdata;  // DAVID: static variables belong to the class and not any particular object in the class
+    static TsInformationSet dfmdata;  // DAVID: static variables belong to the class and not any particular object in the class
     static DfmResults results;
     static TsData[] factors;
   
@@ -63,7 +63,7 @@ public class DfmResultsTest {
             input[i] = new TsData(start, dd.row(i));
         }
 
-        dfmdata = new DfmInformationSet(input); // input is TsData[]                    
+        dfmdata = new TsInformationSet(input); // input is TsData[]                    
 
     }
 

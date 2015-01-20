@@ -16,6 +16,7 @@
  */
 package ec.tstoolkit.dfm;
 
+import ec.tstoolkit.timeseries.information.TsInformationSet;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DescriptiveStatistics;
 import ec.tstoolkit.eco.Ols;
@@ -68,7 +69,7 @@ public class PcInitializer implements IDfmInitializer {
     }
 
     @Override
-    public boolean initialize(DynamicFactorModel model, DfmInformationSet input) {
+    public boolean initialize(DynamicFactorModel model, TsInformationSet input) {
         DynamicFactorModel nmodel = model.clone();
         clear();
         if (!computeMatrix(input)) {
@@ -107,7 +108,7 @@ public class PcInitializer implements IDfmInitializer {
         pc_ = null;
     }
 
-    private boolean computeMatrix(DfmInformationSet input) {
+    private boolean computeMatrix(TsInformationSet input) {
         TsDomain domain = idom_;
         if (domain == null) {
             domain = searchDomain(input);
@@ -279,7 +280,7 @@ public class PcInitializer implements IDfmInitializer {
         return true;
     }
 
-    private TsDomain searchDomain(DfmInformationSet input) {
+    private TsDomain searchDomain(TsInformationSet input) {
         int n = input.getSeriesCount();
         Day[] start = new Day[n];
         Day[] end = new Day[n];

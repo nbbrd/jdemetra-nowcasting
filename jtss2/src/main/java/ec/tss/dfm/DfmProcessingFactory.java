@@ -35,7 +35,7 @@ import ec.tstoolkit.dfm.DefaultInitializer;
 import ec.tstoolkit.dfm.DfmEM;
 import ec.tstoolkit.dfm.DfmEM2;
 import ec.tstoolkit.dfm.DfmEstimator;
-import ec.tstoolkit.dfm.DfmInformationSet;
+import ec.tstoolkit.timeseries.information.TsInformationSet;
 import ec.tstoolkit.dfm.DfmModelSpec;
 import ec.tstoolkit.dfm.DfmSpec;
 import ec.tstoolkit.dfm.DynamicFactorModel;
@@ -250,7 +250,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
                 }
                 MultiTsData inputc = new MultiTsData("var", trs);
                 results.put(INPUTC, inputc);
-                DfmInformationSet dinfo = new DfmInformationSet(sc);
+                TsInformationSet dinfo = new TsInformationSet(sc);
                 int fh = spec.getModelSpec().getForecastHorizon();
                 if (fh > 0) {
                     TsPeriod last = dinfo.getCurrentDomain().getLast();
@@ -296,7 +296,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
                 if (rslts == null) {
                     return IProcessing.Status.Unprocessed;
                 }
-                DfmInformationSet actualData = rslts.getInput().actualData();
+                TsInformationSet actualData = rslts.getInput().actualData();
                 PcInitializer initializer = new PcInitializer();
                 if (spec.getSpan().getType() != PeriodSelectorType.All) {
                     TsDomain cur = actualData.getCurrentDomain();
@@ -360,7 +360,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
             if (rslts == null) {
                 return IProcessing.Status.Unprocessed;
             }
-            DfmInformationSet actualData = rslts.getInput().actualData();
+            TsInformationSet actualData = rslts.getInput().actualData();
             IDfmInitializer initializer;
             if (spec.getVersion() == EmSpec.DEF_VERSION) {
                 DfmEM2 em = new DfmEM2(null);
@@ -421,7 +421,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
             if (rslts == null) {
                 return IProcessing.Status.Unprocessed;
             }
-            DfmInformationSet actualData = rslts.getInput().actualData();
+            TsInformationSet actualData = rslts.getInput().actualData();
             DfmEstimator estimator;
             if (spec.getMethod() == NumericalProcessingSpec.Method.LevenbergMarquardt) {
                 LevenbergMarquardtMethod lm = new LevenbergMarquardtMethod();

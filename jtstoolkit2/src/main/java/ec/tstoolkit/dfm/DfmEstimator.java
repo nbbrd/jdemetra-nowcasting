@@ -16,6 +16,7 @@
  */
 package ec.tstoolkit.dfm;
 
+import ec.tstoolkit.timeseries.information.TsInformationSet;
 import ec.tstoolkit.algorithm.IProcessingHookProvider;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DataBlockIterator;
@@ -155,7 +156,7 @@ public class DfmEstimator implements IDfmEstimator {
     }
 
     @Override
-    public boolean estimate(final DynamicFactorModel dfm, DfmInformationSet input) {
+    public boolean estimate(final DynamicFactorModel dfm, TsInformationSet input) {
         converged_ = false;
         Matrix m = input.generateMatrix(idom_);
         MSsfAlgorithm algorithm = new MSsfAlgorithm();

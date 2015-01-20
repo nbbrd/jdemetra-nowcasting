@@ -16,6 +16,7 @@
  */
 package ec.tstoolkit.dfm;
 
+import ec.tstoolkit.timeseries.information.TsInformationSet;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.mssf2.IMSsf;
 import ec.tstoolkit.mssf2.MFilteringResults;
@@ -63,7 +64,7 @@ public class DfmProcessor implements IDfmProcessor {
     }
 
     @Override
-    public boolean process(DynamicFactorModel model, DfmInformationSet input) {
+    public boolean process(DynamicFactorModel model, TsInformationSet input) {
         try {
             clear();
             Matrix M = input.generateMatrix(null);

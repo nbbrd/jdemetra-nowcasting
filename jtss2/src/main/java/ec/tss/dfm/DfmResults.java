@@ -21,7 +21,7 @@ import ec.tstoolkit.algorithm.ProcessingInformation;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DataBlockStorage;
 import ec.tstoolkit.data.DescriptiveStatistics;
-import ec.tstoolkit.dfm.DfmInformationSet;
+import ec.tstoolkit.timeseries.information.TsInformationSet;
 import ec.tstoolkit.dfm.DfmProcessor;
 import ec.tstoolkit.dfm.DynamicFactorModel;
 import ec.tstoolkit.eco.Likelihood;
@@ -49,7 +49,7 @@ public class DfmResults implements IProcResults {
 
     private final DynamicFactorModel model;
     private IMSsf mssf;
-    private final DfmInformationSet input;
+    private final TsInformationSet input;
     // optimization (if any)
     private Likelihood likelihood;
     private Matrix information; // D2(log likelihood)
@@ -71,7 +71,7 @@ public class DfmResults implements IProcResults {
     private DfmSeriesDescriptor[] description;
     private TsData[] smoothedSignalProjection; // incorporates mean and stdev
 
-    public DfmResults(DynamicFactorModel model, DfmInformationSet input) {
+    public DfmResults(DynamicFactorModel model, TsInformationSet input) {
         this.model = model;
         this.input = input;
     }
@@ -80,7 +80,7 @@ public class DfmResults implements IProcResults {
         return model;
     }
 
-    public DfmInformationSet getInput() {
+    public TsInformationSet getInput() {
         return input;
     }
 

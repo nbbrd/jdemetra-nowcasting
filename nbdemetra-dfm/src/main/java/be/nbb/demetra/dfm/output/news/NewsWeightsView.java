@@ -27,8 +27,8 @@ import ec.tss.dfm.DfmResults;
 import ec.tss.dfm.DfmSeriesDescriptor;
 import ec.tss.tsproviders.utils.Formatters;
 import ec.tstoolkit.data.DataBlock;
-import ec.tstoolkit.dfm.DfmInformationSet;
-import ec.tstoolkit.dfm.DfmInformationUpdates;
+import ec.tstoolkit.timeseries.information.TsInformationSet;
+import ec.tstoolkit.timeseries.information.TsInformationUpdates;
 import ec.tstoolkit.dfm.DfmNews;
 import ec.tstoolkit.timeseries.TsAggregationType;
 import ec.tstoolkit.timeseries.simplets.TsData;
@@ -278,8 +278,8 @@ public class NewsWeightsView extends JPanel {
 
     private void updateGridModel() {
         if (doc != null) {
-            DfmInformationUpdates details = doc.newsDetails();
-            List<DfmInformationUpdates.Update> updates = details.updates();
+            TsInformationUpdates details = doc.newsDetails();
+            List<TsInformationUpdates.Update> updates = details.updates();
             if (updates.isEmpty()) {
                 grid.setModel(null);
             } else {
@@ -292,8 +292,8 @@ public class NewsWeightsView extends JPanel {
 
     private void updateChart() {
         if (doc != null) {
-            DfmInformationUpdates details = doc.newsDetails();
-            List<DfmInformationUpdates.Update> updates = details.updates();
+            TsInformationUpdates details = doc.newsDetails();
+            List<TsInformationUpdates.Update> updates = details.updates();
             if (updates.isEmpty()) {
                 chartForecast.setDataset(null);
             } else {
@@ -459,8 +459,8 @@ public class NewsWeightsView extends JPanel {
 
     private void calculateData() {
         DataBlock n = doc.news();
-        DfmInformationSet dataNew = doc.getNewInformationSet();
-        DfmInformationSet dataOld = doc.getOldInformationSet();
+        TsInformationSet dataNew = doc.getNewInformationSet();
+        TsInformationSet dataOld = doc.getOldInformationSet();
         int selected = combobox.getSelectedIndex();
         TsData sNew = dataNew.series(selected);
         TsData sOld = dataOld.series(selected);
@@ -517,13 +517,13 @@ public class NewsWeightsView extends JPanel {
         createColumnTitles();
 
         //================================================
-        DfmInformationUpdates details = doc.newsDetails();
-        List<DfmInformationUpdates.Update> updates = details.updates();
+        TsInformationUpdates details = doc.newsDetails();
+        List<TsInformationUpdates.Update> updates = details.updates();
         rows = new ArrayList<>();
         ref_periods = new ArrayList<>();
         expected = new ArrayList<>();
         observations = new ArrayList<>();
-        for (DfmInformationUpdates.Update updt : updates) {
+        for (TsInformationUpdates.Update updt : updates) {
             DfmSeriesDescriptor description = desc[updt.series];
             rows.add(description.description);
             ref_periods.add(updt.period);
@@ -550,7 +550,7 @@ public class NewsWeightsView extends JPanel {
         int selectedIndex = combobox.getSelectedIndex();
         double stdev = desc[selectedIndex].stdev;
         double mean = desc[selectedIndex].mean;
-        DfmInformationSet dataOld = doc.getOldInformationSet();
+        TsInformationSet dataOld = doc.getOldInformationSet();
         TsData serieOld = dataOld.series(selectedIndex).times(stdev).plus(mean);
         TsData serieNew = dfmResults.getTheData()[selectedIndex].plus(mean);
         TsDataCollector coll = new TsDataCollector();

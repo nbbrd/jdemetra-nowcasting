@@ -5,6 +5,8 @@
  */
 package ec.tstoolkit.dfm;
 
+import ec.tstoolkit.timeseries.information.TsInformationSet;
+import ec.tstoolkit.timeseries.information.TsInformationUpdates;
 import data.Data;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DescriptiveStatistics;
@@ -490,9 +492,9 @@ public class DynamicFactorModelTest {
                 os[i] = os[i].drop(0, rnd.nextInt(12));
             }
         }
-        news.process(new DfmInformationSet(os), new DfmInformationSet(s));
+        news.process(new TsInformationSet(os), new TsInformationSet(s));
         long q1 = System.currentTimeMillis();
-        for (DfmInformationUpdates.Update update : news.newsDetails().updates()) {
+        for (TsInformationUpdates.Update update : news.newsDetails().updates()) {
             System.out.println(update);
         }
         DataBlock n = news.news();
