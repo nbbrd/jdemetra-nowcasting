@@ -16,10 +16,13 @@
  */
 package ec.tstoolkit.dfm;
 
+import ec.satoolkit.ISaSpecification;
 import ec.tstoolkit.Parameter;
 import ec.tstoolkit.ParameterType;
+import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.algorithm.IProcSpecification;
 import ec.tstoolkit.information.InformationSet;
+import ec.tstoolkit.timeseries.simplets.TsData;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
