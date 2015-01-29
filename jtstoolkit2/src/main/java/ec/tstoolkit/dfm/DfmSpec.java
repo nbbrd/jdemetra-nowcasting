@@ -32,7 +32,7 @@ public class DfmSpec implements IProcSpecification, Cloneable {
     public static final String MSPEC = "model", ESPEC = "estimation", SASPEC = "sa";
     private DfmModelSpec model_=new DfmModelSpec();
     private DfmEstimationSpec estimation_=new DfmEstimationSpec();
-    private ISaSpecification sa_ = TramoSeatsSpecification.RSA4;
+    private ISaSpecification sa_ = TramoSeatsSpecification.RSAfull;
 
     public DfmModelSpec getModelSpec() {
         return model_;

@@ -41,32 +41,46 @@ public class ArimaForecaster implements ITsForecaster {
     }
 
     @Override
-    public boolean process(TsData series, TsInformationSet info, int nf) {
-         if (nf <= 0) {
+    public boolean process(TsInformationSet info, int var, Day horizon) {
+        TsData series = info.series(var);
+        TsPeriod start = series.getEnd();
+        if (horizon.isBefore(start.lastday())) {
             return false;
         }
-        TsPeriod start = series.getEnd();
+        if (model_ != null && model_.description.getOriginal().equals(series)) {
+            return true;
+        }
+        TsPeriod last = start.clone();
+        last.set(horizon);
         ModellingContext context = new ModellingContext();
         model_ = processor_.process(series, context);
-        fdom_ = new TsDomain(start, nf);
+        fdom_ = new TsDomain(start, last.minus(start));
         return model_ != null;
     }
 
     @Override
     public TsData getForecast() {
-        return model_.forecast(fdom_.getLength(), false);
+        try {
+            return model_.forecast(fdom_.getLength(), false);
+        } catch (Exception err) {
+            return null;
+        }
     }
 
     @Override
     public TsData getForecastStdev() {
-        Forecasts forecasts = model_.forecasts(fdom_.getLength());
-        double[] ef = forecasts.getForecastStdevs();
-        TsData r = new TsData(fdom_.getStart(), ef, false);
-        if (model_.isMultiplicative()) {
-            TsData f = new TsData(fdom_.getStart(), forecasts.getForecasts(), false).exp();
-            return r.exp().plus(-1).times(f);
-        } else {
-            return r;
+        try {
+            Forecasts forecasts = model_.forecasts(fdom_.getLength());
+            double[] ef = forecasts.getForecastStdevs();
+            TsData r = new TsData(fdom_.getStart(), ef, false);
+            if (model_.isMultiplicative()) {
+                TsData f = new TsData(fdom_.getStart(), forecasts.getForecasts(), false).exp();
+                return r.exp().plus(-1).times(f);
+            } else {
+                return r;
+            }
+        } catch (Exception err) {
+            return null;
         }
     }
 

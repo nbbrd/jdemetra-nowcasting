@@ -16,15 +16,21 @@
  */
 package ec.tstoolkit.timeseries.information;
 
+import ec.tstoolkit.information.InformationSet;
 import ec.tstoolkit.timeseries.information.TsInformationUpdates;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.timeseries.Day;
+import ec.tstoolkit.timeseries.TsPeriodSelector;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDataTable;
 import ec.tstoolkit.timeseries.simplets.TsDataTableInfo;
 import ec.tstoolkit.timeseries.simplets.TsDomain;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  *
@@ -40,6 +46,14 @@ public class TsInformationSet {
         for (int i = 0; i < input.length; ++i) {
             table_.insert(-1, input[i]);
         }
+    }
+
+    public TsData[] toArray() {
+        TsData[] s = new TsData[table_.getSeriesCount()];
+        for (int i = 0; i < s.length; ++i) {
+            s[i] = table_.series(i);
+        }
+        return s;
     }
 
     // 
@@ -191,5 +205,62 @@ public class TsInformationSet {
         }
         return updates;
     }
+
+    public Day[] generatePublicationCalendar(int[] delays) {
+        SortedSet<Day> sdays = new TreeSet<>();
+        for (int i = 0; i < table_.getSeriesCount(); ++i) {
+            TsData s = table_.series(i);
+            TsDomain dom = s.getDomain();
+            int ndel = delays == null ? 0 : delays[i];
+            for (int j = 0; j < s.getLength(); ++j) {
+                if (!s.isMissing(j)) {
+                    TsPeriod p = dom.get(j);
+                    Day pub = p.lastday().plus(ndel);
+                    sdays.add(pub);
+                }
+            }
+        }
+        Day[] days = new Day[sdays.size()];
+        return sdays.toArray(days);
+    }
+
+    public Day[] generatePublicationCalendar(int[] delays, Day start) {
+        SortedSet<Day> sdays = new TreeSet<>();
+        for (int i = 0; i < table_.getSeriesCount(); ++i) {
+            TsData s = table_.series(i);
+            TsDomain dom = s.getDomain();
+            int ndel = delays == null ? 0 : delays[i];
+            int pos = dom.search(start);
+            if (pos < 0 && start.isBefore(dom.getStart().firstday())) {
+                pos = 0;
+            }
+            if (pos >= 0) {
+                for (int j = pos; j < s.getLength(); ++j) {
+                    if (!s.isMissing(j)) {
+                        TsPeriod p = dom.get(j);
+                        Day pub = p.lastday().plus(ndel);
+                        sdays.add(pub);
+                    }
+                }
+            }
+        }
+        Day[] days = new Day[sdays.size()];
+        return sdays.toArray(days);
+    }
+
+    public TsInformationSet generateInformation(final int[] delays, final Day date) {
+        TsData[] inputc = new TsData[table_.getSeriesCount()];
+        for (int i = 0; i < inputc.length; ++i) {
+            TsPeriodSelector sel = new TsPeriodSelector();
+            Day last = date;
+            if (delays != null) {
+                last = last.minus(delays[i]);
+            }
+            sel.to(last);
+            inputc[i] = table_.series(i).select(sel);
+        }
+        return new TsInformationSet(inputc);
+    }
+
     private final TsDataTable table_ = new TsDataTable();
 }

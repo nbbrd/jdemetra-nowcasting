@@ -25,7 +25,7 @@ import ec.tstoolkit.timeseries.simplets.TsData;
  * @author Jean Palate
  */
 public interface ITsForecaster {
-    boolean process(TsData series, TsInformationSet info, int horizon);
+    boolean process(TsInformationSet info, int var, Day horizon);
     
     TsData getForecast();
     TsData getForecastStdev();

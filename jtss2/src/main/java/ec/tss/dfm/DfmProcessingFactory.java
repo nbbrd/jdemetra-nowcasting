@@ -261,9 +261,11 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
                 results.put(INPUTC, inputc);
                 TsInformationSet dinfo = new TsInformationSet(sc);
                 int fh = spec.getModelSpec().getForecastHorizon();
+                if (fh<0)
+                    fh=-fh*dinfo.getCurrentDomain().getFrequency().intValue();
                 if (fh > 0) {
                     TsPeriod last = dinfo.getCurrentDomain().getLast();
-                    last.move(fh * last.getFrequency().intValue());
+                    last.move(fh);
                     Day lastday = last.lastday();
                     dinfo = dinfo.extendTo(lastday);
                 }
