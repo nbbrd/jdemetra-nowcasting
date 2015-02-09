@@ -34,10 +34,6 @@ public class DfmInformationUpdates {
      */
     public static class Update {
 
-//        Update(final TsPeriod period, final int series) {
-//            this.period = period;
-//            this.series = series;
-//        }
         Update(final TsPeriod period, final int series) {
             this.period = period;
             this.series = series;
@@ -87,7 +83,8 @@ public class DfmInformationUpdates {
         }
     }
 
-    private final List<Update> updates_ = new ArrayList<Update>();
+    private final List<Update> news_ = new ArrayList<>();
+    private final List<Update> revisions_ = new ArrayList<>();
 
     DfmInformationUpdates() {
     }
@@ -97,8 +94,12 @@ public class DfmInformationUpdates {
      * @param p
      * @param series
      */
-    public void add(TsPeriod p, int series) {
-        updates_.add(new Update(p, series));
+    public void addNew(TsPeriod p, int series) {
+        news_.add(new Update(p, series));
+    }
+    
+    public void addRevision(TsPeriod p, int series) {
+        revisions_.add(new Update(p, series));
     }
 
     /**
@@ -106,9 +107,9 @@ public class DfmInformationUpdates {
      * @param freq
      * @return
      */
-    public TsPeriod firstUpdate(TsFrequency freq) {
+    public TsPeriod firstNewsUpdate(TsFrequency freq) {
         TsPeriod first = null;
-        for (Update update : updates_) {
+        for (Update update : news_) {
             if (first == null) {
                 first = update.period.lastPeriod(freq);
             } else {
@@ -126,9 +127,9 @@ public class DfmInformationUpdates {
      * @param freq
      * @return
      */
-    public TsPeriod lastUpdate(TsFrequency freq) {
+    public TsPeriod lastNewsUpdate(TsFrequency freq) {
         TsPeriod last = null;
-        for (Update update : updates_) {
+        for (Update update : news_) {
             if (last == null) {
                 last = update.period.lastPeriod(freq);
             } else {
@@ -144,12 +145,13 @@ public class DfmInformationUpdates {
     /**
      *
      * @param freq
+     * @param updates
      * @return
      */
-    public TsDomain updatesDomain(TsFrequency freq) {
+    public TsDomain updatesDomain(TsFrequency freq, List<Update> updates) {
         TsPeriod first = null;
         TsPeriod last = null;
-        for (Update update : updates_) {
+        for (Update update : updates) {
             if (first == null) {
                 first = update.period.lastPeriod(freq);
                 last = first;
@@ -173,7 +175,11 @@ public class DfmInformationUpdates {
      *
      * @return
      */
-    public List<Update> updates() {
-        return Collections.unmodifiableList(updates_);
+    public List<Update> news() {
+        return Collections.unmodifiableList(news_);
+    }
+    
+    public List<Update> revisions() {
+        return Collections.unmodifiableList(revisions_);
     }
 }

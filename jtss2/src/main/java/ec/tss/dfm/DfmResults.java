@@ -17,6 +17,7 @@
 package ec.tss.dfm;
 
 import ec.tstoolkit.algorithm.IProcResults;
+import ec.tstoolkit.algorithm.ProcessingInformation;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DataBlockStorage;
 import ec.tstoolkit.data.DescriptiveStatistics;
@@ -35,12 +36,16 @@ import ec.tstoolkit.mssf2.MSmoothingResults;
 import ec.tstoolkit.timeseries.Day;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDomain;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  *
  * @author Jean Palate
+ * @author Mats Maggi
  */
 public class DfmResults implements IProcResults {
 
@@ -67,6 +72,8 @@ public class DfmResults implements IProcResults {
     private TsData[] smoothedSignalUncertainty; // incorporates stdev
     private DfmSeriesDescriptor[] description;
     private TsData[] smoothedSignalProjection; // incorporates mean and stdev
+
+    private final List<ProcessingInformation> infos = new ArrayList<>();
 
     public DfmResults(DynamicFactorModel model, DfmInformationSet input) {
         this.model = model;
@@ -200,9 +207,11 @@ public class DfmResults implements IProcResults {
     }
 
     /**
-     * Gets the TsData (time series) of smoothed factor (ET[f(t)]) identified as "idx",
+     * Gets the TsData (time series) of smoothed factor (ET[f(t)]) identified as
+     * "idx",
+     *
      * @param idx
-     * @return 
+     * @return
      */
     public TsData getFactor(int idx) {
         if (smoothing == null) {
@@ -211,23 +220,24 @@ public class DfmResults implements IProcResults {
         TsDomain currentDomain = input.getCurrentDomain();
         return new TsData(currentDomain.getStart(), smoothing.component(idx * model.getBlockLength()), true);
     }
-    
-     /**
-     * Gets the TsData (time series) of Filtered (Et[f(t)]) factor identified as "idx",
+
+    /**
+     * Gets the TsData (time series) of Filtered (Et[f(t)]) factor identified as
+     * "idx",
+     *
      * @param idx
-     * @return 
-   */
+     * @return
+     */
     public TsData getFactor_Filtered(int idx) {
         if (filtering == null) {
             calcSmoothedStates();
         }
         TsDomain currentDomain = input.getCurrentDomain();
-        
+
      //   filtering.getFilteredData().component(idx);
-        
         return new TsData(currentDomain.getStart(), filtering.getFilteredData().component(idx * model.getBlockLength()), true);
     }
-  
+
     public TsData getFactorStdev(int idx) {
         if (smoothing == null) {
             calcSmoothedStates();
@@ -242,7 +252,7 @@ public class DfmResults implements IProcResults {
         processor.process(model, input);
         smoothing = processor.getSmoothingResults();
         filtering = processor.getFilteringResults();
-        
+
     }
 
     public TsData[] getTheData() {
@@ -572,9 +582,8 @@ public class DfmResults implements IProcResults {
 
             } else {
                 //  TQT = new Matrix(ssf.getStateDim(),ssf.getStateDim());                 
-             
+
                 // bugg found 09/05/2014    Sigmax = new Matrix(r * c_, r * c_);
-                
                 TQT = Q_.times(Q_.transpose());
                 Sigmax = new Matrix(TQT.subMatrix());
                 for (int i = 0; i < horizon[h]; i++) {           // ????    
@@ -651,10 +660,8 @@ public class DfmResults implements IProcResults {
         Matrix R = rot.getRotation();
         Matrix B = C.times(R);
         DataBlock ts;
-    
 
        // Matrix TQT;
-        
         Matrix Bss = new Matrix(r * c_, r * c_); // compatible with SS
 
         for (int i = 0; i < r; i++) {
@@ -663,11 +670,8 @@ public class DfmResults implements IProcResults {
             }
         }
 
-                
         Matrix Q_ = new Matrix(Bss.subMatrix(0, r * c_, shock * c_, shock * c_ + 1));
 
-        
-        
         if (description == null) {
             throw new Error("missing description of the data transformations, mean and standard deviation  (object of the class DfmSeriesDescriptor[] has not been defined)");
         }
@@ -679,54 +683,41 @@ public class DfmResults implements IProcResults {
             }
 
 //   -->         Matrix Sigmax; 
- 
-
             if (horizon[h] == 1) {
 
                 //  TQT = new Matrix(ssf.getStateDim(),ssf.getStateDim());    
                 //    Sigmax= new Matrix(r*c_, r*c_);
-             
-            //--->  TQT = Q_.times(Q_.transpose()); // not correct
-              ts = Q_.column(0);
-                
-               
+                //--->  TQT = Q_.times(Q_.transpose()); // not correct
+                ts = Q_.column(0);
+
                 //     Sigmax.add(TQT);
                 //     for (int i=0;i<r;i++){
                 //         TQT.set(i*c_, i*c_, Q.subMatrix().get(i,i));
                 //      }
-
             } else {
                 //  TQT = new Matrix(ssf.getStateDim(),ssf.getStateDim());                 
                 //    Sigmax= new Matrix(r*c_, r*c_);
-            //--->  TQT = Q_.times(Q_.transpose()); // not correct
-               
+                //--->  TQT = Q_.times(Q_.transpose()); // not correct
+
                 // [h=2]  i=0-->Q ; i=1-->TQT'; 
                 // [h=3]  i=0-->Q ; i=1-->TQT'; i=2-->T(TQT')T';
-                 ts = Q_.column(0);
+                ts = Q_.column(0);
                 for (int i = 0; i < horizon[h]; i++) { //      horizon[0] is always bigger than  2 (hor = 0 is nonsense and hor=1 is in the if statement ) 
-             //--->       ssf.TVT(0, TQT.subMatrix());// not correct
-                   
-                    
-                    ssf.TX(0,ts);
-                    
-                    //           Sigmax.add(TQT);
+                    //--->       ssf.TVT(0, TQT.subMatrix());// not correct
 
+                    ssf.TX(0, ts);
+
+                    //           Sigmax.add(TQT);
                 }
 
             }
 
-            
-            
     //        Matrix    zvz = new Matrix(ssf.getVarsCount(), ssf.getVarsCount());
-
               //--> ssf.ZVZ(0, Sigmax.subMatrix(), zvz.subMatrix());
-
- 
             for (int v = 0; v < N; v++) {
-                  
-               
- //--->          irfShock.set(v, h, zvz.get(v, v) * description[v].stdev);
-                irfShock.set(v, h, ssf.ZX(0, v, ts)* description[v].stdev);
+
+                //--->          irfShock.set(v, h, zvz.get(v, v) * description[v].stdev);
+                irfShock.set(v, h, ssf.ZX(0, v, ts) * description[v].stdev);
             }
 
         }
@@ -751,7 +742,7 @@ public class DfmResults implements IProcResults {
         getShocks();
         int T = smoothedShocks[0].getLength();
         int c_ = model.getBlockLength();
- 
+
         double[] angles = new double[r * (r - 1) / 2]; // initialized at zero, si the rotation
 
         // matrix will be the identify and it will
@@ -950,8 +941,7 @@ public class DfmResults implements IProcResults {
     }
 
     public void calcSignalProjections() {
-        
-        
+
         IMSsf ssf = getSsf();
         if (smoothedSignal == null) {
             calcSmoothedSignal();
@@ -1009,7 +999,7 @@ public class DfmResults implements IProcResults {
                 //-- replaced 
                 //Matrix zvz = new Matrix(r * c_, r * c_);
                 Matrix zvz = new Matrix(N, N);
-                
+
                 ssf.ZVZ(0, temp.subMatrix(), zvz.subMatrix());
 
                 signalUncertainty[v][t] = zvz.get(v, v) * description[v].stdev * description[v].stdev;
@@ -1194,4 +1184,20 @@ public class DfmResults implements IProcResults {
         return builder.toString();
     }
 
+    @Override
+    public List<ProcessingInformation> getProcessingInformation() {
+        return Collections.unmodifiableList(infos);
+    }
+
+    public void addInformation(ProcessingInformation info) {
+        infos.add(info);
+    }
+
+    public void addInformation(List<ProcessingInformation> info) {
+        infos.addAll(info);
+    }
+
+    public boolean isSuccessful() {
+        return !ProcessingInformation.hasErrors(infos);
+    }
 }

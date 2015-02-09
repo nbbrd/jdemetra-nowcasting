@@ -41,7 +41,6 @@ public class DfmInformationSet {
         }
     }
 
-    // 
     /**
      * Creates a new information set with only the revised data in comparison
      * with this data set (the domains of the series of this data set are
@@ -174,21 +173,36 @@ public class DfmInformationSet {
         if (n != ndata.table_.getSeriesCount()) {
             return null;
         }
+        
         DfmInformationUpdates updates = new DfmInformationUpdates();
         for (int i = 0; i < n; ++i) {
             TsData olds = table_.series(i), news = ndata.table_.series(i);
+            
+            // Calculates news
             int del = news.getStart().minus(olds.getStart());
             TsPeriod start = news.getStart();
             for (int j = 0; j < news.getLength(); ++j) {
                 if (!news.getValues().isMissing(j)) {
                     int k = j + del;
                     if (k < 0 || k >= olds.getLength() || olds.getValues().isMissing(k)) {
-                        updates.add(start.plus(j), i);
+                        updates.addNew(start.plus(j), i);
                     }
+                }
+            }
+            
+            // Calculates revisions
+            start = olds.getStart();
+            TsData newFit = news.fittoDomain(olds.getDomain());
+            for (int j = 0; j < olds.getLength(); ++j) {
+                if (!newFit.getValues().isMissing(j) 
+                        && !olds.getValues().isMissing(j)
+                        && newFit.get(j) != olds.get(j)) {
+                    updates.addRevision(start.plus(j), i);
                 }
             }
         }
         return updates;
     }
+    
     private final TsDataTable table_ = new TsDataTable();
 }

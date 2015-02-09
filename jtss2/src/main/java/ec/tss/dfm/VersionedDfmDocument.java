@@ -25,8 +25,6 @@ import ec.tstoolkit.dfm.DfmInformationSet;
 import ec.tstoolkit.dfm.DfmNews;
 import ec.tstoolkit.dfm.DfmSpec;
 import java.util.Date;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -132,6 +130,24 @@ public class VersionedDfmDocument extends VersionedDocument<DfmSpec, Ts[], Compo
         DfmNews news=new DfmNews(cur.getModel());
         
         if (! news.process(revinfo, curinfo))
+            return null;
+        return news;
+    }
+    
+    public DfmNews getNewsAndRevisions(int ver){
+        DfmDocument refdoc;
+        if (ver == -1)
+            refdoc=this.getLastVersion();
+        else
+            refdoc=this.getVersion(ver);
+        if (refdoc == null)
+            return null;
+        DfmResults cur=this.getCurrent().getDfmResults(),
+                prev=refdoc.getDfmResults();
+        DfmInformationSet curinfo=cur.getInput(), previnfo=prev.getInput();
+        DfmNews news=new DfmNews(cur.getModel());
+        
+        if (! news.process(previnfo, curinfo))
             return null;
         return news;
     }
