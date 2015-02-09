@@ -16,6 +16,7 @@
  */
 package ec.tstoolkit.dfm;
 
+import ec.tstoolkit.timeseries.information.TsInformationSet;
 import ec.tstoolkit.timeseries.simplets.TsDomain;
 
 /**
@@ -23,5 +24,5 @@ import ec.tstoolkit.timeseries.simplets.TsDomain;
  * @author Jean Palate
  */
 public interface IDfmInitializer {
-    boolean initialize(DynamicFactorModel dfm, DfmInformationSet data);
+    boolean initialize(DynamicFactorModel dfm, TsInformationSet data);
 }

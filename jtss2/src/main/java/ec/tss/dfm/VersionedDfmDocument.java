@@ -21,9 +21,9 @@ import ec.tss.documents.VersionedDocument;
 import ec.tstoolkit.MetaData;
 import ec.tstoolkit.ParameterType;
 import ec.tstoolkit.algorithm.CompositeResults;
-import ec.tstoolkit.dfm.DfmInformationSet;
 import ec.tstoolkit.dfm.DfmNews;
 import ec.tstoolkit.dfm.DfmSpec;
+import ec.tstoolkit.timeseries.information.TsInformationSet;
 import java.util.Date;
 
 /**
@@ -106,8 +106,9 @@ public class VersionedDfmDocument extends VersionedDocument<DfmSpec, Ts[], Compo
             return null;
         DfmResults cur=this.getCurrent().getDfmResults(),
                 prev=refdoc.getDfmResults();
-        DfmInformationSet curinfo=cur.getInput(), previnfo=prev.getInput();
-        DfmInformationSet revinfo = previnfo.revisedData(curinfo);
+        TsInformationSet curinfo = cur.getInput();
+        TsInformationSet previnfo = prev.getInput();
+        TsInformationSet revinfo = previnfo.revisedData(curinfo);
         DfmNews news=new DfmNews(cur.getModel());
         
         if (! news.process(previnfo, revinfo))
@@ -125,8 +126,9 @@ public class VersionedDfmDocument extends VersionedDocument<DfmSpec, Ts[], Compo
             return null;
         DfmResults cur=this.getCurrent().getDfmResults(),
                 prev=refdoc.getDfmResults();
-        DfmInformationSet curinfo=cur.getInput(), previnfo=prev.getInput();
-        DfmInformationSet revinfo = previnfo.revisedData(curinfo);
+        TsInformationSet curinfo = cur.getInput();
+        TsInformationSet previnfo = prev.getInput();
+        TsInformationSet revinfo = previnfo.revisedData(curinfo);
         DfmNews news=new DfmNews(cur.getModel());
         
         if (! news.process(revinfo, curinfo))
@@ -144,7 +146,7 @@ public class VersionedDfmDocument extends VersionedDocument<DfmSpec, Ts[], Compo
             return null;
         DfmResults cur=this.getCurrent().getDfmResults(),
                 prev=refdoc.getDfmResults();
-        DfmInformationSet curinfo=cur.getInput(), previnfo=prev.getInput();
+        TsInformationSet curinfo=cur.getInput(), previnfo=prev.getInput();
         DfmNews news=new DfmNews(cur.getModel());
         
         if (! news.process(previnfo, curinfo))

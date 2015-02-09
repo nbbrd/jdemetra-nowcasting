@@ -123,8 +123,8 @@ public class HtmlEstimationModel extends AbstractHtmlElement implements IHtmlEle
         // HEADERS
         stream.open(HtmlTag.TABLEROW);
         stream.write(new HtmlTableCell("", NB_SIZE, HtmlStyle.Bold, HtmlStyle.Left));
-        for (int i = 1; i <= nbLags; i++) {
-            for (int j = 1; j <= nbFactors; j++) {
+        for (int i = 1; i <= nbFactors; i++) {
+            for (int j = 1; j <= nbLags; j++) {
                 stream.write(new HtmlTableCell("F" + i + "(-" + j + ")", NB_SIZE, HtmlStyle.Bold, HtmlStyle.Center));
             }
         }

@@ -21,7 +21,6 @@ import ec.tstoolkit.algorithm.ProcessingInformation;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DataBlockStorage;
 import ec.tstoolkit.data.DescriptiveStatistics;
-import ec.tstoolkit.dfm.DfmInformationSet;
 import ec.tstoolkit.dfm.DfmProcessor;
 import ec.tstoolkit.dfm.DynamicFactorModel;
 import ec.tstoolkit.eco.Likelihood;
@@ -34,6 +33,7 @@ import ec.tstoolkit.mssf2.IMSsf;
 import ec.tstoolkit.mssf2.MFilteringResults;
 import ec.tstoolkit.mssf2.MSmoothingResults;
 import ec.tstoolkit.timeseries.Day;
+import ec.tstoolkit.timeseries.information.TsInformationSet;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDomain;
 import java.util.ArrayList;
@@ -51,7 +51,7 @@ public class DfmResults implements IProcResults {
 
     private final DynamicFactorModel model;
     private IMSsf mssf;
-    private final DfmInformationSet input;
+    private final TsInformationSet input;
     // optimization (if any)
     private Likelihood likelihood;
     private Matrix information; // D2(log likelihood)
@@ -75,7 +75,7 @@ public class DfmResults implements IProcResults {
 
     private final List<ProcessingInformation> infos = new ArrayList<>();
 
-    public DfmResults(DynamicFactorModel model, DfmInformationSet input) {
+    public DfmResults(DynamicFactorModel model, TsInformationSet input) {
         this.model = model;
         this.input = input;
     }
@@ -84,7 +84,7 @@ public class DfmResults implements IProcResults {
         return model;
     }
 
-    public DfmInformationSet getInput() {
+    public TsInformationSet getInput() {
         return input;
     }
 

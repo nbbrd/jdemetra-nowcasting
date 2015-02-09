@@ -16,7 +16,9 @@
  */
 package ec.tss.dfm;
 
+import ec.satoolkit.DecompositionMode;
 import ec.satoolkit.GenericSaProcessingFactory;
+import ec.satoolkit.ISaSpecification;
 import ec.tss.sa.SaManager;
 import ec.tstoolkit.algorithm.AlgorithmDescriptor;
 import ec.tstoolkit.algorithm.CompositeResults;
@@ -31,11 +33,12 @@ import ec.tstoolkit.algorithm.ProcessingContext;
 import ec.tstoolkit.algorithm.ProcessingHookProvider;
 import ec.tstoolkit.algorithm.SequentialProcessing;
 import ec.tstoolkit.data.DescriptiveStatistics;
+import ec.tstoolkit.data.IReadDataBlock;
 import ec.tstoolkit.dfm.DefaultInitializer;
 import ec.tstoolkit.dfm.DfmEM;
 import ec.tstoolkit.dfm.DfmEM2;
 import ec.tstoolkit.dfm.DfmEstimator;
-import ec.tstoolkit.dfm.DfmInformationSet;
+import ec.tstoolkit.timeseries.information.TsInformationSet;
 import ec.tstoolkit.dfm.DfmModelSpec;
 import ec.tstoolkit.dfm.DfmSpec;
 import ec.tstoolkit.dfm.DynamicFactorModel;
@@ -45,16 +48,19 @@ import ec.tstoolkit.dfm.MeasurementSpec;
 import ec.tstoolkit.dfm.NumericalProcessingSpec;
 import ec.tstoolkit.dfm.PcInitializer;
 import ec.tstoolkit.dfm.PcSpec;
-import ec.tstoolkit.information.InformationSet;
 import ec.tstoolkit.maths.realfunctions.IFunctionInstance;
 import ec.tstoolkit.maths.realfunctions.ISsqFunctionInstance;
 import ec.tstoolkit.maths.realfunctions.ProxyMinimizer;
 import ec.tstoolkit.maths.realfunctions.levmar.LevenbergMarquardtMethod;
 import ec.tstoolkit.maths.realfunctions.riso.LbfgsMinimizer;
+import ec.tstoolkit.modelling.ComponentType;
 import ec.tstoolkit.modelling.ModellingDictionary;
+import ec.tstoolkit.modelling.SeriesInfo;
+import ec.tstoolkit.modelling.arima.PreprocessingModel;
 import ec.tstoolkit.mssf2.MSsfFunctionInstance;
 import ec.tstoolkit.timeseries.Day;
 import ec.tstoolkit.timeseries.PeriodSelectorType;
+import ec.tstoolkit.timeseries.TsAggregationType;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDomain;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
@@ -80,7 +86,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
         public final double loglikelihood;
     }
 
-    public static final String INPUTC = "inputc", DFM = "dfm", PC = "pc", PREEM = "preEM", POSTEM = "postEM", PROC = "numproc";
+    public static final String INPUTC = "inputc", DFM = "dfm", PC = "pc", PREEM = "preEM", POSTEM = "postEM", PROC = "numproc", FINALC = "finalc";
 
     public static final AlgorithmDescriptor DESCRIPTOR = new AlgorithmDescriptor("Nowcasting", "DynamicFactorModel", "1.0");
     public static final DfmProcessingFactory instance = new DfmProcessingFactory();
@@ -123,6 +129,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
         addPreEmStep(spec, context, processing);
         addProcStep(spec, context, processing);
         addPostEmStep(spec, context, processing);
+        addModelStep(spec, context, processing);
         addFinalStep(spec, context, processing);
         return processing;
     }
@@ -171,6 +178,31 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
         }
     }
 
+    private void addModelStep(DfmSpec spec, ProcessingContext context, SequentialProcessing processing) {
+        processing.add(createModelStep(spec));
+    }
+
+    private IProcessingNode<TsData[]> createModelStep(final DfmSpec spec) {
+        return new IProcessingNode<TsData[]>() {
+
+            @Override
+            public String getName() {
+                return DFM;
+            }
+
+            @Override
+            public String getPrefix() {
+                return DFM;
+            }
+
+            @Override
+            public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results) {
+                return IProcessing.Status.Valid;
+            }
+
+        };
+    }
+
     private void addFinalStep(DfmSpec spec, ProcessingContext context, SequentialProcessing processing) {
         processing.add(createFinalStep(spec));
     }
@@ -189,7 +221,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
             }
 
             @Override
-            public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results, InformationSet info) {
+            public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results) {
                 List<MeasurementSpec> measurements = spec.getModelSpec().getMeasurements();
                 int n = input.length;
                 if (n != measurements.size()) {
@@ -205,36 +237,12 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
                     if (s == null) {
                         return IProcessing.Status.Invalid;
                     }
-                    MeasurementSpec.Transformation[] st = ms.getSeriesTransformations();
-                    if (st != null) {
-                        for (int i = 0; i < st.length; ++i) {
-                            switch (st[i]) {
-                                case Log:
-                                    s = s.log();
-                                    break;
-                                case Diff1:
-                                    s = s.delta(1);
-                                    break;
-                                case DiffY:
-                                    s = s.delta(s.getFrequency().intValue());
-                                    break;
-                                case Sa:
-                                    CompositeResults sarslts = SaManager.instance.process(spec.getSaSpec(), s);
-                                    if (sarslts == null) {
-                                        return IProcessing.Status.Invalid;
-                                    }
-                                    IProcResults finals = sarslts.get(GenericSaProcessingFactory.FINAL);
-                                    if (finals == null) {
-                                        return IProcessing.Status.Invalid;
-                                    }
-                                    s = finals.getData(ModellingDictionary.SA, TsData.class);
-                                    break;
-                            }
-                            if (s == null) {
-                                return IProcessing.Status.Invalid;
-                            }
-                        }
+                    TsData[] stack = transform(s, ms.getSeriesTransformations(), spec.getSaSpec());
+                    s = stack[stack.length - 1];
+                    if (s == null) {
+                        return IProcessing.Status.Invalid;
                     }
+
                     double m = ms.getMean(), e = ms.getStdev();
                     if (Double.isNaN(m) || Double.isNaN(e)) {
                         DescriptiveStatistics stats = new DescriptiveStatistics(s);
@@ -246,15 +254,18 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
                     s.getValues().div(e);
                     desc[k].mean = m;
                     desc[k].stdev = e;
+                    desc[k].transformations=ms.getSeriesTransformations();
                     sc[k++] = s;
                 }
                 MultiTsData inputc = new MultiTsData("var", trs);
                 results.put(INPUTC, inputc);
-                DfmInformationSet dinfo = new DfmInformationSet(sc);
+                TsInformationSet dinfo = new TsInformationSet(sc);
                 int fh = spec.getModelSpec().getForecastHorizon();
+                if (fh<0)
+                    fh=-fh*dinfo.getCurrentDomain().getFrequency().intValue();
                 if (fh > 0) {
                     TsPeriod last = dinfo.getCurrentDomain().getLast();
-                    last.move(fh * last.getFrequency().intValue());
+                    last.move(fh);
                     Day lastday = last.lastday();
                     dinfo = dinfo.extendTo(lastday);
                 }
@@ -266,6 +277,7 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
                 results.put(DFM, start);
                 return IProcessing.Status.Valid;
             }
+
         };
     }
 
@@ -291,12 +303,12 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
             }
 
             @Override
-            public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results, InformationSet info) {
+            public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results) {
                 DfmResults rslts = (DfmResults) results.get(DFM);
                 if (rslts == null) {
                     return IProcessing.Status.Unprocessed;
                 }
-                DfmInformationSet actualData = rslts.getInput().actualData();
+                TsInformationSet actualData = rslts.getInput().actualData();
                 PcInitializer initializer = new PcInitializer();
                 if (spec.getSpan().getType() != PeriodSelectorType.All) {
                     TsDomain cur = actualData.getCurrentDomain();
@@ -318,16 +330,35 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
 
             @Override
             public String getName() {
-                return DFM;
+                return FINALC;
             }
 
             @Override
             public String getPrefix() {
-                return DFM;
+                return FINALC;
             }
 
             @Override
-            public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results, InformationSet info) {
+            public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results) {
+                List<MeasurementSpec> measurements = spec.getModelSpec().getMeasurements();
+                int n = input.length;
+                if (n != measurements.size()) {
+                    return IProcessing.Status.Invalid;
+                }
+                TsData[] trs = new TsData[n];
+                DfmResults dfm = (DfmResults) results.get(DFM);
+                for (int i = 0; i < n; ++i) {
+                    TsData s = dfm.getData(DfmResults.SMOOTHED + (i + 1), TsData.class);
+                    if (s != null) {
+                        s = s.changeFrequency(input[i].getFrequency(), TsAggregationType.Last, true);
+                        DfmSeriesDescriptor desc = dfm.getDescription(i);
+                        TsData[] stack = untransform(input[i], s, desc.transformations, spec.getSaSpec());
+                        trs[i] = stack[0];
+                    }
+                }
+                MultiTsData finalc = new MultiTsData("var", trs);
+                results.put(FINALC, finalc);
+
                 return IProcessing.Status.Valid;
             }
         };
@@ -355,12 +386,12 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
         IProcessingHook hook;
 
         @Override
-        public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results, InformationSet info) {
+        public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results) {
             DfmResults rslts = (DfmResults) results.get(DFM);
             if (rslts == null) {
                 return IProcessing.Status.Unprocessed;
             }
-            DfmInformationSet actualData = rslts.getInput().actualData();
+            TsInformationSet actualData = rslts.getInput().actualData();
             IDfmInitializer initializer;
             if (spec.getVersion() == EmSpec.DEF_VERSION) {
                 DfmEM2 em = new DfmEM2(null);
@@ -416,12 +447,12 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
         IProcessingHook hook;
 
         @Override
-        public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results, InformationSet info) {
+        public IProcessing.Status process(TsData[] input, Map<String, IProcResults> results) {
             DfmResults rslts = (DfmResults) results.get(DFM);
             if (rslts == null) {
                 return IProcessing.Status.Unprocessed;
             }
-            DfmInformationSet actualData = rslts.getInput().actualData();
+            TsInformationSet actualData = rslts.getInput().actualData();
             DfmEstimator estimator;
             if (spec.getMethod() == NumericalProcessingSpec.Method.LevenbergMarquardt) {
                 LevenbergMarquardtMethod lm = new LevenbergMarquardtMethod();
@@ -514,6 +545,174 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
             cur.setMean(desc.mean);
             cur.setStdev(desc.stdev);
         }
+    }
+
+    public static TsData transform(TsData s, MeasurementSpec.Transformation tr, ISaSpecification spec) {
+        if (s == null) {
+            return null;
+        }
+        switch (tr) {
+            case Log:
+                return s.log();
+            case Diff1:
+                return s.delta(1);
+            case DiffY:
+                return s.delta(s.getFrequency().intValue());
+            case Sa:
+                CompositeResults sarslts = SaManager.instance.process(spec, s);
+                if (sarslts == null) {
+                    return null;
+                }
+                TsData sa = sarslts.getData(ModellingDictionary.SA_CMP, TsData.class);
+                if (sa == null) {
+                    return s.clone();
+                } else {
+                    return sa;
+                }
+        }
+        return null;
+    }
+
+    public static TsData[] untransform(TsData original, TsData s, MeasurementSpec.Transformation[] tr, ISaSpecification spec) {
+        if (tr == null || tr.length == 0) {
+            return new TsData[]{s};
+        }
+        TsData[] us = new TsData[tr.length + 1];
+        us[tr.length] = s;
+        TsData[] stack = transform(original, tr, spec);
+        for (int i = tr.length - 1; i >= 0; --i) {
+            TsData cur = us[i + 1];
+            TsData orig = stack[i];
+            switch (tr[i]) {
+                case Log:
+                    cur = cur.exp();
+                    break;
+                case Diff1:
+                    cur = undiff(orig, cur, 1);
+                    break;
+                case DiffY:
+                    cur = undiff(orig, cur, orig.getFrequency().intValue());
+                    break;
+                case Sa:
+                    cur = unsa(orig, cur, spec);
+                    break;
+            }
+            us[i] = cur;
+        }
+        return us;
+    }
+
+    public static TsData[] transform(TsData s, MeasurementSpec.Transformation[] tr, ISaSpecification spec) {
+        if (tr == null || tr.length == 0) {
+            return new TsData[]{s.clone()};
+        } else {
+            TsData[] stack = new TsData[tr.length + 1];
+            stack[0] = s.clone();
+            for (int i = 0; i < tr.length; ++i) {
+                stack[i + 1] = transform(stack[i], tr[i], spec);
+            }
+            return stack;
+        }
+    }
+
+    private static TsData undiff(TsData orig, TsData cur, int del) {
+        TsData s = orig.fittoDomain(cur.getDomain().extend(del, 0));
+        int n = s.getLength();
+
+        for (int i = 0; i < del; ++i) {
+            // such the first non missing value of the original series
+            int refpos = i;
+            while (refpos < n && s.isMissing(refpos)) {
+                refpos += del;
+            }
+            if (refpos >= n) {
+                continue;
+            }
+            // fill after refpos
+            for (int j = refpos, k = j + del; k < n; j = k, k += del) {
+                if (s.isMissing(k)) {
+                    s.set(k, s.get(j) + cur.get(j));
+                }
+            }
+            // fill before refpos
+            for (int j = refpos - del, k = refpos; j >= 0; k = j, j -= del) {
+                s.set(j, s.get(k) - cur.get(j));
+            }
+        }
+        return s;
+    }
+
+    private static TsData unsa(TsData orig, TsData cur, ISaSpecification spec) {
+        if (orig.getDomain().equals(cur.getDomain())) {
+            DescriptiveStatistics ds = new DescriptiveStatistics(orig);
+            if (!ds.hasMissingValues()) {
+                return orig.clone();
+            }
+        }
+        CompositeResults sarslts = SaManager.instance.process(spec, orig);
+        if (sarslts == null) {
+            return cur;
+        }
+        TsData seas = sarslts.getData(ModellingDictionary.S_CMP, TsData.class);
+        DecompositionMode mode = sarslts.getData(ModellingDictionary.MODE, DecompositionMode.class);
+        if (seas == null) {
+            return cur;
+        }
+        TsData fseas = sarslts.getData(ModellingDictionary.S_CMP + SeriesInfo.F_SUFFIX, TsData.class);
+        if (fseas != null) {
+            seas = seas.update(fseas);
+        }
+        TsData seasc = seas.fittoDomain(cur.getDomain());
+        int n = cur.getLength();
+        int freq = cur.getFrequency().intValue();
+        // extends the seasonal component
+        int start = cur.getDomain().search(seas.getStart());
+        int end = cur.getDomain().search(seas.getEnd());
+        if (end == -1) {
+            end = n;
+        }
+        IReadDataBlock rextract = seas.rextract(0, freq);
+        double[] sc = seasc.getValues().internalStorage();
+        while (start >= freq) {
+            start -= freq;
+            rextract.copyTo(sc, start);
+        }
+        if (start > 0) {
+            rextract.rextract(freq - start, start).copyTo(sc, 0);
+        }
+        rextract = seas.rextract(seas.getLength() - freq, freq);
+        while (end + freq < n) {
+            rextract.copyTo(sc, end);
+            end += freq;
+        }
+        if (end < n) {
+            rextract.rextract(0, n - end).copyTo(sc, end);
+        }
+
+        PreprocessingModel mdl = sarslts.get(GenericSaProcessingFactory.PREPROCESSING, PreprocessingModel.class);
+        if (mdl != null) {
+            TsData re = mdl.regressionEffect(seasc.getDomain());
+            mdl.backTransform(re, true, true);
+            if (mode == DecompositionMode.Multiplicative) {
+                seasc = TsData.multiply(seasc, re);
+            } else {
+                seasc = TsData.add(seasc, re);
+            }
+        }
+        TsData x;
+        if (mode == DecompositionMode.Multiplicative) {
+            x = TsData.multiply(seasc, cur);
+        } else {
+            x = TsData.add(seasc, cur);
+        }
+        int del=orig.getStart().minus(x.getStart());
+        for (int i = 0; i < orig.getLength(); ++i) {
+            if (!orig.isMissing(i)) {
+                x.set(i+del, orig.get(i));
+            }
+        }
+
+        return x;
     }
 
 }

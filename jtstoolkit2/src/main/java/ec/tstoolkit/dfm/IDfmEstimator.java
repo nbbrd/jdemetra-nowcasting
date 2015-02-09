@@ -16,6 +16,7 @@
  */
 package ec.tstoolkit.dfm;
 
+import ec.tstoolkit.timeseries.information.TsInformationSet;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.timeseries.simplets.TsDomain;
@@ -25,7 +26,7 @@ import ec.tstoolkit.timeseries.simplets.TsDomain;
  * @author Jean Palate
  */
 public interface IDfmEstimator {
-    boolean estimate(DynamicFactorModel dfm, DfmInformationSet input);
+    boolean estimate(DynamicFactorModel dfm, TsInformationSet input);
 
     Matrix getHessian();
     DataBlock getGradient();

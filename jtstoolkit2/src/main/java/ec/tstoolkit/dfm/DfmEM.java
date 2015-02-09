@@ -5,6 +5,7 @@
  */
 package ec.tstoolkit.dfm;
 
+import ec.tstoolkit.timeseries.information.TsInformationSet;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DataBlockIterator;
 import ec.tstoolkit.data.DataBlockStorage;
@@ -69,7 +70,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
     private HashSet<MeasurementLoads> unique_logic;
     private Matrix unique_types;
 
-    private DfmInformationSet data;
+    private TsInformationSet data;
     private int iter;
     private Likelihood L, oldL;
 
@@ -138,7 +139,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
      * @param dfm0
      * @param data
      */
-    void initCalc(DynamicFactorModel dfm0, DfmInformationSet data) {
+    void initCalc(DynamicFactorModel dfm0, TsInformationSet data) {
         this.dfm = dfm0;
         this.data = data;
 
@@ -296,7 +297,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
      * @param dfm0
      * @param data
      */
-    private void calc(DynamicFactorModel dfm0, DfmInformationSet data) { // private  modifier has been eliminated
+    private void calc(DynamicFactorModel dfm0, TsInformationSet data) { // private  modifier has been eliminated
 
         iter = 0;
         dfm = dfm0.clone();
@@ -360,7 +361,7 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
  * @param data
  * @return 
  */
-    private double emstep(DynamicFactorModel dfm, DfmInformationSet data) {
+    private double emstep(DynamicFactorModel dfm, TsInformationSet data) {
 
         double logLike;
         E_S();
@@ -1015,14 +1016,14 @@ public class DfmEM implements IDfmInitializer, IDfmEstimator {
 
      
     @Override
-    public boolean initialize(DynamicFactorModel dfm0, DfmInformationSet data) {
+    public boolean initialize(DynamicFactorModel dfm0, TsInformationSet data) {
         initCalc(dfm0, data);
         calc(dfm0,data);
         return true;
     }
 
     @Override
-    public boolean estimate(DynamicFactorModel dfm0, DfmInformationSet data) {
+    public boolean estimate(DynamicFactorModel dfm0, TsInformationSet data) {
         initCalc(dfm0, data);
         calc(dfm0,data);
         return true;

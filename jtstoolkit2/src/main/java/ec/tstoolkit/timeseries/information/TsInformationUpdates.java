@@ -14,7 +14,7 @@
  * See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
-package ec.tstoolkit.dfm;
+package ec.tstoolkit.timeseries.information;
 
 import ec.tstoolkit.timeseries.simplets.TsDomain;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
@@ -27,13 +27,17 @@ import java.util.List;
  *
  * @author Jean Palate
  */
-public class DfmInformationUpdates {
+public class TsInformationUpdates {
 
     /**
      *
      */
     public static class Update {
 
+//        Update(final TsPeriod period, final int series) {
+//            this.period = period;
+//            this.series = series;
+//        }
         Update(final TsPeriod period, final int series) {
             this.period = period;
             this.series = series;
@@ -72,7 +76,7 @@ public class DfmInformationUpdates {
          */
         public final int series;
 
-        double y, fy;
+        public double y, fy;
 
         @Override
         public String toString() {
@@ -86,7 +90,7 @@ public class DfmInformationUpdates {
     private final List<Update> news_ = new ArrayList<>();
     private final List<Update> revisions_ = new ArrayList<>();
 
-    DfmInformationUpdates() {
+    TsInformationUpdates() {
     }
 
     /**
@@ -94,20 +98,20 @@ public class DfmInformationUpdates {
      * @param p
      * @param series
      */
-    public void addNew(TsPeriod p, int series) {
+    public void add(TsPeriod p, int series) {
         news_.add(new Update(p, series));
     }
-    
+
     public void addRevision(TsPeriod p, int series) {
         revisions_.add(new Update(p, series));
     }
-
+    
     /**
      *
      * @param freq
      * @return
      */
-    public TsPeriod firstNewsUpdate(TsFrequency freq) {
+    public TsPeriod firstUpdate(TsFrequency freq) {
         TsPeriod first = null;
         for (Update update : news_) {
             if (first == null) {
@@ -127,7 +131,7 @@ public class DfmInformationUpdates {
      * @param freq
      * @return
      */
-    public TsPeriod lastNewsUpdate(TsFrequency freq) {
+    public TsPeriod lastUpdate(TsFrequency freq) {
         TsPeriod last = null;
         for (Update update : news_) {
             if (last == null) {
@@ -145,7 +149,6 @@ public class DfmInformationUpdates {
     /**
      *
      * @param freq
-     * @param updates
      * @return
      */
     public TsDomain updatesDomain(TsFrequency freq, List<Update> updates) {

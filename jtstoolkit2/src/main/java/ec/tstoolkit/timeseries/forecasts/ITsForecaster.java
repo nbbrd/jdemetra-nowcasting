@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 National Bank of Belgium
+ * Copyright 2013-2014 National Bank of Belgium
  * 
  * Licensed under the EUPL, Version 1.1 or – as soon they will be approved 
  * by the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -14,20 +14,19 @@
  * See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
-package ec.tstoolkit.dfm;
+package ec.tstoolkit.timeseries.forecasts;
 
+import ec.tstoolkit.timeseries.Day;
 import ec.tstoolkit.timeseries.information.TsInformationSet;
-import ec.tstoolkit.mssf2.MFilteringResults;
-import ec.tstoolkit.mssf2.MSmoothingResults;
+import ec.tstoolkit.timeseries.simplets.TsData;
 
 /**
  *
  * @author Jean Palate
  */
-public interface IDfmProcessor {
-    boolean process(DynamicFactorModel model, TsInformationSet info);
+public interface ITsForecaster {
+    boolean process(TsInformationSet info, int var, Day horizon);
     
-    MFilteringResults getFilteringResults();
-    MSmoothingResults getSmoothingResults();
-    
+    TsData getForecast();
+    TsData getForecastStdev();
 }

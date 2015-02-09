@@ -51,6 +51,8 @@ public class DfmSeriesDescriptor {
     public MeasurementSpec.Transformation[] transformations;
     public double mean, stdev;
     public String description;
+    // Number of days between the end of the observation period and its publication
+    public int delay;
     
     @Override
     public String toString(){

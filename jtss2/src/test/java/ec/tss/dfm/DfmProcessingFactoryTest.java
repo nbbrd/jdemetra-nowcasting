@@ -16,6 +16,7 @@
  */
 package ec.tss.dfm;
 
+import ec.satoolkit.tramoseats.TramoSeatsSpecification;
 import ec.tss.sa.SaManager;
 import ec.tss.sa.processors.TramoSeatsProcessor;
 import ec.tss.sa.processors.X13Processor;
@@ -33,10 +34,12 @@ import ec.tstoolkit.dfm.DynamicFactorModel;
 import ec.tstoolkit.dfm.MeasurementSpec;
 import ec.tstoolkit.dfm.MeasurementSpec.Transformation;
 import ec.tstoolkit.dfm.NumericalProcessingSpec;
+import ec.tstoolkit.modelling.arima.tramo.TramoSpecification;
 import ec.tstoolkit.timeseries.TsAggregationType;
 import ec.tstoolkit.timeseries.regression.TsVariable;
 import ec.tstoolkit.timeseries.regression.TsVariables;
 import ec.tstoolkit.timeseries.simplets.TsData;
+import ec.tstoolkit.timeseries.simplets.TsDataTable;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.tstoolkit.var.VarSpec;
 import java.util.ArrayList;
@@ -50,7 +53,7 @@ import static org.junit.Assert.*;
  */
 public class DfmProcessingFactoryTest {
 
-    static final List<TsData>vars;
+    static final List<TsData> vars;
     static final DfmSpec spec;
 
     static {
@@ -88,7 +91,7 @@ public class DfmProcessingFactoryTest {
         mspec.getMeasurements().add(mvspec);
 
         mvspec = new MeasurementSpec();
-         mvspec.setSeriesTransformations(new Transformation[]{Transformation.Sa, Transformation.Diff1});
+        mvspec.setSeriesTransformations(new Transformation[]{Transformation.Sa, Transformation.Diff1});
         mvspec.setCoefficients(new Parameter[]{new Parameter()});
         mvspec.setFactorsTransformation(DynamicFactorModel.MeasurementType.Q);
         mspec.getMeasurements().add(mvspec);
@@ -114,7 +117,7 @@ public class DfmProcessingFactoryTest {
         assertTrue(v1 != null && v2 != null && v3 != null);
     }
 
-    @Test
+//    @Test
     public void testPcStep() {
         IProcessingHook<IProcessingNode, DfmProcessingFactory.EstimationInfo> hook = new IProcessingHook<IProcessingNode, DfmProcessingFactory.EstimationInfo>() {
 
@@ -123,7 +126,7 @@ public class DfmProcessingFactoryTest {
                 System.out.print(info.source.getName() + '\t');
                 System.out.print(info.message + '\t');
                 System.out.println(info.information.loglikelihood);
-               
+
             }
         };
         DfmProcessingFactory.instance.register(hook);
@@ -133,6 +136,24 @@ public class DfmProcessingFactoryTest {
         DfmResults dfm = rslts.get(DfmProcessingFactory.DFM, DfmResults.class);
         System.out.println(dfm.getModel());
         DfmProcessingFactory.instance.unregister(hook);
+    }
+
+    @Test
+    public void testDiff() {
+        TsData s = data.Data.P;
+        Transformation[] D = new Transformation[]{Transformation.Sa, Transformation.Log, Transformation.Diff1, Transformation.DiffY};
+        TsData[] transform = DfmProcessingFactory.transform(s, D, TramoSeatsSpecification.RSAfull);
+        TsData[] untransform = DfmProcessingFactory.untransform(s, transform[D.length], D, TramoSeatsSpecification.RSAfull);
+        TsDataTable table = new TsDataTable();
+        table.insert(-1, s);
+        for (int i = 0; i < D.length; ++i) {
+            table.insert(-1, transform[i + 1]);
+        }
+        for (int i = D.length; i > 0; --i) {
+            table.insert(-1, untransform[i - 1]);
+        }
+        System.out.println(table);
+        assertTrue(s.distance(untransform[0]) < 1e-9);
     }
 
 }

@@ -5,6 +5,7 @@
  */
 package ec.tstoolkit.dfm;
 
+import ec.tstoolkit.timeseries.information.TsInformationSet;
 import ec.tstoolkit.algorithm.IProcessingHook;
 import ec.tstoolkit.algorithm.ProcessingHookProvider;
 import ec.tstoolkit.data.DataBlock;
@@ -40,7 +41,7 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
     private IDfmInitializer initializer;
     private DfmProcessor processor = new DfmProcessor();
     private DynamicFactorModel dfm;
-    private DfmInformationSet data;
+    private TsInformationSet data;
     private Matrix M;
     private final EnumMap<DynamicFactorModel.MeasurementType, DataBlock[]> G = new EnumMap<>(DynamicFactorModel.MeasurementType.class);
     private final EnumMap<DynamicFactorModel.MeasurementType, Table<DataBlock>> G2 = new EnumMap<>(DynamicFactorModel.MeasurementType.class);
@@ -178,7 +179,7 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
     }
 
     @Override
-    public boolean initialize(DynamicFactorModel rdfm, DfmInformationSet data) {
+    public boolean initialize(DynamicFactorModel rdfm, TsInformationSet data) {
         this.data = data;
         if (rdfm.getBlockLength() == rdfm.getTransition().nlags) {
             dfm = rdfm.clone();
@@ -407,7 +408,7 @@ public class DfmEM2 extends ProcessingHookProvider<DfmEM2, DynamicFactorModel> i
         Q.sub(Y);
         Q.mul(1.0 / dataSize);
 
-        if (correctStart_ && dfm.getInitialization() == VarSpec.Initialization.SteadyState) {
+        if (correctStart_ && dfm.getInitialization() == VarSpec.Initialization.Unconditional) {
             LbfgsMinimizer bfgs = new LbfgsMinimizer();
             //bfgs.setLineSearch(new SimpleLineSearch());
             bfgs.setMaxIter(numiter_);

@@ -16,6 +16,7 @@
  */
 package ec.tstoolkit.dfm;
 
+import ec.tstoolkit.timeseries.information.TsInformationSet;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.mssf2.IMSsf;
 import ec.tstoolkit.mssf2.MFilteringResults;
@@ -87,7 +88,7 @@ public class DfmMonitor {
     }
 
     public boolean process(DynamicFactorModel model, TsData[] input) {
-        DfmInformationSet info = new DfmInformationSet(input);
+        TsInformationSet info = new TsInformationSet(input);
         if (initializer_ != null) {
             if (!initializer_.initialize(model, info)) {
                 return false;

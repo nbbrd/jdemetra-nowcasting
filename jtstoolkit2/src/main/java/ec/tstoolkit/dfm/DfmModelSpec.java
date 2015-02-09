@@ -28,6 +28,7 @@ import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.maths.matrices.SymmetricMatrix;
 import ec.tstoolkit.var.VarSpec;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -38,17 +39,19 @@ import java.util.Objects;
  */
 public class DfmModelSpec implements IProcSpecification, Cloneable {
 
-    public static final String VSPEC = "var", MSPEC = "measurement", MSPECS = "measurement*", FHORIZON = "fhorizon";
+    public static final String VSPEC = "var", MSPEC = "measurement", MSPECS = "measurement*", FHORIZON = "fhorizon"
+            , CALENDAR="calendar";
     private VarSpec vspec;
     private List<MeasurementSpec> mspecs = new ArrayList<>();
     private int fh;
+    private int[] delays;
 
-    private static final int DEF_FH = 1;
+    private static final int DEF_FH = 12;
 
     public DfmModelSpec() {
         vspec = new VarSpec();
         vspec.setSize(2, 2);
-        fh = 1;
+        fh = -1;
     }
 
     /**
@@ -102,7 +105,17 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
         }
         return vspec.setParameterType(type);
     }
-
+    
+    public int[] getPublicationDelays(){
+        return delays;
+    }
+    
+    public void setPublicationDelays(int[]delays){
+        if (delays != null && delays.length != mspecs.size())
+            throw new IllegalArgumentException();
+        this.delays=delays;
+    }
+ 
     @Override
     public DfmModelSpec clone() {
         try {
@@ -112,6 +125,8 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
             for (MeasurementSpec mspec : mspecs) {
                 spec.mspecs.add(mspec.clone());
             }
+            if (delays != null)
+                spec.delays=delays.clone();
             return spec;
         } catch (CloneNotSupportedException ex) {
             throw new AssertionError();
@@ -128,6 +143,9 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
         }
         if (verbose || fh != DEF_FH) {
             info.add(FHORIZON, fh);
+        }
+        if (delays != null){
+            info.add(CALENDAR, delays);
         }
         return info;
     }
@@ -153,6 +171,7 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
         if (f != null) {
             fh = f;
         }
+        delays=info.get(CALENDAR, int[].class);
         return true;
     }
 
@@ -183,6 +202,8 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
                 return false;
             }
         }
+        if (!Arrays.equals(delays, spec.delays))
+            return false;
         return true;
     }
 

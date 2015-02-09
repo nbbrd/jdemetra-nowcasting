@@ -12,8 +12,8 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jdk.version>1.7</jdk.version>
-        <demetra.version>1.5.1</demetra.version>
-        <nbdemetra.version>1.5.1</nbdemetra.version>
+        <demetra.version>2.0.0</demetra.version>
+        <nbdemetra.version>2.0.0</nbdemetra.version>
         <!-- plugins versions > -->
         <maven-compiler-plugin.version>3.1</maven-compiler-plugin.version>
         <maven-jar-plugin.version>2.4</maven-jar-plugin.version>

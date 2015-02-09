@@ -44,10 +44,10 @@ public class VarSpec implements IProcSpecification, Cloneable {
          */
         Zero,
         /**
-         * Steady state (or unconditional) initialisation, defined by V=TVT'+Q
+         * Unconditional initialisation, defined by V=TVT'+Q
          * [A(0|-1)=0,] V
          */
-        SteadyState,
+        Unconditional,
         /**
          * [A(0) and] P(0) are pre-specified
          */

@@ -5,6 +5,7 @@
  */
 package ec.tstoolkit.dfm;
 
+import ec.tstoolkit.timeseries.information.TsInformationSet;
 import data.Data;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DescriptiveStatistics;
@@ -28,7 +29,7 @@ public class DfmEMTest {
     static final int N = 500;
     static final boolean stressTest = false;
 
-    static DfmInformationSet dfmdata;  // DAVID: static variables belong to the class and not any particular object in the class
+    static TsInformationSet dfmdata;  // DAVID: static variables belong to the class and not any particular object in the class
     
     static  DfmEM em;
     static  DfmEM2 em2;
@@ -51,7 +52,7 @@ public class DfmEMTest {
             input[i] = new TsData(start, dd.row(i));
         }
 
-        dfmdata = new DfmInformationSet(input); // input is TsData[]                    
+        dfmdata = new TsInformationSet(input); // input is TsData[]                    
         
     }
 
@@ -149,7 +150,7 @@ public class DfmEMTest {
         }
         ddrnd = dd.clone();
         ddrnd.randomize();
-        dmodel.setInitialization(VarSpec.Initialization.SteadyState);
+        dmodel.setInitialization(VarSpec.Initialization.Unconditional);
     }
 
     private static DynamicFactorModel.IMeasurement measurement(int i) {

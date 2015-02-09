@@ -14,33 +14,45 @@
  * See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
-package ec.tstoolkit.dfm;
+package ec.tstoolkit.timeseries.information;
 
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.timeseries.Day;
+import ec.tstoolkit.timeseries.TsPeriodSelector;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDataTable;
 import ec.tstoolkit.timeseries.simplets.TsDataTableInfo;
 import ec.tstoolkit.timeseries.simplets.TsDomain;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  *
  * @author Jean Palate
  */
-public class DfmInformationSet {
+public class TsInformationSet {
 
     /**
      *
      * @param input
      */
-    public DfmInformationSet(TsData[] input) {
+    public TsInformationSet(TsData[] input) {
         for (int i = 0; i < input.length; ++i) {
             table_.insert(-1, input[i]);
         }
     }
 
+    public TsData[] toArray() {
+        TsData[] s = new TsData[table_.getSeriesCount()];
+        for (int i = 0; i < s.length; ++i) {
+            s[i] = table_.series(i);
+        }
+        return s;
+    }
+
+    // 
     /**
      * Creates a new information set with only the revised data in comparison
      * with this data set (the domains of the series of this data set are
@@ -49,7 +61,7 @@ public class DfmInformationSet {
      * @param newdata
      * @return
      */
-    public DfmInformationSet revisedData(DfmInformationSet newdata) {
+    public TsInformationSet revisedData(TsInformationSet newdata) {
         TsData[] ndata = new TsData[table_.getSeriesCount()];
         for (int i = 0; i < ndata.length; ++i) {
             TsData cur = table_.series(i);
@@ -62,23 +74,23 @@ public class DfmInformationSet {
             }
             ndata[i] = ncur;
         }
-        return new DfmInformationSet(ndata);
+        return new TsInformationSet(ndata);
     }
 
-    public DfmInformationSet actualData() {
+    public TsInformationSet actualData() {
         TsData[] ndata = new TsData[table_.getSeriesCount()];
         for (int i = 0; i < ndata.length; ++i) {
             ndata[i] = table_.series(i).cleanExtremities();
         }
-        return new DfmInformationSet(ndata);
+        return new TsInformationSet(ndata);
     }
 
-    public DfmInformationSet extendTo(final Day end) {
+    public TsInformationSet extendTo(final Day end) {
         TsData[] ndata = new TsData[table_.getSeriesCount()];
         for (int i = 0; i < ndata.length; ++i) {
             ndata[i] = table_.series(i).extendTo(end);
         }
-        return new DfmInformationSet(ndata);
+        return new TsInformationSet(ndata);
     }
 
     /**
@@ -168,24 +180,21 @@ public class DfmInformationSet {
      * @param ndata New data
      * @return List of newly added data
      */
-    DfmInformationUpdates updates(DfmInformationSet ndata) {
+    public TsInformationUpdates updates(TsInformationSet ndata) {
         int n = table_.getSeriesCount();
         if (n != ndata.table_.getSeriesCount()) {
             return null;
         }
-        
-        DfmInformationUpdates updates = new DfmInformationUpdates();
+        TsInformationUpdates updates = new TsInformationUpdates();
         for (int i = 0; i < n; ++i) {
             TsData olds = table_.series(i), news = ndata.table_.series(i);
-            
-            // Calculates news
             int del = news.getStart().minus(olds.getStart());
             TsPeriod start = news.getStart();
             for (int j = 0; j < news.getLength(); ++j) {
                 if (!news.getValues().isMissing(j)) {
                     int k = j + del;
                     if (k < 0 || k >= olds.getLength() || olds.getValues().isMissing(k)) {
-                        updates.addNew(start.plus(j), i);
+                        updates.add(start.plus(j), i);
                     }
                 }
             }
@@ -203,6 +212,62 @@ public class DfmInformationSet {
         }
         return updates;
     }
-    
+
+    public Day[] generatePublicationCalendar(int[] delays) {
+        SortedSet<Day> sdays = new TreeSet<>();
+        for (int i = 0; i < table_.getSeriesCount(); ++i) {
+            TsData s = table_.series(i);
+            TsDomain dom = s.getDomain();
+            int ndel = delays == null ? 0 : delays[i];
+            for (int j = 0; j < s.getLength(); ++j) {
+                if (!s.isMissing(j)) {
+                    TsPeriod p = dom.get(j);
+                    Day pub = p.lastday().plus(ndel);
+                    sdays.add(pub);
+                }
+            }
+        }
+        Day[] days = new Day[sdays.size()];
+        return sdays.toArray(days);
+    }
+
+    public Day[] generatePublicationCalendar(int[] delays, Day start) {
+        SortedSet<Day> sdays = new TreeSet<>();
+        for (int i = 0; i < table_.getSeriesCount(); ++i) {
+            TsData s = table_.series(i);
+            TsDomain dom = s.getDomain();
+            int ndel = delays == null ? 0 : delays[i];
+            int pos = dom.search(start);
+            if (pos < 0 && start.isBefore(dom.getStart().firstday())) {
+                pos = 0;
+            }
+            if (pos >= 0) {
+                for (int j = pos; j < s.getLength(); ++j) {
+                    if (!s.isMissing(j)) {
+                        TsPeriod p = dom.get(j);
+                        Day pub = p.lastday().plus(ndel);
+                        sdays.add(pub);
+                    }
+                }
+            }
+        }
+        Day[] days = new Day[sdays.size()];
+        return sdays.toArray(days);
+    }
+
+    public TsInformationSet generateInformation(final int[] delays, final Day date) {
+        TsData[] inputc = new TsData[table_.getSeriesCount()];
+        for (int i = 0; i < inputc.length; ++i) {
+            TsPeriodSelector sel = new TsPeriodSelector();
+            Day last = date;
+            if (delays != null) {
+                last = last.minus(delays[i]);
+            }
+            sel.to(last);
+            inputc[i] = table_.series(i).select(sel);
+        }
+        return new TsInformationSet(inputc);
+    }
+
     private final TsDataTable table_ = new TsDataTable();
 }

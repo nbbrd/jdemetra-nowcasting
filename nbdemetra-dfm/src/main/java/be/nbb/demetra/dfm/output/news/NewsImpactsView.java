@@ -36,11 +36,11 @@ import ec.tss.dfm.DfmResults;
 import ec.tss.dfm.DfmSeriesDescriptor;
 import ec.tss.tsproviders.utils.Formatters;
 import ec.tstoolkit.data.DataBlock;
-import ec.tstoolkit.dfm.DfmInformationSet;
-import ec.tstoolkit.dfm.DfmInformationUpdates;
-import ec.tstoolkit.dfm.DfmInformationUpdates.Update;
 import ec.tstoolkit.dfm.DfmNews;
 import ec.tstoolkit.timeseries.TsAggregationType;
+import ec.tstoolkit.timeseries.information.TsInformationSet;
+import ec.tstoolkit.timeseries.information.TsInformationUpdates;
+import ec.tstoolkit.timeseries.information.TsInformationUpdates.Update;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDataCollector;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
@@ -467,8 +467,8 @@ public class NewsImpactsView extends JPanel {
     private void calculateData() {
         DataBlock n = doc.news();
         DataBlock r = doc.revisions();
-        DfmInformationSet dataNew = doc.getNewInformationSet();
-        DfmInformationSet dataOld = doc.getOldInformationSet();
+        TsInformationSet dataNew = doc.getNewInformationSet();
+        TsInformationSet dataOld = doc.getOldInformationSet();
         int selected = combobox.getSelectedIndex();
         TsData sNew = dataNew.series(selected);
         TsData sOld = dataOld.series(selected);
@@ -561,14 +561,14 @@ public class NewsImpactsView extends JPanel {
         createColumnTitles();
 
         //================================================
-        DfmInformationUpdates details = doc.newsDetails();
+        TsInformationUpdates details = doc.newsDetails();
         List<Update> updates = details.news();
 
         nodes = new ArrayList<>();
 
         List<VariableNode> newsNodes = new ArrayList<>();
         for (int i = 0; i < updates.size(); i++) {
-            DfmInformationUpdates.Update updt = updates.get(i);
+            TsInformationUpdates.Update updt = updates.get(i);
             TsPeriod p = updt.period;
             if (p.firstPeriod(freq).isNotBefore(newsStart)) {
                 DfmSeriesDescriptor descriptor = desc[updt.series];
@@ -633,8 +633,8 @@ public class NewsImpactsView extends JPanel {
 
     private void updateChart() {
         if (doc != null) {
-            DfmInformationUpdates details = doc.newsDetails();
-            List<DfmInformationUpdates.Update> updates = details.news();
+            TsInformationUpdates details = doc.newsDetails();
+            List<TsInformationUpdates.Update> updates = details.news();
             if (updates.isEmpty()) {
                 chartImpacts.setDataset(null);
             } else {
@@ -667,8 +667,8 @@ public class NewsImpactsView extends JPanel {
         TsData revisions = coll.make(freq, TsAggregationType.None);
         result.quietAdd(TsFactory.instance.createTs("Forecast revisions", null, revisions));
 
-        DfmInformationUpdates details = doc.newsDetails();
-        List<DfmInformationUpdates.Update> updates = details.news();
+        TsInformationUpdates details = doc.newsDetails();
+        List<TsInformationUpdates.Update> updates = details.news();
         for (int i = 0; i < updates.size(); i++) {
             coll.clear();
             DfmSeriesDescriptor description = desc[updates.get(i).series];

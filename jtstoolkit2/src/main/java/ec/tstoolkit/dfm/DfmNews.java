@@ -18,7 +18,6 @@ package ec.tstoolkit.dfm;
 
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DataBlockIterator;
-import ec.tstoolkit.dfm.DfmInformationUpdates.Update;
 import ec.tstoolkit.maths.matrices.LowerTriangularMatrix;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.maths.matrices.SymmetricMatrix;
@@ -28,6 +27,9 @@ import ec.tstoolkit.mssf2.MFilteringResults;
 import ec.tstoolkit.mssf2.MSmoother;
 import ec.tstoolkit.mssf2.MSmoothingResults;
 import ec.tstoolkit.mssf2.MultivariateSsfData;
+import ec.tstoolkit.timeseries.information.TsInformationSet;
+import ec.tstoolkit.timeseries.information.TsInformationUpdates;
+import ec.tstoolkit.timeseries.information.TsInformationUpdates.Update;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDomain;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
@@ -47,8 +49,8 @@ public class DfmNews {
     private DynamicFactorModel modelex_;
     private DynamicFactorModel modelexRev_;
     private final IMSsf ssf_;
-    private DfmInformationSet oldset_, newset_, revisedset_;
-    private DfmInformationUpdates updates_;
+    private TsInformationSet oldset_, newset_, revisedset_;
+    private TsInformationUpdates updates_;
     private Matrix mcov_, lcov_;
     private Matrix mcovRev_, lcovRev_;
     private TsPeriod first_, last_;
@@ -76,11 +78,11 @@ public class DfmNews {
         ssf_ = model_.ssfRepresentation();
     }
 
-    public DfmInformationSet getOldInformationSet() {
+    public TsInformationSet getOldInformationSet() {
         return this.oldset_;
     }
 
-    public DfmInformationSet getNewInformationSet() {
+    public TsInformationSet getNewInformationSet() {
         return this.newset_;
     }
 
@@ -90,7 +92,7 @@ public class DfmNews {
      *
      * @return Old data + revisions
      */
-    public DfmInformationSet getRevisedInformationSet() {
+    public TsInformationSet getRevisedInformationSet() {
         return this.revisedset_;
     }
 
@@ -113,7 +115,7 @@ public class DfmNews {
      * @param newSet The new information set
      * @return True if the news have been successfully computed
      */
-    public boolean process(DfmInformationSet oldSet, DfmInformationSet newSet) {
+    public boolean process(TsInformationSet oldSet, TsInformationSet newSet) {
         oldset_ = oldSet;
         newset_ = newSet;
         revisedset_ = oldset_.revisedData(newset_);
@@ -485,7 +487,7 @@ public class DfmNews {
      *
      * @return
      */
-    public DfmInformationUpdates newsDetails() {
+    public TsInformationUpdates newsDetails() {
         return updates_;
     }
 

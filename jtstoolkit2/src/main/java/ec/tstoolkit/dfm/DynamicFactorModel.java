@@ -35,11 +35,6 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
 
     public static final double AR_DEF = .6, C_DEF = .2;
 
-    @Override
-    public List<ProcessingInformation> getProcessingInformation() {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
     /**
      * The IMeasurement interface represents the behaviour of a measurement
      * equation on a given factor (and its lags).
@@ -549,7 +544,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
     private final int nf_;
     private TransitionDescriptor tdesc_;
     private List<MeasurementDescriptor> mdesc_ = new ArrayList<>();
-    private VarSpec.Initialization init_ = VarSpec.Initialization.SteadyState;
+    private VarSpec.Initialization init_ = VarSpec.Initialization.Unconditional;
     private Matrix V0_;
 
     /**
@@ -1040,7 +1035,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
             updateTransition();
             // initial covariance
             switch (init_) {
-                case SteadyState:
+                case Unconditional:
                     m_Pf0 = getInitialVariance();
                     break;
                 case UserDefined:
@@ -1247,6 +1242,11 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
     @Override
     public boolean contains(String id) {
         return mapper.contains(id);
+    }
+    
+    @Override
+    public List<ProcessingInformation> getProcessingInformation(){
+        return Collections.EMPTY_LIST;
     }
 
     public static void fillDictionary(String prefix, Map<String, Class> map) {
