@@ -17,12 +17,16 @@
 package ec.tss.dfm;
 
 import ec.tss.Ts;
+import ec.tss.TsInformationType;
+import ec.tss.TsStatus;
 import ec.tss.documents.MultiTsDocument;
 import ec.tstoolkit.ParameterType;
 import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.algorithm.ProcessingContext;
 import ec.tstoolkit.dfm.DfmEstimationSpec;
 import ec.tstoolkit.dfm.DfmSpec;
+import ec.tstoolkit.timeseries.TsException;
+import ec.tstoolkit.timeseries.simplets.TsData;
 
 /**
  *
@@ -55,6 +59,29 @@ public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> impl
         }
     }
     
+    public TsData[] getData(){
+        Ts[] input=getInput();
+        if (input == null)
+            return null;
+        TsData[] dinput = new TsData[input.length];
+        for (int i = 0; i < input.length; ++i) {
+            Ts s = input[i];
+            if (s != null) {
+                if (s.hasData() == TsStatus.Undefined) {
+                    s.load(TsInformationType.Data);
+                }
+                TsData d = s.getTsData();
+                if (d == null) {
+                    throw new TsException(s.getRawName() + ": No data");
+                } else {
+                    dinput[i] = d;
+                }
+            } else {
+                dinput[i] = null;
+            }
+        }
+        return dinput;
+    }
 
     @Override
     protected CompositeResults recalc(DfmSpec spec, Ts[] input) {
