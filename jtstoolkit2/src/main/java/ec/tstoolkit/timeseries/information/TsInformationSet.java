@@ -25,6 +25,7 @@ import ec.tstoolkit.timeseries.simplets.TsDataTableInfo;
 import ec.tstoolkit.timeseries.simplets.TsDomain;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
+import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -231,12 +232,12 @@ public class TsInformationSet {
         return sdays.toArray(days);
     }
 
-    public Day[] generatePublicationCalendar(int[] delays, Day start) {
+    public Day[] generatePublicationCalendar(List<Integer> delays, Day start) {
         SortedSet<Day> sdays = new TreeSet<>();
         for (int i = 0; i < table_.getSeriesCount(); ++i) {
             TsData s = table_.series(i);
             TsDomain dom = s.getDomain();
-            int ndel = delays == null ? 0 : delays[i];
+            int ndel = (delays == null || delays.isEmpty()) ? 0 : delays.get(i);
             int pos = dom.search(start);
             if (pos < 0 && start.isBefore(dom.getStart().firstday())) {
                 pos = 0;
@@ -255,13 +256,13 @@ public class TsInformationSet {
         return sdays.toArray(days);
     }
 
-    public TsInformationSet generateInformation(final int[] delays, final Day date) {
+    public TsInformationSet generateInformation(final List<Integer> delays, final Day date) {
         TsData[] inputc = new TsData[table_.getSeriesCount()];
         for (int i = 0; i < inputc.length; ++i) {
             TsPeriodSelector sel = new TsPeriodSelector();
             Day last = date;
-            if (delays != null) {
-                last = last.minus(delays[i]);
+            if (delays != null && !delays.isEmpty() && i < delays.size()) {
+                last = last.minus(delays.get(i));
             }
             sel.to(last);
             inputc[i] = table_.series(i).select(sel);

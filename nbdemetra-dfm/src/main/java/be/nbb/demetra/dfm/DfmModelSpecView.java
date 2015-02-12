@@ -120,7 +120,7 @@ public final class DfmModelSpecView extends JComponent {
         view.setModel(new ModelSpecModel());
         int nbrFactors = model.getSpecification().getModelSpec().getVarSpec().getEquationsCount();
         for (int i = 0; i < nbrFactors; i++) {
-            view.getColumnModel().getColumn(i + 3).setPreferredWidth(10);
+            view.getColumnModel().getColumn(i + 4).setPreferredWidth(10);
         }
         view.setEnabled(!model.isLocked());
 
@@ -206,7 +206,7 @@ public final class DfmModelSpecView extends JComponent {
 
         @Override
         public int getColumnCount() {
-            return 3 + model.getSpecification().getModelSpec().getVarSpec().getEquationsCount();
+            return 4 + model.getSpecification().getModelSpec().getVarSpec().getEquationsCount();
         }
 
         @Override
@@ -216,11 +216,13 @@ public final class DfmModelSpecView extends JComponent {
                 case 0:
                     return rowIndex >= variables.getCount() ? "var" + rowIndex : variables.get(rowIndex).getName();
                 case 1:
-                    return ms.getSeriesTransformations();
+                    return ms.getDelay();
                 case 2:
+                    return ms.getSeriesTransformations();
+                case 3:
                     return ms.getFactorsTransformation();
                 default:
-                    return ms.getCoefficients()[columnIndex - 3].getType() != ParameterType.Fixed;
+                    return ms.getCoefficients()[columnIndex - 4].getType() != ParameterType.Fixed;
             }
         }
 
@@ -236,13 +238,16 @@ public final class DfmModelSpecView extends JComponent {
             MeasurementSpec xms = ms.clone();
             switch (columnIndex) {
                 case 1:
-                    ms.setSeriesTransformations((Transformation[]) aValue);
+                    ms.setDelay((int)aValue);
                     break;
                 case 2:
+                    ms.setSeriesTransformations((Transformation[]) aValue);
+                    break;
+                case 3:
                     ms.setFactorsTransformation((MeasurementType) aValue);
                     break;
                 default:
-                    ms.getCoefficients()[columnIndex - 3].setType(((Boolean) aValue) ? ParameterType.Undefined : ParameterType.Fixed);
+                    ms.getCoefficients()[columnIndex - 4].setType(((Boolean) aValue) ? ParameterType.Undefined : ParameterType.Fixed);
                     break;
             }
             if (!ms.equals(xms)) {
@@ -257,8 +262,10 @@ public final class DfmModelSpecView extends JComponent {
                 case 0:
                     return "Series";
                 case 1:
-                    return "Series trans.";
+                    return "Delay";
                 case 2:
+                    return "Series trans.";
+                case 3:
                     return "Factors trans.";
                 default:
                     return "F" + (columnIndex - 2);
@@ -271,8 +278,10 @@ public final class DfmModelSpecView extends JComponent {
                 case 0:
                     return String.class;
                 case 1:
-                    return Transformation[].class;
+                    return Integer.class;
                 case 2:
+                    return Transformation[].class;
+                case 3:
                     return MeasurementType.class;
                 default:
                     return Boolean.class;
@@ -298,7 +307,7 @@ public final class DfmModelSpecView extends JComponent {
                 Collections.swap(ms, row, row - 1);
                 List<Ts> ts = Arrays.asList(variables.toArray());
                 Collections.swap(ts, row, row - 1);
-
+                
                 model.setInput((Ts[]) ts.toArray());
                 model.setSpecification(spec);
                 firePropertyChange(MODEL_PROPERTY, null, model);
@@ -312,7 +321,7 @@ public final class DfmModelSpecView extends JComponent {
                 Collections.swap(ms, row, row + 1);
                 List<Ts> ts = Arrays.asList(variables.toArray());
                 Collections.swap(ts, row, row + 1);
-
+                
                 model.setInput((Ts[]) ts.toArray());
                 model.setSpecification(spec);
                 firePropertyChange(MODEL_PROPERTY, null, model);

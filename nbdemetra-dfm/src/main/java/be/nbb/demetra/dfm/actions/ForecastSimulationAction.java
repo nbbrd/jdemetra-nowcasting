@@ -24,6 +24,7 @@ import ec.tss.dfm.DfmDocument;
 import ec.tss.dfm.DfmProcessingFactory;
 import ec.tss.dfm.DfmSimulation;
 import ec.tss.dfm.VersionedDfmDocument;
+import ec.tstoolkit.dfm.MeasurementSpec;
 import ec.tstoolkit.information.InformationSet;
 import ec.tstoolkit.modelling.arima.tramo.TramoSpecification;
 import ec.tstoolkit.timeseries.Day;
@@ -40,7 +41,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import javax.swing.JFileChooser;
 import org.openide.DialogDisplayer;
@@ -92,13 +95,7 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
                 File folder = chooser.getSelectedFile();
                 VersionedDfmDocument vdoc = (VersionedDfmDocument) cur.getElement();
                 
-                //TODO getData() ???
-                //TsInformationSet info = new TsInformationSet(vdoc.getCurrent().getData());
-                TsData[] data = new TsData[vdoc.getInput().length];
-                for (int i = 0; i < vdoc.getInput().length; i++) {
-                    data[i] = vdoc.getInput()[i].getTsData();
-                }
-                TsInformationSet info = new TsInformationSet(data);
+                TsInformationSet info = new TsInformationSet(vdoc.getCurrent().getData());
                 
                 TsPeriod last = info.getCurrentDomain().getLast();
                 last.move(last.getFrequency().intValue());
@@ -119,8 +116,14 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
                     tble.insert(-1, info.series(s));
                     TsDataTable tble2 = new TsDataTable();
                     ArimaForecaster af = new ArimaForecaster(TramoSpecification.TRfull.build());
+                    
+                    List<Integer> delays = new ArrayList<>();
+                    for (MeasurementSpec m : vdoc.getCurrent().getSpecification().getModelSpec().getMeasurements()) {
+                        delays.add(m.getDelay());
+                    }
+                    
                     for (int i = 0; i < cal.length; ++i) {
-                        af.process(info.generateInformation(null, cal[i]), s, horizon);
+                        af.process(info.generateInformation(delays, cal[i]), s, horizon);
                         TsData f = af.getForecast();
                         tble2.insert(-1, f);
                     }

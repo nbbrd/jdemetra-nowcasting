@@ -17,9 +17,6 @@
 package be.nbb.demetra.dfm;
 
 import ec.tss.dfm.DfmDocument;
-import ec.tstoolkit.Parameter;
-import ec.tstoolkit.ParameterType;
-import ec.tstoolkit.dfm.DynamicFactorModel;
 import ec.tstoolkit.dfm.MeasurementSpec;
 
 /**

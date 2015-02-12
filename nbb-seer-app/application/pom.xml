@@ -14,7 +14,6 @@
     <name>nbb-seer-app-app</name>
 
     <properties>
-        <netbeans.run.params.ide/>
         <netbeans.run.params> -J-Xms128m -J-Xmx1024m -J-XX:MaxPermSize=128m</netbeans.run.params>
         <all.clusters>${project.build.directory}/${brandingToken}</all.clusters>
     </properties>
@@ -64,6 +63,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>nbm-maven-plugin</artifactId>
+                <version>3.13</version>
             </plugin>
             <!-- Permits NbModuleSuite to be run in integration-test phase: -->
             <plugin>

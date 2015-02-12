@@ -16,13 +16,10 @@
  */
 package ec.tstoolkit.dfm;
 
-import ec.satoolkit.ISaSpecification;
 import ec.tstoolkit.Parameter;
 import ec.tstoolkit.ParameterType;
-import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.algorithm.IProcSpecification;
 import ec.tstoolkit.information.InformationSet;
-import ec.tstoolkit.timeseries.simplets.TsData;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
@@ -43,14 +40,15 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
 
     public static final String SERIESTRANSFORMATIONS = "stransformations",
             COEFF = "coeff", VAR = "var", FACTORTRANSFORMATION = "ftransformation",
-            MEAN = "mean", STDEV = "stdev", DEF_NAME = "var";
+            MEAN = "mean", STDEV = "stdev", DEF_NAME = "var", PUBLICATION_DELAY = "publication_delay";
     private static volatile int g_idx = 0;
     private Transformation[] transformations;
     private double mean = Double.NaN, stdev = Double.NaN;
     private Parameter[] coeff;
     private Parameter var;
     private DynamicFactorModel.MeasurementType type = DynamicFactorModel.MeasurementType.M;
-
+    private int delay = 0;
+    
     public MeasurementSpec() {
         this(0);
     }
@@ -124,6 +122,9 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
             if (transformations != null) {
                 m.transformations = transformations.clone();
             }
+            
+            m.delay = delay;
+            
             return m;
         } catch (CloneNotSupportedException ex) {
             throw new AssertionError();
@@ -152,6 +153,9 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
             }
             info.set(SERIESTRANSFORMATIONS, t);
         }
+        
+        info.set(PUBLICATION_DELAY, delay);
+        
         info.set(FACTORTRANSFORMATION, type.name());
         return info;
     }
@@ -177,6 +181,12 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
         if (d != null) {
             stdev = d;
         }
+        
+        Integer del = info.get(PUBLICATION_DELAY, Integer.class);
+        if (del != null) {
+            delay = del;
+        }
+        
         String[] tr = info.get(SERIESTRANSFORMATIONS, String[].class);
         if (tr != null) {
             transformations = new Transformation[tr.length];
@@ -248,6 +258,14 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
         this.stdev = e;
     }
 
+    public int getDelay() {
+        return delay;
+    }
+
+    public void setDelay(int delay) {
+        this.delay = delay;
+    }
+
     /**
      * @return the var
      */
@@ -292,7 +310,8 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
     public boolean equals(MeasurementSpec spec) {
         return type == spec.type && var.equals(spec.var) && Arrays.deepEquals(coeff, spec.coeff)
                 && Arrays.equals(transformations, spec.transformations)
-                && mean == spec.mean && stdev == spec.stdev;
+                && mean == spec.mean && stdev == spec.stdev
+                && delay == spec.delay;
     }
 
     public static void fillDictionary(String prefix, Map<String, Class> dic) {
@@ -302,6 +321,7 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
         dic.put(InformationSet.item(prefix, STDEV), Double.class);
         dic.put(InformationSet.item(prefix, VAR), Parameter.class);
         dic.put(InformationSet.item(prefix, COEFF), Parameter[].class);
+        dic.put(InformationSet.item(prefix, PUBLICATION_DELAY), Integer.class);
     }
 
 }

@@ -34,16 +34,17 @@ import ec.tstoolkit.timeseries.simplets.TsData;
  */
 public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> implements Cloneable {
 
-   public DfmDocument() {
+    public DfmDocument() {
         super(new DfmProcessingFactory(), null);
         setSpecification(new DfmSpec());
     }
-    
+
     public DfmDocument(ProcessingContext context) {
         super(new DfmProcessingFactory(), context);
         setSpecification(new DfmSpec());
     }
 
+    @Override
     public DfmDocument clone() {
         DfmDocument doc = (DfmDocument) super.clone();
         doc.factory_ = new DfmProcessingFactory();
@@ -58,11 +59,12 @@ public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> impl
             return rslts.get(DfmProcessingFactory.DFM, DfmResults.class);
         }
     }
-    
-    public TsData[] getData(){
-        Ts[] input=getInput();
-        if (input == null)
+
+    public TsData[] getData() {
+        Ts[] input = getInput();
+        if (input == null) {
             return null;
+        }
         TsData[] dinput = new TsData[input.length];
         for (int i = 0; i < input.length; ++i) {
             Ts s = input[i];
@@ -119,8 +121,9 @@ public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> impl
 
     public void forceSpecification(DfmEstimationSpec espec) {
         DfmSpec spec = getSpecification().clone();
-        if ( ! spec.getModelSpec().setParameterType(ParameterType.Initial))
-            spec= getSpecification().cloneDefinition();
+        if (!spec.getModelSpec().setParameterType(ParameterType.Initial)) {
+            spec = getSpecification().cloneDefinition();
+        }
         if (espec != null) {
             spec.setEstimationSpec(espec);
         }
@@ -133,8 +136,8 @@ public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> impl
             setLocked(true);
         }
     }
-    
-    public void forceFullComputation(){
+
+    public void forceFullComputation() {
         DfmSpec spec = getSpecification().cloneDefinition();
         boolean locked = isLocked();
         if (locked) {

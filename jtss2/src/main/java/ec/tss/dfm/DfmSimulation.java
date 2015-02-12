@@ -21,7 +21,6 @@ import ec.tss.TsFactory;
 import ec.tstoolkit.dfm.DfmSpec;
 import ec.tstoolkit.timeseries.Day;
 import ec.tstoolkit.timeseries.information.TsInformationSet;
-import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
 import java.util.Collections;
 import java.util.GregorianCalendar;
@@ -54,23 +53,15 @@ public class DfmSimulation {
     public boolean process(DfmDocument refdoc, Day[] ed) {
         rslts_.clear();
         DfmSpec spec = refdoc.getSpecification();
-        int[] delays = spec.getModelSpec().getPublicationDelays();
         Ts[] input = refdoc.getInput();
         
+        TsInformationSet info = new TsInformationSet(refdoc.getData());
         
-        //TODO getData() ???
-        //TsInformationSet info = new TsInformationSet(refdoc.getData());
-        
-        TsData[] data = new TsData[refdoc.getInput().length];
-        for (int i = 0; i < refdoc.getInput().length; i++) {
-            data[i] = refdoc.getInput()[i].getTsData();
-        }
-        TsInformationSet info = new TsInformationSet(data);
         Day neday = eday_;
         for (int i = 0; i < ed.length; ++i) {
             DfmDocument doc = new DfmDocument();
             // current information
-            TsInformationSet cinfo = info.generateInformation(delays, ed[i]);
+            TsInformationSet cinfo = info.generateInformation(spec.getModelSpec().getPublicationDelays(), ed[i]);
             Ts[] curinput = new Ts[input.length];
             for (int j = 0; j < input.length; ++j) {
                 curinput[j] = TsFactory.instance.createTs(input[j].getRawName(), null, cinfo.series(j));
@@ -97,13 +88,7 @@ public class DfmSimulation {
     }
 
     public boolean process(DfmDocument refdoc, Day start) {
-        //TODO getData() ???
-        //TsInformationSet info = new TsInformationSet(refdoc.getData());
-        TsData[] data = new TsData[refdoc.getInput().length];
-        for (int i = 0; i < refdoc.getInput().length; i++) {
-            data[i] = refdoc.getInput()[i].getTsData();
-        }
-        TsInformationSet info = new TsInformationSet(data);
+        TsInformationSet info = new TsInformationSet(refdoc.getData());
         
         if (start == null){
             Day last=info.getCurrentDomain().getEnd().firstday();
@@ -111,6 +96,7 @@ public class DfmSimulation {
             c.add(GregorianCalendar.YEAR, DEF_NY);
             start=new Day(c.getTime());
         }
+        
         Day[] cal = info.generatePublicationCalendar(refdoc.getSpecification().getModelSpec().getPublicationDelays(), start);
         return process(refdoc, cal);
     }
