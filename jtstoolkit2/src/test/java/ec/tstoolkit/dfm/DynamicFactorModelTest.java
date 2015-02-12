@@ -494,7 +494,7 @@ public class DynamicFactorModelTest {
         }
         news.process(new TsInformationSet(os), new TsInformationSet(s));
         long q1 = System.currentTimeMillis();
-        for (TsInformationUpdates.Update update : news.newsDetails().updates()) {
+        for (TsInformationUpdates.Update update : news.newsDetails().news()) {
             System.out.println(update);
         }
         DataBlock n = news.news();

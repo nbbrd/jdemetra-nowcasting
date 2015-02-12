@@ -18,7 +18,6 @@ package ec.tss.dfm;
 
 import ec.tss.Ts;
 import ec.tss.TsFactory;
-import ec.tstoolkit.algorithm.CompositeResults;
 import ec.tstoolkit.dfm.DfmSpec;
 import ec.tstoolkit.timeseries.Day;
 import ec.tstoolkit.timeseries.information.TsInformationSet;
@@ -57,7 +56,16 @@ public class DfmSimulation {
         DfmSpec spec = refdoc.getSpecification();
         int[] delays = spec.getModelSpec().getPublicationDelays();
         Ts[] input = refdoc.getInput();
-        TsInformationSet info = new TsInformationSet(refdoc.getData());
+        
+        
+        //TODO getData() ???
+        //TsInformationSet info = new TsInformationSet(refdoc.getData());
+        
+        TsData[] data = new TsData[refdoc.getInput().length];
+        for (int i = 0; i < refdoc.getInput().length; i++) {
+            data[i] = refdoc.getInput()[i].getTsData();
+        }
+        TsInformationSet info = new TsInformationSet(data);
         Day neday = eday_;
         for (int i = 0; i < ed.length; ++i) {
             DfmDocument doc = new DfmDocument();
@@ -89,7 +97,14 @@ public class DfmSimulation {
     }
 
     public boolean process(DfmDocument refdoc, Day start) {
-        TsInformationSet info = new TsInformationSet(refdoc.getData());
+        //TODO getData() ???
+        //TsInformationSet info = new TsInformationSet(refdoc.getData());
+        TsData[] data = new TsData[refdoc.getInput().length];
+        for (int i = 0; i < refdoc.getInput().length; i++) {
+            data[i] = refdoc.getInput()[i].getTsData();
+        }
+        TsInformationSet info = new TsInformationSet(data);
+        
         if (start == null){
             Day last=info.getCurrentDomain().getEnd().firstday();
             GregorianCalendar c = last.toCalendar();

@@ -37,7 +37,7 @@ import org.openide.util.lookup.ServiceProvider;
 public class NewsImpactsViewFactory extends DfmNewsItemFactory {
 
     public NewsImpactsViewFactory() {
-        super(DfmNewsItemFactory.Updates.NEWS, newId(), newItemUI());
+        super(DfmNewsItemFactory.Updates.NEWS_REVISIONS, newId(), newItemUI());
     }
 
     private static Id newId() {

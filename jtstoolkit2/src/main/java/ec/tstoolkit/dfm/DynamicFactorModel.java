@@ -824,7 +824,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
      * @param c The size of each block of factors (lags in [t, t-c[ belong to
      * the model). c should larger or equal to the number of lags in the
      * transition equation.
-     * @throws A DfmException is thrown when the model is invalid (see above)
+     * @throws DfmException is thrown when the model is invalid (see above)
      */
     public void setBlockLength(int c) throws DfmException {
         if (tdesc_ != null && c < tdesc_.nlags) {
@@ -837,7 +837,7 @@ public class DynamicFactorModel implements Cloneable, IProcResults {
      * Sets a new descriptor for the transition equation (VAR model)
      *
      * @param desc The descriptor of the transition equation
-     * @throws A DfmException is thrown when the model is invalid
+     * @throws DfmException is thrown when the model is invalid
      */
     public void setTransition(TransitionDescriptor desc) throws DfmException {
         if (desc.covar.getRowsCount() != nf_ || c_ < desc.nlags) {

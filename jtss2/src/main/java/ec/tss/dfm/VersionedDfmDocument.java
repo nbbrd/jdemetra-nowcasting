@@ -21,12 +21,10 @@ import ec.tss.documents.VersionedDocument;
 import ec.tstoolkit.MetaData;
 import ec.tstoolkit.ParameterType;
 import ec.tstoolkit.algorithm.CompositeResults;
-import ec.tstoolkit.timeseries.information.TsInformationSet;
 import ec.tstoolkit.dfm.DfmNews;
 import ec.tstoolkit.dfm.DfmSpec;
+import ec.tstoolkit.timeseries.information.TsInformationSet;
 import java.util.Date;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -134,6 +132,24 @@ public class VersionedDfmDocument extends VersionedDocument<DfmSpec, Ts[], Compo
         DfmNews news=new DfmNews(cur.getModel());
         
         if (! news.process(revinfo, curinfo))
+            return null;
+        return news;
+    }
+    
+    public DfmNews getNewsAndRevisions(int ver){
+        DfmDocument refdoc;
+        if (ver == -1)
+            refdoc=this.getLastVersion();
+        else
+            refdoc=this.getVersion(ver);
+        if (refdoc == null)
+            return null;
+        DfmResults cur=this.getCurrent().getDfmResults(),
+                prev=refdoc.getDfmResults();
+        TsInformationSet curinfo=cur.getInput(), previnfo=prev.getInput();
+        DfmNews news=new DfmNews(cur.getModel());
+        
+        if (! news.process(previnfo, curinfo))
             return null;
         return news;
     }

@@ -87,7 +87,8 @@ public class TsInformationUpdates {
         }
     }
 
-    private final List<Update> updates_ = new ArrayList<Update>();
+    private final List<Update> news_ = new ArrayList<>();
+    private final List<Update> revisions_ = new ArrayList<>();
 
     TsInformationUpdates() {
     }
@@ -98,9 +99,13 @@ public class TsInformationUpdates {
      * @param series
      */
     public void add(TsPeriod p, int series) {
-        updates_.add(new Update(p, series));
+        news_.add(new Update(p, series));
     }
 
+    public void addRevision(TsPeriod p, int series) {
+        revisions_.add(new Update(p, series));
+    }
+    
     /**
      *
      * @param freq
@@ -108,7 +113,7 @@ public class TsInformationUpdates {
      */
     public TsPeriod firstUpdate(TsFrequency freq) {
         TsPeriod first = null;
-        for (Update update : updates_) {
+        for (Update update : news_) {
             if (first == null) {
                 first = update.period.lastPeriod(freq);
             } else {
@@ -128,7 +133,7 @@ public class TsInformationUpdates {
      */
     public TsPeriod lastUpdate(TsFrequency freq) {
         TsPeriod last = null;
-        for (Update update : updates_) {
+        for (Update update : news_) {
             if (last == null) {
                 last = update.period.lastPeriod(freq);
             } else {
@@ -146,10 +151,10 @@ public class TsInformationUpdates {
      * @param freq
      * @return
      */
-    public TsDomain updatesDomain(TsFrequency freq) {
+    public TsDomain updatesDomain(TsFrequency freq, List<Update> updates) {
         TsPeriod first = null;
         TsPeriod last = null;
-        for (Update update : updates_) {
+        for (Update update : updates) {
             if (first == null) {
                 first = update.period.lastPeriod(freq);
                 last = first;
@@ -173,7 +178,11 @@ public class TsInformationUpdates {
      *
      * @return
      */
-    public List<Update> updates() {
-        return Collections.unmodifiableList(updates_);
+    public List<Update> news() {
+        return Collections.unmodifiableList(news_);
+    }
+    
+    public List<Update> revisions() {
+        return Collections.unmodifiableList(revisions_);
     }
 }

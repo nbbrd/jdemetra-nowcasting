@@ -16,9 +16,15 @@
  */
 package be.nbb.demetra.dfm.output.news;
 
+import be.nbb.demetra.dfm.output.news.outline.CustomOutlineCellRenderer;
+import be.nbb.demetra.dfm.output.news.outline.NewsRenderer;
+import be.nbb.demetra.dfm.output.news.outline.NewsRenderer.Type;
+import be.nbb.demetra.dfm.output.news.outline.NewsRowModel;
+import be.nbb.demetra.dfm.output.news.outline.NewsTreeModel;
+import be.nbb.demetra.dfm.output.news.outline.TreeNode.VariableNode;
+import be.nbb.demetra.dfm.output.news.outline.XOutline;
 import ec.nbdemetra.ui.DemetraUI;
 import ec.nbdemetra.ui.NbComponents;
-import ec.nbdemetra.ui.awt.PopupListener;
 import ec.tss.TsCollection;
 import ec.tss.TsFactory;
 import ec.tss.datatransfer.TsDragRenderer;
@@ -27,16 +33,16 @@ import ec.tss.dfm.DfmResults;
 import ec.tss.dfm.DfmSeriesDescriptor;
 import ec.tss.tsproviders.utils.Formatters;
 import ec.tstoolkit.data.DataBlock;
-import ec.tstoolkit.timeseries.information.TsInformationSet;
-import ec.tstoolkit.timeseries.information.TsInformationUpdates;
 import ec.tstoolkit.dfm.DfmNews;
 import ec.tstoolkit.timeseries.TsAggregationType;
+import ec.tstoolkit.timeseries.information.TsInformationSet;
+import ec.tstoolkit.timeseries.information.TsInformationUpdates;
+import ec.tstoolkit.timeseries.information.TsInformationUpdates.Update;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDataCollector;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
 import ec.ui.chart.TsXYDatasets;
-import ec.ui.list.TsPeriodTableCellRenderer;
 import ec.util.chart.ColorScheme;
 import ec.util.chart.ObsFunction;
 import ec.util.chart.ObsPredicate;
@@ -50,15 +56,11 @@ import static ec.util.chart.swing.JTimeSeriesChartCommand.copyImage;
 import static ec.util.chart.swing.JTimeSeriesChartCommand.printImage;
 import static ec.util.chart.swing.JTimeSeriesChartCommand.saveImage;
 import ec.util.chart.swing.SwingColorSchemeSupport;
-import ec.util.grid.swing.AbstractGridModel;
-import ec.util.grid.swing.GridModel;
-import ec.util.grid.swing.GridRowHeaderRenderer;
-import ec.util.grid.swing.JGrid;
-import ec.util.grid.swing.ext.TableGridCommand;
 import ec.util.various.swing.JCommand;
+import ec.util.various.swing.ModernUI;
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Transferable;
@@ -70,21 +72,28 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
-import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
-import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.TransferHandler;
-import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.table.JTableHeader;
+import javax.swing.tree.TreeModel;
+import org.netbeans.swing.outline.DefaultOutlineModel;
+import org.netbeans.swing.outline.OutlineModel;
 
 /**
  * View displaying News weights values in a table and a chart
@@ -104,7 +113,7 @@ public class NewsWeightsView extends JPanel {
     private DfmSeriesDescriptor[] desc;
     private DfmResults dfmResults;
 
-    private final JGrid grid;
+    private final XOutline outline;
     private final JComboBox combobox;
     private final JSplitPane splitPane;
     private final JTimeSeriesChart chartForecast;
@@ -113,6 +122,8 @@ public class NewsWeightsView extends JPanel {
     private final DemetraUI demetraUI;
     private Formatters.Formatter<Number> formatter;
     private CustomSwingColorSchemeSupport defaultColorSchemeSupport;
+
+    private final ListSelectionListener outlineListener, chartListener;
 
     public NewsWeightsView() {
         setLayout(new BorderLayout());
@@ -127,25 +138,27 @@ public class NewsWeightsView extends JPanel {
         };
 
         chartForecast = createChart();
-        grid = createGrid();
+        outline = new XOutline();
+        outline.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
         combobox = new JComboBox();
 
         combobox.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
-                updateGridModel();
+                updateOutlineModel();
                 updateChart();
             }
         });
-
-        grid.addMouseListener(new PopupListener.PopupAdapter(buildGridMenu().getPopupMenu()));
 
         chartForecast.setSeriesRenderer(SeriesFunction.always(TimeSeriesChart.RendererType.LINE));
         chartForecast.setPopupMenu(createChartMenu().getPopupMenu());
         chartForecast.setMouseWheelEnabled(true);
 
-        splitPane = NbComponents.newJSplitPane(JSplitPane.VERTICAL_SPLIT, grid, chartForecast);
+        JScrollPane p = ModernUI.withEmptyBorders(new JScrollPane());
+        p.setViewportView(outline);
+
+        splitPane = NbComponents.newJSplitPane(JSplitPane.VERTICAL_SPLIT, p, chartForecast);
         splitPane.setResizeWeight(0.5);
 
         addPropertyChangeListener(new PropertyChangeListener() {
@@ -154,14 +167,67 @@ public class NewsWeightsView extends JPanel {
                 switch (evt.getPropertyName()) {
                     case RESULTS_PROPERTY:
                         updateComboBox();
-                        updateGridModel();
+                        updateOutlineModel();
                         updateChart();
                 }
             }
         });
 
+        outlineListener = new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                if (e.getValueIsAdjusting()) {
+                    return;
+                }
+                chartForecast.getSeriesSelectionModel().removeListSelectionListener(chartListener);
+                chartForecast.getSeriesSelectionModel().clearSelection();
+                ListSelectionModel model = (ListSelectionModel) e.getSource();
+                if (!model.isSelectionEmpty()) {
+                    for (int i = 0; i < outline.getSelectedRows().length; i++) {
+                        int row = outline.getSelectedRows()[i];
+                        if (row == outline.getRowCount() - 2) {
+                            chartForecast.getSeriesSelectionModel().addSelectionInterval(0, 0);
+                        } else if (row == outline.getRowCount() - 1) {
+                            chartForecast.getSeriesSelectionModel().addSelectionInterval(1, 1);
+                        }
+                    }
+                }
+                chartForecast.getSeriesSelectionModel().addListSelectionListener(chartListener);
+            }
+        };
+
+        chartListener = new ListSelectionListener() {
+
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                if (e.getValueIsAdjusting()) {
+                    return;
+                }
+
+                outline.getSelectionModel().removeListSelectionListener(outlineListener);
+                outline.getSelectionModel().clearSelection();
+                ListSelectionModel model = (ListSelectionModel) e.getSource();
+                if (!model.isSelectionEmpty()) {
+                    for (int i = model.getMinSelectionIndex(); i <= model.getMaxSelectionIndex(); i++) {
+                        if (model.isSelectedIndex(i)) {
+                            int rowCount = outline.getRowCount();
+                            if (i == 0) {
+                                outline.getSelectionModel().addSelectionInterval(rowCount - 2, rowCount - 2);
+                            } else if (i == 1) {
+                                outline.getSelectionModel().addSelectionInterval(rowCount - 1, rowCount - 1);
+                            }
+                        }
+                    }
+                }
+                outline.getSelectionModel().addListSelectionListener(outlineListener);
+            }
+        };
+
+        outline.getSelectionModel().addListSelectionListener(outlineListener);
+        chartForecast.getSeriesSelectionModel().addListSelectionListener(chartListener);
+
         updateComboBox();
-        updateGridModel();
+        updateOutlineModel();
         updateChart();
 
         demetraUI.addPropertyChangeListener(new PropertyChangeListener() {
@@ -191,6 +257,11 @@ public class NewsWeightsView extends JPanel {
             }
         };
         chartForecast.setColorSchemeSupport(defaultColorSchemeSupport);
+        outline.setDefaultRenderer(String.class, new CustomOutlineCellRenderer(defaultColorSchemeSupport, Type.WEIGHTS));
+    }
+
+    private void onOutlineColorSchemeChanged() {
+        outline.setDefaultRenderer(String.class, new CustomOutlineCellRenderer(defaultColorSchemeSupport, Type.WEIGHTS));
     }
 
     private void onDataFormatChanged() {
@@ -202,11 +273,17 @@ public class NewsWeightsView extends JPanel {
         }
         try {
             chartForecast.setValueFormat(demetraUI.getDataFormat().newNumberFormat());
+
+            SwingUtilities.invokeLater(new Runnable() {
+
+                @Override
+                public void run() {
+                    refreshModel();
+                }
+            });
         } catch (IllegalArgumentException ex) {
             // do nothing?
         }
-        grid.setDefaultRenderer(Double.class, new DoubleTableCellRenderer(formatter));
-        grid.repaint();
     }
 
     //<editor-fold defaultstate="collapsed" desc="Getters / Setters">
@@ -219,25 +296,6 @@ public class NewsWeightsView extends JPanel {
     //</editor-fold>    
 
     //<editor-fold defaultstate="collapsed" desc="Components creation">
-    private JGrid createGrid() {
-        final JGrid result = new JGrid();
-        result.setOddBackground(null);
-        result.setRowRenderer(new GridRowHeaderRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                JLabel result = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                result.setToolTipText(result.getText());
-                return result;
-            }
-        });
-
-        result.setDefaultRenderer(TsPeriod.class, new TsPeriodTableCellRenderer());
-        result.setDefaultRenderer(Double.class, new DoubleTableCellRenderer(formatter));
-        ((DefaultTableCellRenderer) result.getTableHeader().getDefaultRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
-
-        return result;
-    }
-
     private JTimeSeriesChart createChart() {
         JTimeSeriesChart chart = new JTimeSeriesChart();
         chart.setValueFormat(new DecimalFormat("#.###"));
@@ -254,6 +312,13 @@ public class NewsWeightsView extends JPanel {
                 return chartForecast.getSeriesFormatter().apply(series)
                         + "\nPeriod : " + collection.get(series).getTsData().getDomain().get(obs).toString()
                         + "\nValue : " + formatter.format(chartForecast.getDataset().getY(series, obs));
+            }
+        });
+
+        chart.addPropertyChangeListener(JTimeSeriesChart.COLOR_SCHEME_SUPPORT_PROPERTY, new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                onOutlineColorSchemeChanged();
             }
         });
 
@@ -276,24 +341,17 @@ public class NewsWeightsView extends JPanel {
         }
     }
 
-    private void updateGridModel() {
+    private void updateOutlineModel() {
         if (doc != null) {
-            TsInformationUpdates details = doc.newsDetails();
-            List<TsInformationUpdates.Update> updates = details.updates();
-            if (updates.isEmpty()) {
-                grid.setModel(null);
-            } else {
-                grid.setModel(createModel());
-            }
-        } else {
-            grid.setModel(null);
+            calculateData();
+            refreshModel();
         }
     }
 
     private void updateChart() {
         if (doc != null) {
             TsInformationUpdates details = doc.newsDetails();
-            List<TsInformationUpdates.Update> updates = details.updates();
+            List<TsInformationUpdates.Update> updates = details.news();
             if (updates.isEmpty()) {
                 chartForecast.setDataset(null);
             } else {
@@ -355,12 +413,6 @@ public class NewsWeightsView extends JPanel {
         menu.add(saveImage().toAction(chartForecast)).setText("File...");
         return menu;
     }
-
-    private JMenu buildGridMenu() {
-        JMenu result = new JMenu();
-        result.add(TableGridCommand.copyAll(true, true).toAction(grid)).setText("Copy All");
-        return result;
-    }
     //</editor-fold>
 
     //<editor-fold defaultstate="collapsed" desc="Models">
@@ -369,124 +421,98 @@ public class NewsWeightsView extends JPanel {
         return result;
     }
 
-    private GridModel createModel() {
+    private List<VariableNode> nodes = new ArrayList<>();
 
-        calculateData();
+    private void refreshModel() {
+        TreeModel treeMdl = new NewsTreeModel(nodes);
+        OutlineModel mdl = DefaultOutlineModel.createOutlineModel(treeMdl, new NewsRowModel(titles, newPeriods, formatter), true);
+        outline.setRenderDataProvider(new NewsRenderer(defaultColorSchemeSupport, Type.WEIGHTS));
+        outline.setDefaultRenderer(String.class, new CustomOutlineCellRenderer(defaultColorSchemeSupport, Type.WEIGHTS));
+        outline.setModel(mdl);
 
-        return new AbstractGridModel() {
+        outline.setTableHeader(new JTableHeader(outline.getColumnModel()) {
             @Override
-            public int getRowCount() {
-                return rows.size();
+            public Dimension getPreferredSize() {
+                Dimension d = super.getPreferredSize();
+                d.height = 40;
+                return d;
             }
+        });
 
-            @Override
-            public int getColumnCount() {
-                return titles.size();
-            }
-
-            @Override
-            public Object getValueAt(int rowIndex, int columnIndex) {
-
-                if (rowIndex >= rows.size() - 3) {
-                    int nbRows = rows.size();
-                    // All revisions, old and new forecasts
-                    if (columnIndex > 2) {
-                        if (rowIndex == nbRows - 3) {
-                            return all_revisions.get(columnIndex - 3);
-                        } else if (rowIndex == nbRows - 2) {
-                            int nbNews = newPeriods.get(0).minus(oldPeriods.get(0));
-                            int index = columnIndex - 3 + nbNews;
-                            if (index >= old_forecasts.size()) {
-                                return null;
-                            } else {
-                                return old_forecasts.get(index);
-                            }
-                        } else {
-                            return new_forecasts.get(columnIndex - 3);
-                        }
-                    } else {
-                        return null;
-                    }
-                } else {
-                    // Normal series
-                    switch (columnIndex) {
-                        case 0:
-                            return ref_periods.get(rowIndex);
-                        case 1:
-                            return expected.get(rowIndex);
-                        case 2:
-                            return observations.get(rowIndex);
-                        default:
-                            return all_weights.get(columnIndex - 3).get(rowIndex);
-                    }
-                }
-            }
-
-            @Override
-            public Class<?> getColumnClass(int columnIndex) {
-                switch (columnIndex) {
-                    case 0:
-                        return TsPeriod.class;
-                    default:
-                        return Double.class;
-                }
-            }
-
-            @Override
-            public String getRowName(int rowIndex) {
-                return rows.get(rowIndex);
-            }
-
-            @Override
-            public String getColumnName(int column) {
-                return titles.get(column);
-            }
-        };
+        outline.getColumnModel().getColumn(0).setHeaderValue(" ");
+        outline.getColumnModel().getColumn(0).setPreferredWidth(200);
+        for (int i = 1; i < outline.getColumnCount(); i++) {
+            outline.getColumnModel().getColumn(i).setPreferredWidth(60);
+        }
     }
-    //</editor-fold>
 
-    private List<String> titles;
-    private List<String> rows;
+    //</editor-fold>
+    private List<Title> titles;
     private List<TsPeriod> newPeriods;
     private List<TsPeriod> oldPeriods;
-    private List<TsPeriod> ref_periods;
+    private List<Double> all_news;
     private List<Double> all_revisions;
     private List<Double> old_forecasts;
     private List<Double> new_forecasts;
-    private List<Double> expected;
-    private List<Double> observations;
-    private List<DataBlock> all_weights;
+    private List<DataBlock> all_news_weights;
+    private List<DataBlock> all_revisions_weights;
+    private Map<TsPeriod, Double> old_forecasts2;
+    private Map<TsPeriod, Double> new_forecasts2;
 
     private void calculateData() {
         DataBlock n = doc.news();
+        DataBlock r = doc.revisions();
         TsInformationSet dataNew = doc.getNewInformationSet();
         TsInformationSet dataOld = doc.getOldInformationSet();
         int selected = combobox.getSelectedIndex();
         TsData sNew = dataNew.series(selected);
         TsData sOld = dataOld.series(selected);
-        TsFrequency freq = doc.getDomain().getFrequency();
+        TsPeriod newsStart = null, revsStart = null;
+
+        TsFrequency freq = doc.getNewsDomain().getFrequency();
         newPeriods = new ArrayList<>();
         oldPeriods = new ArrayList<>();
+        all_news = new ArrayList<>();
         all_revisions = new ArrayList<>();
-        all_weights = new ArrayList<>();
+        all_news_weights = new ArrayList<>();
+        all_revisions_weights = new ArrayList<>();
         old_forecasts = new ArrayList<>();
         new_forecasts = new ArrayList<>();
+        old_forecasts2 = new HashMap<>();
+        new_forecasts2 = new HashMap<>();
 
         double mean = desc[selected].mean;
         double stdev = desc[selected].stdev;
+
+        if (!doc.newsDetails().news().isEmpty()) {
+            newsStart = doc.getNewsDomain().getStart();
+        }
+        if (!doc.newsDetails().revisions().isEmpty()) {
+            revsStart = doc.getRevisionsDomain().getStart();
+        }
 
         for (int j = sNew.getLength() - 1; j >= 0; --j) {
             if (sNew.isMissing(j)) {
                 TsPeriod p = sNew.getDomain().get(j);
                 TsPeriod pN = p.lastPeriod(freq);
-                if (pN.isNotBefore(doc.getDomain().getStart())) {
+                if (pN.isNotBefore(doc.getNewsDomain().getStart())) {
                     newPeriods.add(p);
 
-                    DataBlock weights = doc.weights(selected, pN); // Get weights
-                    all_revisions.add(n.dot(weights) * stdev);
+                    DataBlock news_weights = doc.weights(selected, pN); // Get weights
+                    all_news.add(n.dot(news_weights) * stdev);
+
                     double newValue = (doc.getNewForecast(selected, pN) * stdev) + mean;
                     new_forecasts.add(newValue);
-                    all_weights.add(weights);
+                    new_forecasts2.put(p, newValue);
+
+                    all_news_weights.add(news_weights);
+
+                    if (!doc.newsDetails().revisions().isEmpty()) {
+                        DataBlock revisions_weights = doc.weightsRevisions(selected, pN);
+                        all_revisions.add(r.dot(revisions_weights) * stdev);
+
+                        all_revisions_weights.add(revisions_weights);
+                    }
                 }
             } else {
                 break;
@@ -497,10 +523,12 @@ public class NewsWeightsView extends JPanel {
             if (sOld.isMissing(j)) {
                 TsPeriod p = sOld.getDomain().get(j);
                 TsPeriod pO = p.lastPeriod(freq);
-                if (pO.isNotBefore(doc.getDomain().getStart())) {
+                if (pO.isNotBefore(doc.getNewsDomain().getStart())) {
                     oldPeriods.add(p);
+
                     double oldValue = (doc.getOldForecast(selected, pO) * stdev) + mean;
                     old_forecasts.add(oldValue);
+                    old_forecasts2.put(p, oldValue);
                 }
             } else {
                 break;
@@ -509,39 +537,103 @@ public class NewsWeightsView extends JPanel {
 
         Collections.reverse(newPeriods);
         Collections.reverse(oldPeriods);
+        Collections.reverse(all_news);
         Collections.reverse(all_revisions);
         Collections.reverse(old_forecasts);
         Collections.reverse(new_forecasts);
-        Collections.reverse(all_weights);
+        Collections.reverse(all_news_weights);
+        Collections.reverse(all_revisions_weights);
 
         createColumnTitles();
 
         //================================================
         TsInformationUpdates details = doc.newsDetails();
-        List<TsInformationUpdates.Update> updates = details.updates();
-        rows = new ArrayList<>();
-        ref_periods = new ArrayList<>();
-        expected = new ArrayList<>();
-        observations = new ArrayList<>();
-        for (TsInformationUpdates.Update updt : updates) {
-            DfmSeriesDescriptor description = desc[updt.series];
-            rows.add(description.description);
-            ref_periods.add(updt.period);
-            expected.add(updt.getForecast() * description.stdev + description.mean);
-            observations.add(updt.getObservation() * description.stdev + description.mean);
+        List<Update> updates = details.news();
+
+        nodes = new ArrayList<>();
+
+        List<VariableNode> newsNodes = new ArrayList<>();
+        for (int i = 0; i < updates.size(); i++) {
+            TsInformationUpdates.Update updt = updates.get(i);
+            TsPeriod p = updt.period;
+            if (p.firstPeriod(freq).isNotBefore(newsStart)) {
+                DfmSeriesDescriptor descriptor = desc[updt.series];
+                String name = descriptor.description;
+
+                Double exp = updt.getForecast() * descriptor.stdev + descriptor.mean;
+                Double obs = updt.getObservation() * descriptor.stdev + descriptor.mean;
+
+                Map<TsPeriod, Double> values = new HashMap<>();
+                for (int j = 0; j < all_news_weights.size(); j++) {
+                    values.put(newPeriods.get(j), all_news_weights.get(j).get(i));
+                }
+
+                newsNodes.add(new VariableNode(name, p, exp, obs, values));
+            }
         }
-        rows.add("All revisions");
-        rows.add("Old Forecast");
-        rows.add("New Forecast");
+
+        VariableNode allNewsNode = new VariableNode("All News", null, null, null, null);
+        allNewsNode.setChildren(newsNodes);
+        nodes.add(allNewsNode);
+
+        List<Update> revisions = details.revisions();
+        List<VariableNode> revNodes = new ArrayList<>();
+        for (int i = 0; i < revisions.size(); i++) {
+            TsPeriod p = revisions.get(i).period;
+            if (p.firstPeriod(freq).isNotBefore(revsStart)) {
+                DfmSeriesDescriptor descriptor = desc[revisions.get(i).series];
+                String name = descriptor.description;
+
+                Double exp = revisions.get(i).getForecast() * descriptor.stdev + descriptor.mean;
+                Double obs = revisions.get(i).getObservation() * descriptor.stdev + descriptor.mean;
+
+                Map<TsPeriod, Double> values = new HashMap<>();
+                for (int j = 0; j < all_revisions_weights.size(); j++) {
+                    values.put(newPeriods.get(j), all_revisions_weights.get(j).get(i));
+                }
+
+                revNodes.add(new VariableNode(name, p, exp, obs, values));
+            }
+        }
+
+        if (!revNodes.isEmpty()) {
+            VariableNode allRevisionsNode = new VariableNode("All Revisions", null, null, null, null);
+            allRevisionsNode.setChildren(revNodes);
+            nodes.add(allRevisionsNode);
+        }
+
+        nodes.add(new VariableNode("Old Forecasts", null, null, null, old_forecasts2));
+        nodes.add(new VariableNode("New Forecasts", null, null, null, new_forecasts2));
     }
 
     private void createColumnTitles() {
         titles = new ArrayList<>();
-        titles.add("<html><p style=\"text-align:center\">Reference<br>Period</p></html>");
-        titles.add("<html><p style=\"text-align:center\">Expected<br>Value</p></html>");
-        titles.add("<html><p style=\"text-align:center\">Observed<br>Value</p></html>");
+        titles.add(new Title("Reference Period", "<html>Reference<br>Period"));
+        titles.add(new Title("Expected Value", "<html>Expected<br>Value"));
+        titles.add(new Title("Observed Value", "<html>Observed<br>Value"));
         for (TsPeriod p : newPeriods) {
-            titles.add("<html><p style=\"text-align:center\">Weight<br>" + p.toString() + "</p><html>");
+            titles.add(new Title("Weight " + p.toString(), "<html>Weight<br>" + p.toString()));
+        }
+
+        outline.setTitles(titles);
+    }
+
+    public static class Title {
+
+        private final String title;
+        private final String htmlTitle;
+
+        public Title(String title, String htmlTitle) {
+            this.title = title;
+            this.htmlTitle = htmlTitle;
+        }
+
+        public String getTitle() {
+            return title;
+        }
+
+        public String getHtmlTitle() {
+            return htmlTitle;
         }
     }
 
@@ -577,6 +669,7 @@ public class NewsWeightsView extends JPanel {
         });
 
         return result;
+
     }
 
     //<editor-fold defaultstate="collapsed" desc="JTimeSeriesChart utilities">
@@ -603,6 +696,7 @@ public class NewsWeightsView extends JPanel {
                 return SeriesType.NEW_FORECASTS;
             default:
                 throw new RuntimeException();
+
         }
     }
     //</editor-fold>
@@ -614,7 +708,7 @@ public class NewsWeightsView extends JPanel {
         @Override
         public void execute(NewsWeightsView c) throws Exception {
             if (c.collection != null) {
-                Transferable t = TssTransferSupport.getInstance().fromTsCollection(c.collection);
+                Transferable t = TssTransferSupport.getDefault().fromTsCollection(c.collection);
                 Toolkit.getDefaultToolkit().getSystemClipboard().setContents(t, null);
             }
         }
@@ -627,39 +721,6 @@ public class NewsWeightsView extends JPanel {
         @Override
         public JCommand.ActionAdapter toAction(NewsWeightsView c) {
             return super.toAction(c).withWeakPropertyChangeListener(c, RESULTS_PROPERTY);
-        }
-    }
-
-    private class DoubleTableCellRenderer extends DefaultTableCellRenderer {
-
-        private final Color colorOld;
-        private final Color colorNew;
-        private final Formatters.Formatter<Number> formatter;
-
-        public DoubleTableCellRenderer(Formatters.Formatter<Number> formatter) {
-            setHorizontalAlignment(SwingConstants.TRAILING);
-            this.formatter = formatter;
-            colorOld = CustomSwingColorSchemeSupport.withAlpha(defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.RED), 50);
-            colorNew = CustomSwingColorSchemeSupport.withAlpha(defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.BLUE), 50);
-        }
-
-        @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-            setBackground(null);
-            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-            if (value instanceof Double) {
-                setText(formatter.formatAsString((Double) value));
-            }
-
-            if (column > 2 && !isSelected) {
-                if (row == rows.size() - 2) {
-                    setBackground(colorOld);
-                } else if (row == rows.size() - 1) {
-                    setBackground(colorNew);
-                }
-            }
-
-            return this;
         }
     }
 
@@ -677,7 +738,8 @@ public class NewsWeightsView extends JPanel {
             }
         }
         dragSelection = col;
-        return TssTransferSupport.getInstance().fromTsCollection(dragSelection);
+        return TssTransferSupport.getDefault().fromTsCollection(dragSelection);
+
     }
 
     public class TsCollectionTransferHandler extends TransferHandler {

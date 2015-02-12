@@ -37,7 +37,7 @@ import org.openide.util.lookup.ServiceProvider;
 public class NewsWeightsViewFactory extends DfmNewsItemFactory {
 
     public NewsWeightsViewFactory() {
-        super(DfmNewsItemFactory.Updates.NEWS, newId(), newItemUI());
+        super(DfmNewsItemFactory.Updates.NEWS_REVISIONS, newId(), newItemUI());
         setAsync(true);
     }
 

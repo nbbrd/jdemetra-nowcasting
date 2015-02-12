@@ -91,7 +91,15 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
                 }
                 File folder = chooser.getSelectedFile();
                 VersionedDfmDocument vdoc = (VersionedDfmDocument) cur.getElement();
-                TsInformationSet info = new TsInformationSet(vdoc.getCurrent().getData());
+                
+                //TODO getData() ???
+                //TsInformationSet info = new TsInformationSet(vdoc.getCurrent().getData());
+                TsData[] data = new TsData[vdoc.getInput().length];
+                for (int i = 0; i < vdoc.getInput().length; i++) {
+                    data[i] = vdoc.getInput()[i].getTsData();
+                }
+                TsInformationSet info = new TsInformationSet(data);
+                
                 TsPeriod last = info.getCurrentDomain().getLast();
                 last.move(last.getFrequency().intValue());
                 Day horizon = last.lastday();

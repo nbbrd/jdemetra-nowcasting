@@ -16,8 +16,6 @@
  */
 package ec.tstoolkit.timeseries.information;
 
-import ec.tstoolkit.information.InformationSet;
-import ec.tstoolkit.timeseries.information.TsInformationUpdates;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.timeseries.Day;
 import ec.tstoolkit.timeseries.TsPeriodSelector;
@@ -27,8 +25,6 @@ import ec.tstoolkit.timeseries.simplets.TsDataTableInfo;
 import ec.tstoolkit.timeseries.simplets.TsDomain;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -200,6 +196,17 @@ public class TsInformationSet {
                     if (k < 0 || k >= olds.getLength() || olds.getValues().isMissing(k)) {
                         updates.add(start.plus(j), i);
                     }
+                }
+            }
+            
+            // Calculates revisions
+            start = olds.getStart();
+            TsData newFit = news.fittoDomain(olds.getDomain());
+            for (int j = 0; j < olds.getLength(); ++j) {
+                if (!newFit.getValues().isMissing(j) 
+                        && !olds.getValues().isMissing(j)
+                        && newFit.get(j) != olds.get(j)) {
+                    updates.addRevision(start.plus(j), i);
                 }
             }
         }
