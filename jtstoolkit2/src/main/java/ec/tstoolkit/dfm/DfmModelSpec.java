@@ -136,10 +136,11 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
         for (MeasurementSpec mspec : mspecs) {
             info.add(MSPEC + (i++), mspec.write(verbose));
         }
+        
         if (verbose || fh != DEF_FH) {
             info.add(FHORIZON, fh);
         }
-
+        
         return info;
     }
 
@@ -195,7 +196,7 @@ public class DfmModelSpec implements IProcSpecification, Cloneable {
                 return false;
             }
         }
-
+        
         return true;
     }
 

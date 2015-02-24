@@ -29,9 +29,10 @@ import java.util.Objects;
  */
 public class DfmSpec implements IProcSpecification, Cloneable {
 
-    public static final String MSPEC = "model", ESPEC = "estimation", SASPEC = "sa";
-    private DfmModelSpec model_=new DfmModelSpec();
-    private DfmEstimationSpec estimation_=new DfmEstimationSpec();
+    public static final String MSPEC = "model", ESPEC = "estimation", SASPEC = "sa", SIMULATION = "simulation";
+    private DfmModelSpec model_ = new DfmModelSpec();
+    private DfmEstimationSpec estimation_ = new DfmEstimationSpec();
+    private DfmSimulationSpec simulation_ = new DfmSimulationSpec();
     private ISaSpecification sa_ = TramoSeatsSpecification.RSAfull;
 
     public DfmModelSpec getModelSpec() {
@@ -40,6 +41,14 @@ public class DfmSpec implements IProcSpecification, Cloneable {
 
     public void setModelSpec(DfmModelSpec spec) {
         model_ = spec;
+    }
+
+    public DfmSimulationSpec getSimulationSpec() {
+        return simulation_;
+    }
+
+    public void setSimulationSpec(DfmSimulationSpec simulation) {
+        this.simulation_ = simulation;
     }
 
     public DfmEstimationSpec getEstimationSpec() {
@@ -65,14 +74,15 @@ public class DfmSpec implements IProcSpecification, Cloneable {
             spec.model_ = model_.clone();
             spec.estimation_ = estimation_.clone();
             spec.sa_ = sa_.clone();
+            spec.simulation_ = simulation_.clone();
             return spec;
         } catch (CloneNotSupportedException ex) {
             throw new AssertionError();
         }
     }
-    
-    public DfmSpec cloneDefinition(){
-        DfmSpec spec=clone();
+
+    public DfmSpec cloneDefinition() {
+        DfmSpec spec = clone();
         spec.model_.clear();
         return spec;
     }
@@ -82,6 +92,7 @@ public class DfmSpec implements IProcSpecification, Cloneable {
         InformationSet info = new InformationSet();
         info.add(MSPEC, model_.write(verbose));
         info.add(ESPEC, estimation_.write(verbose));
+        info.add(SIMULATION, simulation_.write(verbose));
         info.add(SASPEC, sa_.write(verbose));
         return info;
     }
@@ -97,10 +108,11 @@ public class DfmSpec implements IProcSpecification, Cloneable {
         if (!estimation_.read(info.getSubSet(ESPEC))) {
             return false;
         }
-        if (!sa_.read(info.getSubSet(SASPEC))) {
+        if (!simulation_.read(info.getSubSet(SIMULATION))) {
             return false;
-        }
-        return true;
+        }        
+
+        return sa_.read(info.getSubSet(SASPEC));
     }
 
     @Override
@@ -113,16 +125,19 @@ public class DfmSpec implements IProcSpecification, Cloneable {
         int hash = 7;
         hash = 29 * hash + Objects.hashCode(this.model_);
         hash = 29 * hash + Objects.hashCode(this.estimation_);
+        hash = 29 * hash + Objects.hashCode(this.simulation_);
         return hash;
     }
 
     public boolean equals(DfmSpec spec) {
-        return model_.equals(spec.model_) && estimation_.equals(spec.estimation_) && sa_.equals(spec.sa_);
+        return model_.equals(spec.model_) && estimation_.equals(spec.estimation_) 
+                && sa_.equals(spec.sa_) && simulation_.equals(spec.simulation_);
     }
 
     public static void fillDictionary(String prefix, Map<String, Class> dic) {
         DfmModelSpec.fillDictionary(MSPEC, dic);
         DfmEstimationSpec.fillDictionary(ESPEC, dic);
+        DfmSimulationSpec.fillDictionary(SIMULATION, dic);
     }
 
 }

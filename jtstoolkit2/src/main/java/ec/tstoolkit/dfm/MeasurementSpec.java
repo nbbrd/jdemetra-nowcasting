@@ -40,14 +40,16 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
 
     public static final String SERIESTRANSFORMATIONS = "stransformations",
             COEFF = "coeff", VAR = "var", FACTORTRANSFORMATION = "ftransformation",
-            MEAN = "mean", STDEV = "stdev", DEF_NAME = "var", PUBLICATION_DELAY = "publication_delay";
+            MEAN = "mean", STDEV = "stdev", DEF_NAME = "var", PUBLICATION_DELAY = "publication_delay", CALENDAR_GENERATION = "calendar_gen";
     private static volatile int g_idx = 0;
     private Transformation[] transformations;
     private double mean = Double.NaN, stdev = Double.NaN;
     private Parameter[] coeff;
     private Parameter var;
     private DynamicFactorModel.MeasurementType type = DynamicFactorModel.MeasurementType.M;
+    
     private int delay = 0;
+    private boolean usedForGeneration = true;
     
     public MeasurementSpec() {
         this(0);
@@ -89,6 +91,14 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
         return true;
     }
 
+    public void changeUseForGeneration() {
+        usedForGeneration = !usedForGeneration;
+    }
+    
+    public boolean isUsedForGeneration() {
+        return usedForGeneration;
+    }
+    
     public boolean isDefined() {
         return Parameter.isDefined(var) && Parameter.isDefined(coeff);
     }
@@ -125,6 +135,8 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
             
             m.delay = delay;
             
+            m.usedForGeneration = usedForGeneration;
+            
             return m;
         } catch (CloneNotSupportedException ex) {
             throw new AssertionError();
@@ -155,6 +167,7 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
         }
         
         info.set(PUBLICATION_DELAY, delay);
+        info.set(CALENDAR_GENERATION, usedForGeneration);
         
         info.set(FACTORTRANSFORMATION, type.name());
         return info;
@@ -185,6 +198,11 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
         Integer del = info.get(PUBLICATION_DELAY, Integer.class);
         if (del != null) {
             delay = del;
+        }
+        
+        Boolean used = info.get(CALENDAR_GENERATION, Boolean.class);
+        if (used != null) {
+            usedForGeneration = used;
         }
         
         String[] tr = info.get(SERIESTRANSFORMATIONS, String[].class);
@@ -311,7 +329,8 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
         return type == spec.type && var.equals(spec.var) && Arrays.deepEquals(coeff, spec.coeff)
                 && Arrays.equals(transformations, spec.transformations)
                 && mean == spec.mean && stdev == spec.stdev
-                && delay == spec.delay;
+                && delay == spec.delay
+                && usedForGeneration == spec.usedForGeneration;
     }
 
     public static void fillDictionary(String prefix, Map<String, Class> dic) {
@@ -322,6 +341,7 @@ public class MeasurementSpec implements IProcSpecification, Cloneable {
         dic.put(InformationSet.item(prefix, VAR), Parameter.class);
         dic.put(InformationSet.item(prefix, COEFF), Parameter[].class);
         dic.put(InformationSet.item(prefix, PUBLICATION_DELAY), Integer.class);
+        dic.put(InformationSet.item(prefix, CALENDAR_GENERATION), Boolean.class);
     }
 
 }

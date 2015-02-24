@@ -92,6 +92,7 @@ public class DfmEstimationSpec implements IProcSpecification, Cloneable {
             spec.preEm_ = preEm_.clone();
             spec.postEm_ = postEm_.clone();
             spec.proc_ = proc_.clone();
+            
             return spec;
         } catch (CloneNotSupportedException ex) {
             throw new AssertionError();
@@ -131,6 +132,7 @@ public class DfmEstimationSpec implements IProcSpecification, Cloneable {
         if (postEm_.isEnabled() || verbose) {
             info.set(POSTEM, postEm_.write(verbose));
         }
+        
         return info;
     }
 
