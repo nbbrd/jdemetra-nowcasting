@@ -19,12 +19,16 @@ package ec.tss.dfm;
 import ec.tss.Ts;
 import ec.tss.TsFactory;
 import ec.tstoolkit.dfm.DfmSpec;
+import ec.tstoolkit.dfm.MeasurementSpec;
 import ec.tstoolkit.timeseries.Day;
 import ec.tstoolkit.timeseries.information.TsInformationSet;
+import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -32,32 +36,34 @@ import java.util.Map;
  * @author Jean Palate
  */
 public class DfmSimulation {
-    
-    public static final int DEF_NY=2;
 
     private Day horizon_;
 
     private final Map<Day, DfmDocument> rslts_ = new HashMap<>();
 
-    private Day eday_;
-    private int mlag_;
-
     public DfmSimulation(Day horizon) {
         horizon_ = horizon;
     }
-    
-    public Map<Day, DfmDocument> getResults(){
+
+    public Map<Day, DfmDocument> getResults() {
         return Collections.unmodifiableMap(rslts_);
     }
 
-    public boolean process(DfmDocument refdoc, Day[] ed) {
+    /**
+     * Processes the simulation of the the given document
+     *
+     * @param refdoc Reference document containing inputs, specs, etc...
+     * @param ed All generated publication days
+     * @param estimationDays Days where a re-estimation is requested
+     * @return True if the process has finished
+     */
+    public boolean process(DfmDocument refdoc, Day[] ed, List<Day> estimationDays) {
         rslts_.clear();
         DfmSpec spec = refdoc.getSpecification();
         Ts[] input = refdoc.getInput();
-        
+
         TsInformationSet info = new TsInformationSet(refdoc.getData());
-        
-        Day neday = eday_;
+
         for (int i = 0; i < ed.length; ++i) {
             DfmDocument doc = new DfmDocument();
             // current information
@@ -70,41 +76,77 @@ public class DfmSimulation {
             // update the specification
             // 
             DfmSpec curspec;
-            if (neday == null || ed[i].isNotAfter(neday)) {
-                curspec = spec.clone();
-            } else {
+            if (mustBeEstimated(ed[i], estimationDays)) {
                 curspec = spec.cloneDefinition();
+            } else {
+                curspec = spec.clone();
             }
             // update the time horizon
             TsPeriod last = cinfo.getCurrentDomain().getLast();
-            TsPeriod end=last.clone();
+            TsPeriod end = last.clone();
             end.set(horizon_);
             curspec.getModelSpec().setForecastHorizon(end.minus(last));
             doc.setSpecification(curspec);
-            spec = curspec;
+            doc.getResults();
+            spec = doc.getSpecification();
+            //spec = curspec;
             rslts_.put(ed[i], doc);
         }
         return true;
     }
 
-    public boolean process(DfmDocument refdoc, Day start) {
-        TsInformationSet info = new TsInformationSet(refdoc.getData());
-        
-        if (start == null){
-            Day last=info.getCurrentDomain().getEnd().firstday();
-            GregorianCalendar c = last.toCalendar();
-            c.add(GregorianCalendar.YEAR, DEF_NY);
-            start=new Day(c.getTime());
+    private boolean mustBeEstimated(Day day, List<Day> estimationDays) {
+        if (estimationDays == null || estimationDays.isEmpty()) {
+            return false;
         }
-        
-        Day[] cal = info.generatePublicationCalendar(refdoc.getSpecification().getModelSpec().getPublicationDelays(), start);
-        return process(refdoc, cal);
+
+        int i = 0;
+        boolean found = false;
+        while (!found && i < estimationDays.size()) {
+            if (day.isNotBefore(estimationDays.get(i))) {
+                found = true;
+                estimationDays.remove(i);
+            } else {
+                i++;
+            }
+        }
+
+        return found;
     }
 
+    public boolean process(DfmDocument refdoc, Day start, List<Day> estimationDays) {
+        TsInformationSet info = new TsInformationSet(refdoc.getData());
 
-    public void setEstimationPolicy(Day firstEstimationDay, int estimationSpan) {
-        eday_ = firstEstimationDay;
-        mlag_ = estimationSpan;
+        if (start == null) {
+            Day last = info.getCurrentDomain().getEnd().firstday();
+            GregorianCalendar c = last.toCalendar();
+            c.add(GregorianCalendar.YEAR, refdoc.getSpecification().getSimulationSpec().getNumberOfYears());
+            start = new Day(c.getTime());
+        }
+
+        List<TsData> data = new ArrayList<>();
+        List<Integer> delays = new ArrayList<>();
+        List<MeasurementSpec> measurements = refdoc.getSpecification().getModelSpec().getMeasurements();
+        for (int i = 0; i < measurements.size(); i++) {
+            if (measurements.get(i).isUsedForGeneration()) {
+                data.add(refdoc.getData()[i]);
+                delays.add(measurements.get(i).getDelay());
+            }
+        }
+
+        if (estimationDays != null) {
+            Collections.sort(estimationDays);
+        }
+
+        if (data.isEmpty()) {
+            throw new IllegalArgumentException("You must select at least one "
+                    + "reference series to generate the publication calendar !");
+        }
+
+        TsInformationSet infoCal = new TsInformationSet(data.toArray(new TsData[data.size()]));
+
+        Day[] cal = infoCal.generatePublicationCalendar(delays, start);
+        return process(refdoc, cal, estimationDays);
     }
 
 }
