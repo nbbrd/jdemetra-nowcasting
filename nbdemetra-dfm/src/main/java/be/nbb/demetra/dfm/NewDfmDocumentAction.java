@@ -21,11 +21,6 @@ import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.Serializable;
-import java.util.Collection;
-import java.util.Iterator;
-import javax.swing.SwingUtilities;
-import org.netbeans.core.spi.multiview.CloseOperationHandler;
-import org.netbeans.core.spi.multiview.CloseOperationState;
 import org.netbeans.core.spi.multiview.MultiViewDescription;
 import org.netbeans.core.spi.multiview.MultiViewElement;
 import org.netbeans.core.spi.multiview.MultiViewFactory;
@@ -33,9 +28,6 @@ import org.openide.awt.ActionID;
 import org.openide.awt.ActionReference;
 import org.openide.awt.ActionRegistration;
 import org.openide.util.HelpCtx;
-import org.openide.util.Lookup;
-import org.openide.util.LookupEvent;
-import org.openide.util.LookupListener;
 import org.openide.util.NbBundle.Messages;
 import org.openide.windows.TopComponent;
 
@@ -69,12 +61,14 @@ public final class NewDfmDocumentAction implements ActionListener {
         final DfmExecViewTopComponent execView = new DfmExecViewTopComponent(doc, controller);
         final DfmOutputViewTopComponent outputView = new DfmOutputViewTopComponent(doc, controller);
         final DfmNewsViewTopComponent newsView = new DfmNewsViewTopComponent(doc, controller);
+        final DfmSimulationTopComponent simulationView = new DfmSimulationTopComponent(doc, controller);
         
         MultiViewDescription[] descriptions = {
             new QuickAndDirtyDescription("Model", modelView),
             new QuickAndDirtyDescription("Processing", execView),
             new QuickAndDirtyDescription("Output", outputView),
-            new QuickAndDirtyDescription("News", newsView)}
+            new QuickAndDirtyDescription("News", newsView),
+            new QuickAndDirtyDescription("Simulation", simulationView)}
                 ;
         
         final TopComponent result = MultiViewFactory.createMultiView(descriptions, descriptions[0]);

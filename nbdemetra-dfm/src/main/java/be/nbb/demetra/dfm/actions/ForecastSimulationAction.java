@@ -1,7 +1,7 @@
 /*
  * Copyright 2013-2014 National Bank of Belgium
  * 
- * Licensed under the EUPL, Version 1.1 or – as soon they will be approved 
+ * Licensed under the EUPL, Version 1.1 or â€“ as soon they will be approved 
  * by the European Commission - subsequent versions of the EUPL (the "Licence");
  * You may not use this work except in compliance with the Licence.
  * You may obtain a copy of the Licence at:
@@ -17,7 +17,10 @@
 package be.nbb.demetra.dfm.actions;
 
 import be.nbb.demetra.dfm.DfmDocumentManager;
+import com.google.common.base.Stopwatch;
 import ec.nbdemetra.ui.nodes.SingleNodeAction;
+import ec.nbdemetra.ui.notification.MessageType;
+import ec.nbdemetra.ui.notification.NotifyUtil;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.nodes.ItemWsNode;
 import ec.tss.dfm.DfmDocument;
@@ -40,18 +43,28 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.text.DateFormat;
 import java.text.NumberFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import javax.swing.JFileChooser;
+import javax.swing.SwingWorker;
+import org.netbeans.api.progress.ProgressHandle;
+import org.netbeans.api.progress.ProgressHandleFactory;
 import org.openide.DialogDisplayer;
 import org.openide.NotifyDescriptor;
 import org.openide.awt.ActionID;
 import org.openide.awt.ActionReference;
 import org.openide.awt.ActionReferences;
 import org.openide.awt.ActionRegistration;
+import org.openide.util.Cancellable;
 import org.openide.util.HelpCtx;
 import org.openide.util.NbBundle.Messages;
 
@@ -68,6 +81,8 @@ import org.openide.util.NbBundle.Messages;
 public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode> {
 
     public static JFileChooser chooser = new JFileChooser();
+    private ProgressHandle progressHandle;
+    private SimulationSwingWorker worker;
 
     public static final String RENAME_TITLE = "Please enter the new name",
             NAME_MESSAGE = "New name:";
@@ -76,85 +91,168 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
         super(ItemWsNode.class);
     }
 
+    private final class SimulationSwingWorker extends SwingWorker<Object, String> {
+
+        WorkspaceItem<?> cur;
+        Stopwatch watch;
+
+        public SimulationSwingWorker(WorkspaceItem<?> item) {
+            cur = item;
+        }
+
+        @Override
+        protected Object doInBackground() throws Exception {
+            watch = Stopwatch.createStarted();
+
+            File folder = chooser.getSelectedFile();
+            VersionedDfmDocument vdoc = (VersionedDfmDocument) cur.getElement();
+
+            TsInformationSet info = new TsInformationSet(vdoc.getCurrent().getData());
+
+            TsPeriod last = info.getCurrentDomain().getLast();
+            last.move(last.getFrequency().intValue());
+            Day horizon = last.lastday();
+            DfmSimulation simulation = new DfmSimulation(horizon);
+            last.move(-3 * last.getFrequency().intValue());
+            publish("Processing simulation of DFM...");
+            simulation.process(vdoc.getCurrent(), last.firstday(), new ArrayList<>(Arrays.asList(vdoc.getCurrent().getSpecification().getSimulationSpec().getEstimationDays())));
+            Map<Day, DfmDocument> results = simulation.getResults();
+            Day[] cal = new Day[results.size()];
+            cal = results.keySet().toArray(cal);
+            Arrays.sort(cal);
+            for (int s = 0; s < info.getSeriesCount(); ++s) {
+                TsDataTable tble = new TsDataTable();
+                for (int i = 0; i < cal.length; ++i) {
+                    TsData f = results.get(cal[i]).getResults().getData(InformationSet.concatenate(DfmProcessingFactory.FINALC, "var" + (s + 1)), TsData.class);
+                    tble.insert(-1, f);
+                }
+                tble.insert(-1, info.series(s));
+
+                TsDataTable tble2 = new TsDataTable();
+                ArimaForecaster af = new ArimaForecaster(TramoSpecification.TRfull.build());
+
+                List<Integer> delays = new ArrayList<>();
+                for (MeasurementSpec m : vdoc.getCurrent().getSpecification().getModelSpec().getMeasurements()) {
+                    delays.add(m.getDelay());
+                }
+
+                publish("Processing simulation of Arima...");
+                for (int i = 0; i < cal.length; ++i) {
+                    af.process(info.generateInformation(delays, cal[i]), s, horizon);
+                    TsData f = af.getForecast();
+                    tble2.insert(-1, f);
+                }
+                tble2.insert(-1, info.series(s));
+
+                publish("Writing result's files to selected folder...");
+                String nfile = Paths.concatenate(folder.getAbsolutePath(), "dfm-" + (s + 1));
+                nfile = Paths.changeExtension(nfile, "txt");
+                try (FileWriter writer = new FileWriter(nfile)) {
+                    StringWriter swriter = new StringWriter();
+                    write(swriter, tble, cal);
+                    writer.append(swriter.toString());
+                } catch (IOException err) {
+                }
+
+                nfile = Paths.concatenate(folder.getAbsolutePath(), "dfm-test-" + (s + 1));
+                nfile = Paths.changeExtension(nfile, "txt");
+                try (FileWriter writer = new FileWriter(nfile)) {
+                    StringWriter swriter = new StringWriter();
+                    createFHTable(swriter, tble, cal);
+                    writer.append(swriter.toString());
+                } catch (IOException err) {
+                }
+
+                nfile = Paths.concatenate(folder.getAbsolutePath(), "arima-" + (s + 1));
+                nfile = Paths.changeExtension(nfile, "txt");
+                try (FileWriter writer = new FileWriter(nfile)) {
+                    StringWriter swriter = new StringWriter();
+                    write(swriter, tble2, cal);
+                    writer.append(swriter.toString());
+                } catch (IOException err) {
+                }
+
+                nfile = Paths.concatenate(folder.getAbsolutePath(), "arima-test-" + (s + 1));
+                nfile = Paths.changeExtension(nfile, "txt");
+                try (FileWriter writer = new FileWriter(nfile)) {
+                    StringWriter swriter = new StringWriter();
+                    createFHTable(swriter, tble2, cal);
+                    writer.append(swriter.toString());
+                } catch (IOException err) {
+                }
+                publish("Done !");
+            }
+            return null;
+        }
+
+        @Override
+        protected void done() {
+            super.done();
+            DateFormat df = new SimpleDateFormat("mm:ss");
+            if (isCancelled()) {
+                progressHandle.finish();
+                NotifyUtil.show("Cancelled !", "Simulation has been cancelled after " + df.format(watch.stop().elapsed(TimeUnit.MILLISECONDS)), MessageType.WARNING, null, null, null);
+            } else {
+                try {
+                    get();
+                    if (progressHandle != null) {
+                        progressHandle.finish();
+                    }
+                    NotifyUtil.show("Simulations done !", "Simulations ended in " + df.format(watch.stop().elapsed(TimeUnit.MILLISECONDS)), MessageType.SUCCESS, null, null, null);
+                } catch (InterruptedException | ExecutionException ex) {
+                    NotifyDescriptor desc = new NotifyDescriptor(ex.getMessage(), "Error", NotifyDescriptor.DEFAULT_OPTION, NotifyDescriptor.ERROR_MESSAGE, null, null);
+                    DialogDisplayer.getDefault().notify(desc);
+                }
+            }
+        }
+
+        @Override
+        protected void process(List<String> chunks) {
+            super.process(chunks);
+            progressHandle.progress(chunks.get(chunks.size() - 1));
+        }
+
+    }
+
     @Override
     protected void performAction(ItemWsNode context) {
         WorkspaceItem<?> cur = context.getItem();
-        if (cur != null && !cur.isReadOnly()) {
-            if (cur.getElement() instanceof VersionedDfmDocument) {
+        try {
+            if (cur != null && !cur.isReadOnly()) {
+                if (cur.getElement() instanceof VersionedDfmDocument) {
 
-                chooser.setDialogTitle("Select the output folder");
-                chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-                //
-                // disable the "All files" option.
-                //
-                chooser.setAcceptAllFileFilterUsed(false);
-                //    
-                if (chooser.showOpenDialog(null) != JFileChooser.APPROVE_OPTION) {
-                    return;
+                    chooser.setDialogTitle("Select the output folder");
+                    chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                    chooser.setAcceptAllFileFilterUsed(false);
+
+                    if (chooser.showOpenDialog(null) != JFileChooser.APPROVE_OPTION) {
+                        return;
+                    }
+
+                    worker = new SimulationSwingWorker(cur);
+                    progressHandle = ProgressHandleFactory.createHandle("Forecast Simulations", new Cancellable() {
+                        @Override
+                        public boolean cancel() {
+                            worker.cancel(false);
+                            return true;
+                        }
+                    });
+
+                    progressHandle.start();
+                    progressHandle.switchToIndeterminate();
+                    worker.execute();
                 }
-                File folder = chooser.getSelectedFile();
-                VersionedDfmDocument vdoc = (VersionedDfmDocument) cur.getElement();
-                
-                TsInformationSet info = new TsInformationSet(vdoc.getCurrent().getData());
-                
-                TsPeriod last = info.getCurrentDomain().getLast();
-                last.move(last.getFrequency().intValue());
-                Day horizon = last.lastday();
-                DfmSimulation simulation = new DfmSimulation(horizon);
-                last.move(-3 * last.getFrequency().intValue());
-                simulation.process(vdoc.getCurrent(), last.firstday());
-                Map<Day, DfmDocument> results = simulation.getResults();
-                Day[] cal = new Day[results.size()];
-                cal = results.keySet().toArray(cal);
-                Arrays.sort(cal);
-                for (int s = 0; s < info.getSeriesCount(); ++s) {
-                    TsDataTable tble = new TsDataTable();
-                    for (int i = 0; i < cal.length; ++i) {
-                        TsData f = results.get(cal[i]).getResults().getData(InformationSet.concatenate(DfmProcessingFactory.FINALC, "var" + (s + 1)), TsData.class);
-                        tble.insert(-1, f);
-                    }
-                    tble.insert(-1, info.series(s));
-                    TsDataTable tble2 = new TsDataTable();
-                    ArimaForecaster af = new ArimaForecaster(TramoSpecification.TRfull.build());
-                    
-                    List<Integer> delays = new ArrayList<>();
-                    for (MeasurementSpec m : vdoc.getCurrent().getSpecification().getModelSpec().getMeasurements()) {
-                        delays.add(m.getDelay());
-                    }
-                    
-                    for (int i = 0; i < cal.length; ++i) {
-                        af.process(info.generateInformation(delays, cal[i]), s, horizon);
-                        TsData f = af.getForecast();
-                        tble2.insert(-1, f);
-                    }
-                    tble2.insert(-1, info.series(s));
-                    String nfile = Paths.concatenate(folder.getAbsolutePath(), "dfm-" + (s + 1));
-                    nfile = Paths.changeExtension(nfile, "txt");
-                    try (FileWriter writer = new FileWriter(nfile)) {
-                        StringWriter swriter = new StringWriter();
-                        write(swriter, tble, cal);
-                        writer.append(swriter.toString());
-                    } catch (IOException err) {
-                    }
-                    nfile = Paths.concatenate(folder.getAbsolutePath(), "arima-" + (s + 1));
-                    nfile = Paths.changeExtension(nfile, "txt");
-                    try (FileWriter writer = new FileWriter(nfile)) {
-                        StringWriter swriter = new StringWriter();
-                        write(swriter, tble2, cal);
-                        writer.append(swriter.toString());
-                    } catch (IOException err) {
-                    }
-                }
-                NotifyDescriptor sdesc = new NotifyDescriptor.Message("Simulations ended");
-                DialogDisplayer.getDefault().notify(sdesc);
             }
+        } catch (IllegalArgumentException ex) {
+            NotifyDescriptor desc = new NotifyDescriptor(ex.getMessage(), "Error", NotifyDescriptor.DEFAULT_OPTION, NotifyDescriptor.ERROR_MESSAGE, null, null);
+            DialogDisplayer.getDefault().notify(desc);
         }
     }
 
     @Override
     protected boolean enable(ItemWsNode context) {
         WorkspaceItem<?> cur = context.getItem();
-        return cur != null;
+        return cur != null && (worker == null || !worker.getState().equals(SwingWorker.StateValue.STARTED));
     }
 
     @Override
@@ -165,6 +263,101 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
     @Override
     public HelpCtx getHelpCtx() {
         return null;
+    }
+
+    private void createFHTable(StringWriter writer, TsDataTable table, Day[] cal) {
+        TsDomain dom = table.getDomain();
+        if (dom == null || dom.isEmpty() || cal == null || cal.length == 0) {
+            return;
+        }
+
+        NumberFormat fmt = NumberFormat.getNumberInstance();
+
+        int i0 = dom.search(cal[0]);    // Start of table
+        int i1 = dom.search(cal[cal.length - 1]); // End of table
+
+        int nbHeaders = i1 - i0 + 1;
+
+        if (i0 < 0 || i1 < 0) {
+            return;
+        }
+
+        for (int i = i0; i <= i1; i++) {    // headers
+            writer.append('\t').append(dom.get(i).toString());
+        }
+
+        Map<Integer, Double[]> map = new TreeMap<>();
+
+        for (int i = i0; i <= i1; i++) {    // parcours des headers
+            for (int j = 0; j < cal.length; j++) {  // parcours du calendrier
+                int diff = cal[j].difference(dom.get(i).lastday());
+                if (!map.containsKey(diff)) {
+                    map.put(diff, new Double[nbHeaders]);
+                }
+
+                TsDataTableInfo dataInfo = table.getDataInfo(i, j);
+                if (dataInfo == TsDataTableInfo.Valid) {
+                    map.get(diff)[i - i0] = table.getData(i, j);
+                }
+            }
+        }
+
+        Double[][] array = new Double[map.keySet().size()][];
+        Iterator<Integer> keys = map.keySet().iterator();
+        int iArray = 0;
+        while (keys.hasNext()) {
+            int index = keys.next();
+            Double[] values = map.get(index);
+            array[iArray] = new Double[nbHeaders];
+            System.arraycopy(values, 0, array[iArray++], 0, values.length);
+        }
+
+        // Remplissage des missing values
+        for (int col = 0; col < array[0].length; col++) {
+            // search for 
+            int start = 0;
+            while (start < array.length && array[start][col] == null) {
+                start++;
+            }
+
+            int end = array.length - 1;
+            while (end >= 0 && array[end][col] == null) {
+                end--;
+            }
+
+            if (start < array.length && start <= end && end >= 0) {
+                double valueToCopy = array[start][col];
+                for (int i = start + 1; i <= end; i++) {
+                    if (array[i][col] != null) {
+                        valueToCopy = array[i][col];
+                    } else {
+                        array[i][col] = valueToCopy;
+                    }
+                }
+            }
+        }
+
+        Integer[] keysArray = map.keySet().toArray(new Integer[map.keySet().size()]);
+        for (int i = keysArray.length - 1; i >= 0; i--) {
+            writer.append("\r\n").append(String.valueOf(keysArray[i]));
+            for (Double val : array[i]) {
+                if (val != null) {
+                    writer.append('\t').append(fmt.format(val));
+                } else {
+                    writer.append('\t');
+                }
+            }
+        }
+
+        writer.append("\r\n").append("REAL");
+        for (int i = i0; i <= i1; i++) {
+            TsDataTableInfo dataInfo = table.getDataInfo(i, table.getSeriesCount() - 1);
+            if (dataInfo == TsDataTableInfo.Valid) {
+                writer.append('\t').append(fmt.format(table.getData(i, table.getSeriesCount() - 1)));
+            } else {
+                writer.append('\t');
+            }
+        }
     }
 
     private void write(StringWriter writer, TsDataTable table, Day[] cal) {

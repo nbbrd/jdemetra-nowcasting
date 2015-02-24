@@ -38,7 +38,21 @@ public final class Arrays3 {
         StringBuilder result = new StringBuilder();
         result.append(array[0].name());
         for (int i = 1; i < array.length; i++) {
-            result.append(", ").append(array[i].name());
+            result.append(" \u27A1 ").append(array[i].name()); // \u00BB \u21E8 \u2794
+        }
+        return result.toString();
+    }
+    
+    @Nonnull
+    @SuppressWarnings("null")
+    public static String arrayToString(@Nullable Object[] array) {
+        if (Arrays2.isNullOrEmpty(array)) {
+            return "";
+        }
+        StringBuilder result = new StringBuilder();
+        result.append(array[0].toString());
+        for (int i = 1; i < array.length; i++) {
+            result.append(", ").append(array[i].toString()); // \u00BB \u21E8 \u2794
         }
         return result.toString();
     }

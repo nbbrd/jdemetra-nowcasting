@@ -34,8 +34,10 @@ import ec.tstoolkit.dfm.DfmSpec;
 import ec.tstoolkit.dfm.DynamicFactorModel.MeasurementType;
 import ec.tstoolkit.dfm.MeasurementSpec;
 import ec.tstoolkit.dfm.MeasurementSpec.Transformation;
+import ec.util.chart.swing.SwingColorSchemeSupport;
 import ec.util.grid.swing.XTable;
 import ec.util.various.swing.BasicSwingLauncher;
+import ec.util.various.swing.FontAwesome;
 import ec.util.various.swing.JCommand;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -50,15 +52,21 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.DefaultCellEditor;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JMenu;
+import javax.swing.JPanel;
 import javax.swing.JPopupMenu.Separator;
 import javax.swing.JTable;
+import javax.swing.SwingConstants;
 import javax.swing.TransferHandler;
 import static javax.swing.TransferHandler.COPY;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 
@@ -90,6 +98,8 @@ public final class DfmModelSpecView extends JComponent {
 
         view.addMouseListener(new PopupListener.PopupAdapter(createMenu().getPopupMenu()));
         view.setDefaultRenderer(Transformation[].class, new TransformationRenderer());
+        view.setDefaultRenderer(Integer.class, new DelayRenderer());
+        view.setDefaultRenderer(MeasurementType.class, new MeasurementTypeRenderer());
         view.setDefaultEditor(Transformation[].class, new TransformationEditor());
         view.setDefaultEditor(MeasurementType.class, new MeasurementTypeEditor());
         view.setNoDataRenderer(new XTable.DefaultNoDataRenderer("Drop data here"));
@@ -171,6 +181,8 @@ public final class DfmModelSpecView extends JComponent {
         result.add(new Separator());
         result.add(new MoveVariableUpCommand().toAction(view)).setText("Move up");
         result.add(new MoveVariableDownCommand().toAction(view)).setText("Move down");
+        result.add(new Separator());
+        result.add(new UseForGenerationCommand().toAction(view)).setText("Enable/disable use for calendar generation");
         return result;
     }
 
@@ -238,7 +250,7 @@ public final class DfmModelSpecView extends JComponent {
             MeasurementSpec xms = ms.clone();
             switch (columnIndex) {
                 case 1:
-                    ms.setDelay((int)aValue);
+                    ms.setDelay((int) aValue);
                     break;
                 case 2:
                     ms.setSeriesTransformations((Transformation[]) aValue);
@@ -300,6 +312,21 @@ public final class DfmModelSpecView extends JComponent {
             }
         }
 
+        public void useForCalendarGeneration(int[] rows) {
+            if (!model.isLocked() && rows != null && rows.length > 0 && rows.length <= variables.getCount()) {
+                DfmSpec spec = model.getSpecification().cloneDefinition();
+                for (int r : rows) {
+                    spec.getModelSpec().getMeasurements().get(r).changeUseForGeneration();
+                }
+
+                model.setInput(variables.isEmpty() ? null : variables.toArray());
+                model.setSpecification(spec);
+                firePropertyChange(MODEL_PROPERTY, null, model);
+            }
+        }
+        
+        
+
         public void moveVariableUp(int row) {
             if (!model.isLocked() && row > 0) {
                 DfmSpec spec = model.getSpecification().cloneDefinition();
@@ -307,7 +334,7 @@ public final class DfmModelSpecView extends JComponent {
                 Collections.swap(ms, row, row - 1);
                 List<Ts> ts = Arrays.asList(variables.toArray());
                 Collections.swap(ts, row, row - 1);
-                
+
                 model.setInput((Ts[]) ts.toArray());
                 model.setSpecification(spec);
                 firePropertyChange(MODEL_PROPERTY, null, model);
@@ -321,7 +348,7 @@ public final class DfmModelSpecView extends JComponent {
                 Collections.swap(ms, row, row + 1);
                 List<Ts> ts = Arrays.asList(variables.toArray());
                 Collections.swap(ts, row, row + 1);
-                
+
                 model.setInput((Ts[]) ts.toArray());
                 model.setSpecification(spec);
                 firePropertyChange(MODEL_PROPERTY, null, model);
@@ -338,6 +365,74 @@ public final class DfmModelSpecView extends JComponent {
             return this;
         }
 
+    }
+
+    private final class MeasurementTypeRenderer extends DefaultTableCellRenderer {
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            JPanel p = new JPanel();
+            p.setLayout(new BoxLayout(p, BoxLayout.LINE_AXIS));
+
+            SwingColorSchemeSupport colorSchemeSupport = SwingColorSchemeSupport.from(DemetraUI.getDefault().getColorScheme());
+            Color color = colorSchemeSupport.getLineColor(model.getSpecification().getModelSpec().getMeasurements().get(row).getFactorsTransformation().ordinal());
+
+            JLabel l = new JLabel(value.toString());
+            l.setFont(new java.awt.Font("Tahoma", 0, 10));
+            l.setBorder(BorderFactory.createCompoundBorder(new LineBorder(isSelected ? Color.WHITE : color, 1, false), new EmptyBorder(1, 2, 1, 2)));
+            l.setForeground(isSelected ? Color.WHITE : color);
+            l.setHorizontalTextPosition(JLabel.CENTER);
+
+            p.setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
+
+            p.add(l);
+
+            return p;
+        }
+    }
+
+    private static final class DelayRenderer extends DefaultTableCellRenderer {
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            JLabel l = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+            ModelSpecModel model = (ModelSpecModel) table.getModel();
+            boolean used = model.getMeasurements().get(row).isUsedForGeneration();
+
+            l.setText(convertToString(value));
+            l.setIcon(FontAwesome.FA_CALENDAR.getIcon(used ? isSelected ? Color.WHITE : Color.RED : Color.LIGHT_GRAY, l.getFont().getSize() - 1));
+            l.setToolTipText(used ? "Used to generate publication calendar" : null);
+            l.setHorizontalAlignment(SwingConstants.RIGHT);
+            l.setHorizontalTextPosition(SwingConstants.LEFT);
+
+            return l;
+        }
+
+        private String convertToString(Object value) {
+            if (value instanceof Integer) {
+                int val = (int) value;
+                if (val == 0) {
+                    return "0 days";
+                } else {
+                    String string = "";
+                    if (val % 30 == 0) {
+                        int months = Math.abs(val / 30);
+                        string = months + " month" + (months > 1 ? "s" : "");
+                    } else if (val % 7 == 0) {
+                        int weeks = Math.abs(val / 7);
+                        string = weeks + " week" + (weeks > 1 ? "s" : "");
+                    } else {
+                        string = Math.abs(val) + " day" + (Math.abs(val) > 1 ? "s" : "");
+                    }
+
+                    string += val > 0 ? " after" : " before";
+                    return string;
+                }
+            } else {
+                return value.toString();
+            }
+        }
     }
 
     private static final class TransformationEditor extends PopupTableCellEditor {
@@ -389,6 +484,32 @@ public final class DfmModelSpecView extends JComponent {
         }
     }
 
+    private static final class RemoveVariableCommand extends JCommand<XTable> {
+
+        @Override
+        public void execute(XTable component) throws Exception {
+            if (!component.isEnabled()) {
+                return;
+            }
+
+            ModelSpecModel model = (ModelSpecModel) component.getModel();
+            int index = component.convertRowIndexToModel(component.getSelectedRows()[0]);
+            model.removeVariable(index);
+        }
+
+        @Override
+        public boolean isEnabled(XTable component) {
+            return !component.isEditing() && component.getSelectedRowCount() == 1;
+        }
+
+        @Override
+        public JCommand.ActionAdapter toAction(XTable component) {
+            return super.toAction(component)
+                    .withWeakListSelectionListener(component.getSelectionModel())
+                    .withWeakPropertyChangeListener(component, "tableCellEditor");
+        }
+    }
+
     private static final class ApplyToAllCommand extends JCommand<XTable> {
 
         @Override
@@ -422,7 +543,7 @@ public final class DfmModelSpecView extends JComponent {
         }
     }
 
-    private static final class RemoveVariableCommand extends JCommand<XTable> {
+    private static final class UseForGenerationCommand extends JCommand<XTable> {
 
         @Override
         public void execute(XTable component) throws Exception {
@@ -431,13 +552,16 @@ public final class DfmModelSpecView extends JComponent {
             }
 
             ModelSpecModel model = (ModelSpecModel) component.getModel();
-            int index = component.convertRowIndexToModel(component.getSelectedRows()[0]);
-            model.removeVariable(index);
+            int[] rows = new int[component.getSelectedRowCount()];
+            for (int i = 0; i < component.getSelectedRowCount(); i++) {
+                rows[i] = component.convertRowIndexToModel(component.getSelectedRows()[i]);
+            }
+            model.useForCalendarGeneration(rows);
         }
 
         @Override
         public boolean isEnabled(XTable component) {
-            return !component.isEditing() && component.getSelectedRowCount() == 1;
+            return !component.isEditing() && component.getSelectedRowCount() > 0;
         }
 
         @Override

@@ -16,12 +16,15 @@
  */
 package be.nbb.demetra.dfm;
 
+import be.nbb.demetra.dfm.properties.DaysEditor;
 import ec.nbdemetra.ui.properties.NodePropertySetBuilder;
 import ec.tstoolkit.dfm.DfmEstimationSpec;
 import ec.tstoolkit.dfm.DfmModelSpec;
+import ec.tstoolkit.dfm.DfmSimulationSpec;
 import ec.tstoolkit.dfm.EmSpec;
 import ec.tstoolkit.dfm.NumericalProcessingSpec;
 import ec.tstoolkit.dfm.PcSpec;
+import ec.tstoolkit.timeseries.Day;
 import ec.tstoolkit.timeseries.TsPeriodSelector;
 import ec.tstoolkit.var.VarSpec;
 import ec.tstoolkit.var.VarSpec.Initialization;
@@ -185,7 +188,8 @@ final class DfmSheets {
         "varSpec.nlags.display=Lags count",
         "varSpec.initialization.display=Initialization",
         "modelSpec.display=Dfm model",
-        "modelSpec.forecastHorizon.display=Forecast horizon"
+        "modelSpec.forecastHorizon.display=Forecast horizon",
+        "simulationSpec.display=Simulation spec"
     })
 
     public static Sheet onModelSpec(final DfmModelSpec spec) {
@@ -196,6 +200,25 @@ final class DfmSheets {
         result.put(B.build());
         B.reset("modelSpec").display(Bundle.modelSpec_display());
         withModelSpec(spec);
+        result.put(B.build());
+        return result;
+    }
+    
+    public static Sheet onSimulationSpec(final DfmSimulationSpec spec) {
+        Sheet result = new Sheet();
+        B.reset("Simulation spec").display(Bundle.simulationSpec_display());
+        B.with(Day[].class)
+                .select(spec, "estimationDays")
+                .editor(DaysEditor.class)
+                .display("Estimation days")
+                .description("Days where the model estimation has to be forced")
+                .add();
+        B.withInt()
+                .select(spec, "numberOfYears")
+                .display("Number of years")
+                .min(1)
+                .description("Number of past years used for the simulation")
+                .add();
         result.put(B.build());
         return result;
     }
