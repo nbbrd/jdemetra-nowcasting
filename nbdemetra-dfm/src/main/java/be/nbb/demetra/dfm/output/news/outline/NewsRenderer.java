@@ -16,7 +16,6 @@
  */
 package be.nbb.demetra.dfm.output.news.outline;
 
-import be.nbb.demetra.dfm.output.news.outline.TreeNode.VariableNode;
 import ec.util.chart.ColorScheme;
 import ec.util.chart.swing.SwingColorSchemeSupport;
 import ec.util.various.swing.FontAwesome;

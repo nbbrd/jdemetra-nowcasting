@@ -16,13 +16,15 @@
  */
 package be.nbb.demetra.dfm.output.news;
 
+import be.nbb.demetra.dfm.output.news.outline.CustomNode;
 import be.nbb.demetra.dfm.output.news.outline.CustomOutlineCellRenderer;
 import be.nbb.demetra.dfm.output.news.outline.NewsRenderer;
 import be.nbb.demetra.dfm.output.news.outline.NewsRenderer.Type;
 import be.nbb.demetra.dfm.output.news.outline.NewsRowModel;
 import be.nbb.demetra.dfm.output.news.outline.NewsTreeModel;
-import be.nbb.demetra.dfm.output.news.outline.TreeNode.VariableNode;
+import be.nbb.demetra.dfm.output.news.outline.VariableNode;
 import be.nbb.demetra.dfm.output.news.outline.XOutline;
+import be.nbb.demetra.dfm.output.news.outline.XOutline.Title;
 import ec.nbdemetra.ui.DemetraUI;
 import ec.nbdemetra.ui.NbComponents;
 import ec.tss.TsCollection;
@@ -421,7 +423,7 @@ public class NewsWeightsView extends JPanel {
         return result;
     }
 
-    private List<VariableNode> nodes = new ArrayList<>();
+    private List<CustomNode> nodes = new ArrayList<>();
 
     private void refreshModel() {
         TreeModel treeMdl = new NewsTreeModel(nodes);
@@ -552,7 +554,7 @@ public class NewsWeightsView extends JPanel {
 
         nodes = new ArrayList<>();
 
-        List<VariableNode> newsNodes = new ArrayList<>();
+        List<CustomNode> newsNodes = new ArrayList<>();
         for (int i = 0; i < updates.size(); i++) {
             TsInformationUpdates.Update updt = updates.get(i);
             TsPeriod p = updt.period;
@@ -577,7 +579,7 @@ public class NewsWeightsView extends JPanel {
         nodes.add(allNewsNode);
 
         List<Update> revisions = details.revisions();
-        List<VariableNode> revNodes = new ArrayList<>();
+        List<CustomNode> revNodes = new ArrayList<>();
         for (int i = 0; i < revisions.size(); i++) {
             TsPeriod p = revisions.get(i).period;
             if (p.firstPeriod(freq).isNotBefore(revsStart)) {
@@ -616,25 +618,6 @@ public class NewsWeightsView extends JPanel {
         }
 
         outline.setTitles(titles);
-    }
-
-    public static class Title {
-
-        private final String title;
-        private final String htmlTitle;
-
-        public Title(String title, String htmlTitle) {
-            this.title = title;
-            this.htmlTitle = htmlTitle;
-        }
-
-        public String getTitle() {
-            return title;
-        }
-
-        public String getHtmlTitle() {
-            return htmlTitle;
-        }
     }
 
     private TsCollection toCollection() {

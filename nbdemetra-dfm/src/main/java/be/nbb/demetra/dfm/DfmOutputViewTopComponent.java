@@ -18,16 +18,14 @@ import static ec.util.various.swing.FontAwesome.FA_INFO_CIRCLE;
 import static ec.util.various.swing.FontAwesome.FA_SPINNER;
 import java.awt.BorderLayout;
 import java.awt.Component;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JToolBar;
 import javax.swing.SwingConstants;
 import org.netbeans.api.settings.ConvertAsProperties;
-import org.openide.windows.TopComponent;
 import org.openide.util.NbBundle.Messages;
+import org.openide.windows.TopComponent;
 
 /**
  * Top component which displays something.
@@ -90,19 +88,28 @@ public final class DfmOutputViewTopComponent extends AbstractDfmDocumentTopCompo
 
     @Override
     protected void onDfmStateChange() {
-        
+
         updateChart();
         super.onDfmStateChange();
+    }
+
+    @Override
+    protected void onSimulationStateChange() {
+        updateChart();
+        super.onSimulationStateChange();
     }
 
     @Override
     public JComponent getToolbarRepresentation() {
         JToolBar toolbar = NbComponents.newInnerToolbar();
         toolbar.addSeparator();
-
-//        JButton copy = toolbar.add(CopyCommand.INSTANCE.toAction(this));
-//        copy.setIcon(DemetraUiIcon.EDIT_COPY_16);
-//        copy.setDisabledIcon(ImageUtilities.createDisabledIcon(copy.getIcon()));
+//        
+//        toolbar.add(Box.createRigidArea(new Dimension(5, 0)));
+//
+//        JButton edit = toolbar.add(EditSpecCommand.INSTANCE.toAction(this));
+//        edit.setIcon(DemetraUiIcon.PREFERENCES);
+//        edit.setDisabledIcon(createDisabledIcon(edit.getIcon()));
+//        edit.setToolTipText("Specification");
         return toolbar;
     }
 
@@ -157,4 +164,32 @@ public final class DfmOutputViewTopComponent extends AbstractDfmDocumentTopCompo
             return this;
         }
     }
+    
+//    private static final class EditParamsCommand extends JCommand<DfmOutputViewTopComponent> {
+//
+//        public static final EditParamsCommand INSTANCE = new EditParamsCommand();
+//
+//        @Override
+//        public boolean isEnabled(DfmOutputViewTopComponent c) {
+//            boolean b = c.controller.getSimulationState() != DfmState.STARTED
+//                    && c.controller.getSimulationState() != DfmState.CANCELLING;
+//            if (!b) {
+//                return false;
+//            } else {
+//                DfmSimulation results = c.getDocument().getElement().getCurrent().getSimulationResults();
+//                return results != null && !results.getResults().isEmpty();
+//            }
+//        }
+//
+//        @Override
+//        public void execute(DfmOutputViewTopComponent c) throws Exception {
+//            DfmDocument doc = c.getDocument().getElement().getCurrent();
+//            DfmSpec spec = doc.getSpecification();
+//
+//            DfmSimulationSpec newValue = spec.getSimulationSpec().clone();
+//            if (OpenIdePropertySheetBeanEditor.editSheet(DfmSheets.onSimulationSpec(newValue), "Edit spec", null)) {
+//                doc.getSpecification().setSimulationSpec(newValue);
+//            }
+//        }
+//    }
 }

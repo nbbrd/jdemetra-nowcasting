@@ -30,7 +30,7 @@ import ec.ui.view.tsprocessing.ItemUI;
  *
  * @author Philippe Charles
  */
-abstract class DfmResultsItemFactory extends ComposedProcDocumentItemFactory<DfmDocument, Optional<DfmResults>> {
+public abstract class DfmResultsItemFactory extends ComposedProcDocumentItemFactory<DfmDocument, Optional<DfmResults>> {
 
     protected DfmResultsItemFactory(Id itemId, ItemUI<? extends IProcDocumentView<DfmDocument>, Optional<DfmResults>> itemUI) {
         super(DfmDocument.class, itemId, DfmResultsExtractor.INSTANCE, itemUI);

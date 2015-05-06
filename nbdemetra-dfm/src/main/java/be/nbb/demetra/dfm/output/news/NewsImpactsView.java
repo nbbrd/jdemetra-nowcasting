@@ -16,14 +16,15 @@
  */
 package be.nbb.demetra.dfm.output.news;
 
-import be.nbb.demetra.dfm.output.news.NewsWeightsView.Title;
+import be.nbb.demetra.dfm.output.news.outline.CustomNode;
 import be.nbb.demetra.dfm.output.news.outline.CustomOutlineCellRenderer;
 import be.nbb.demetra.dfm.output.news.outline.NewsRenderer;
 import be.nbb.demetra.dfm.output.news.outline.NewsRenderer.Type;
 import be.nbb.demetra.dfm.output.news.outline.NewsRowModel;
 import be.nbb.demetra.dfm.output.news.outline.NewsTreeModel;
-import be.nbb.demetra.dfm.output.news.outline.TreeNode.VariableNode;
+import be.nbb.demetra.dfm.output.news.outline.VariableNode;
 import be.nbb.demetra.dfm.output.news.outline.XOutline;
+import be.nbb.demetra.dfm.output.news.outline.XOutline.Title;
 import ec.nbdemetra.ui.DemetraUI;
 import ec.nbdemetra.ui.NbComponents;
 import ec.tss.Ts;
@@ -126,7 +127,7 @@ public class NewsImpactsView extends JPanel {
     private Formatters.Formatter<Number> formatter;
     private CustomSwingColorSchemeSupport defaultColorSchemeSupport;
 
-    private List<VariableNode> nodes = new ArrayList<>();
+    private List<CustomNode> nodes = new ArrayList<>();
     private final ListSelectionListener outlineListener, chartListener;
 
     public NewsImpactsView() {
@@ -203,13 +204,15 @@ public class NewsImpactsView extends JPanel {
                     for (int i = 0; i < outline.getSelectedRows().length; i++) {
                         int row = outline.getSelectedRows()[i];
                         VariableNode n = (VariableNode) outline.getOutlineModel().getValueAt(row, 0);
-                        switch (n.getName()) {
-                            case "All News":
-                                chartImpacts.getSeriesSelectionModel().addSelectionInterval(0, 0);
-                                break;
-                            case "All Revisions":
-                                chartImpacts.getSeriesSelectionModel().addSelectionInterval(1, 1);
-                                break;
+                        if (n != null) {
+                            switch (n.getName()) {
+                                case "All News":
+                                    chartImpacts.getSeriesSelectionModel().addSelectionInterval(0, 0);
+                                    break;
+                                case "All Revisions":
+                                    chartImpacts.getSeriesSelectionModel().addSelectionInterval(1, 1);
+                                    break;
+                            }
                         }
                     }
                 }
@@ -490,7 +493,7 @@ public class NewsImpactsView extends JPanel {
 
         double mean = desc[selected].mean;
         double stdev = desc[selected].stdev;
-        
+
         if (!doc.newsDetails().news().isEmpty()) {
             newsStart = doc.getNewsDomain().getStart();
         }
@@ -566,7 +569,7 @@ public class NewsImpactsView extends JPanel {
 
         nodes = new ArrayList<>();
 
-        List<VariableNode> newsNodes = new ArrayList<>();
+        List<CustomNode> newsNodes = new ArrayList<>();
         for (int i = 0; i < updates.size(); i++) {
             TsInformationUpdates.Update updt = updates.get(i);
             TsPeriod p = updt.period;
@@ -590,7 +593,7 @@ public class NewsImpactsView extends JPanel {
         nodes.add(allNewsNode);
 
         List<Update> revisions = details.revisions();
-        List<VariableNode> revNodes = new ArrayList<>();
+        List<CustomNode> revNodes = new ArrayList<>();
         for (int i = 0; i < revisions.size(); i++) {
             TsPeriod p = revisions.get(i).period;
             if (p.firstPeriod(freq).isNotBefore(revsStart)) {

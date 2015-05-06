@@ -30,6 +30,7 @@ import org.netbeans.core.spi.multiview.MultiViewElementCallback;
 /**
  *
  * @author Jean Palate
+ * @author Mats Maggi
  */
 public abstract class AbstractDfmDocumentTopComponent extends WorkspaceTopComponent<VersionedDfmDocument> implements MultiViewElement, MultiViewDescription {
 
@@ -53,6 +54,15 @@ public abstract class AbstractDfmDocumentTopComponent extends WorkspaceTopCompon
                 onDfmStateChange();
             }
         });
+        
+        controller.addPropertyChangeListener(DfmController.SIMULATION_STATE_PROPERTY, new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                // forward event
+                firePropertyChange(evt.getPropertyName(), evt.getOldValue(), evt.getNewValue());
+                onSimulationStateChange();
+            }
+        });
     }
 
     public DfmController getController() {
@@ -60,6 +70,12 @@ public abstract class AbstractDfmDocumentTopComponent extends WorkspaceTopCompon
     }
 
     protected void onDfmStateChange() {
+        this.getToolbarRepresentation().updateUI();
+        this.getVisualRepresentation().updateUI();
+    }
+    
+    protected void onSimulationStateChange() {
+        // ???
         this.getToolbarRepresentation().updateUI();
         this.getVisualRepresentation().updateUI();
     }

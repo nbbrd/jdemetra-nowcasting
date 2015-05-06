@@ -8,20 +8,16 @@ package be.nbb.demetra.dfm;
 import ec.nbdemetra.ui.NbComponents;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.tss.dfm.VersionedDfmDocument;
-import ec.tstoolkit.dfm.DfmNews;
 import ec.ui.view.tsprocessing.DefaultProcessingViewer;
 import static ec.ui.view.tsprocessing.DefaultProcessingViewer.Type.NONE;
-import static ec.util.various.swing.FontAwesome.FA_COGS;
 import static ec.util.various.swing.FontAwesome.FA_EXCLAMATION_TRIANGLE;
-import static ec.util.various.swing.FontAwesome.FA_INFO_CIRCLE;
-import static ec.util.various.swing.FontAwesome.FA_SPINNER;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import javax.swing.JComponent;
 import javax.swing.JToolBar;
 import org.netbeans.api.settings.ConvertAsProperties;
-import org.openide.windows.TopComponent;
 import org.openide.util.NbBundle.Messages;
+import org.openide.windows.TopComponent;
 
 /**
  * Top component which displays something.

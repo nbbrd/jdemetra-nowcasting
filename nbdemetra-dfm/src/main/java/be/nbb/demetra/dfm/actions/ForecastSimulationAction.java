@@ -26,6 +26,7 @@ import ec.nbdemetra.ws.nodes.ItemWsNode;
 import ec.tss.dfm.DfmDocument;
 import ec.tss.dfm.DfmProcessingFactory;
 import ec.tss.dfm.DfmSimulation;
+import ec.tss.dfm.DfmSimulationResults;
 import ec.tss.dfm.VersionedDfmDocument;
 import ec.tstoolkit.dfm.MeasurementSpec;
 import ec.tstoolkit.information.InformationSet;
@@ -83,6 +84,7 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
     public static JFileChooser chooser = new JFileChooser();
     private ProgressHandle progressHandle;
     private SimulationSwingWorker worker;
+    //private Map<Day, DfmDocument> results;
 
     public static final String RENAME_TITLE = "Please enter the new name",
             NAME_MESSAGE = "New name:";
@@ -115,7 +117,7 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
             DfmSimulation simulation = new DfmSimulation(horizon);
             last.move(-3 * last.getFrequency().intValue());
             publish("Processing simulation of DFM...");
-            simulation.process(vdoc.getCurrent(), last.firstday(), new ArrayList<>(Arrays.asList(vdoc.getCurrent().getSpecification().getSimulationSpec().getEstimationDays())));
+            simulation.process(vdoc.getCurrent(), new ArrayList<>(Arrays.asList(vdoc.getCurrent().getSpecification().getSimulationSpec().getEstimationDays())));
             Map<Day, DfmDocument> results = simulation.getResults();
             Day[] cal = new Day[results.size()];
             cal = results.keySet().toArray(cal);
@@ -158,7 +160,7 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
                 nfile = Paths.changeExtension(nfile, "txt");
                 try (FileWriter writer = new FileWriter(nfile)) {
                     StringWriter swriter = new StringWriter();
-                    createFHTable(swriter, tble, cal);
+                    simulation.getDfmResults().add(createFHTable(swriter, tble, cal));
                     writer.append(swriter.toString());
                 } catch (IOException err) {
                 }
@@ -176,12 +178,13 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
                 nfile = Paths.changeExtension(nfile, "txt");
                 try (FileWriter writer = new FileWriter(nfile)) {
                     StringWriter swriter = new StringWriter();
-                    createFHTable(swriter, tble2, cal);
+                    simulation.getArimaResults().add(createFHTable(swriter, tble2, cal));
                     writer.append(swriter.toString());
                 } catch (IOException err) {
                 }
-                publish("Done !");
+                
             }
+            publish("Done !");
             return null;
         }
 
@@ -265,11 +268,13 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
         return null;
     }
 
-    private void createFHTable(StringWriter writer, TsDataTable table, Day[] cal) {
+    private DfmSimulationResults createFHTable(StringWriter writer, TsDataTable table, Day[] cal) {
         TsDomain dom = table.getDomain();
         if (dom == null || dom.isEmpty() || cal == null || cal.length == 0) {
-            return;
+            return null;
         }
+        
+        DfmSimulationResults r = new DfmSimulationResults();
 
         NumberFormat fmt = NumberFormat.getNumberInstance();
 
@@ -279,12 +284,16 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
         int nbHeaders = i1 - i0 + 1;
 
         if (i0 < 0 || i1 < 0) {
-            return;
+            return null;
         }
 
+        List<TsPeriod> evaluationSample = new ArrayList<>();
         for (int i = i0; i <= i1; i++) {    // headers
+            evaluationSample.add(dom.get(i));
             writer.append('\t').append(dom.get(i).toString());
         }
+        
+        r.setEvaluationSample(evaluationSample);
 
         Map<Integer, Double[]> map = new TreeMap<>();
 
@@ -305,12 +314,16 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
         Double[][] array = new Double[map.keySet().size()][];
         Iterator<Integer> keys = map.keySet().iterator();
         int iArray = 0;
+        List<Integer> fctsHorizons = new ArrayList<>();
         while (keys.hasNext()) {
             int index = keys.next();
             Double[] values = map.get(index);
             array[iArray] = new Double[nbHeaders];
             System.arraycopy(values, 0, array[iArray++], 0, values.length);
+            
+            fctsHorizons.add(index);
         }
+        r.setForecastHorizons(fctsHorizons);    // Set forecast horizons (keys)
 
         // Remplissage des missing values
         for (int col = 0; col < array[0].length; col++) {
@@ -336,7 +349,9 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
                 }
             }
         }
-
+        
+        r.setForecastsArray(array);
+        
         Integer[] keysArray = map.keySet().toArray(new Integer[map.keySet().size()]);
         for (int i = keysArray.length - 1; i >= 0; i--) {
             writer.append("\r\n").append(String.valueOf(keysArray[i]));
@@ -349,15 +364,23 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
             }
         }
 
+        List<Double> trueValues = new ArrayList<>();
         writer.append("\r\n").append("REAL");
         for (int i = i0; i <= i1; i++) {
             TsDataTableInfo dataInfo = table.getDataInfo(i, table.getSeriesCount() - 1);
             if (dataInfo == TsDataTableInfo.Valid) {
+                Double val = table.getData(i, table.getSeriesCount() - 1);
                 writer.append('\t').append(fmt.format(table.getData(i, table.getSeriesCount() - 1)));
+                trueValues.add(val);
             } else {
                 writer.append('\t');
+                trueValues.add(null);
             }
         }
+        
+        r.setTrueValues(trueValues);
+        
+        return r;
     }
 
     private void write(StringWriter writer, TsDataTable table, Day[] cal) {

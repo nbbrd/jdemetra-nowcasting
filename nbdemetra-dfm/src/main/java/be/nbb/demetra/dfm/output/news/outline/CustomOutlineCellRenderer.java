@@ -18,7 +18,6 @@ package be.nbb.demetra.dfm.output.news.outline;
 
 import be.nbb.demetra.dfm.output.news.ColorIcon;
 import be.nbb.demetra.dfm.output.news.outline.NewsRenderer.Type;
-import be.nbb.demetra.dfm.output.news.outline.TreeNode.VariableNode;
 import ec.util.chart.ColorScheme;
 import ec.util.chart.swing.SwingColorSchemeSupport;
 import java.awt.Color;
@@ -68,7 +67,7 @@ public class CustomOutlineCellRenderer extends DefaultOutlineCellRenderer {
         l.setForeground(null);
         l.setOpaque(true);
         l.setIcon(null);
-        l.setBorder(new EmptyBorder(0,2,0,2));
+        l.setBorder(new EmptyBorder(0, 2, 0, 2));
 
         VariableNode n = (VariableNode) table.getValueAt(row, 0);
         if (!isSelected) {
@@ -105,7 +104,7 @@ public class CustomOutlineCellRenderer extends DefaultOutlineCellRenderer {
 
         if (type.equals(Type.IMPACTS)) {
             if (column == 1 && n.getParent() != null) {
-                VariableNode p = n.getParent();
+                VariableNode p = (VariableNode) n.getParent();
                 int index = p.getChildren().indexOf(n);
                 if (p.getName().equals("All Revisions")) {
                     VariableNode pNews = (VariableNode) table.getValueAt(0, 0);

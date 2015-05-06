@@ -16,9 +16,8 @@
  */
 package be.nbb.demetra.dfm.output.news.outline;
 
-import be.nbb.demetra.dfm.output.news.NewsWeightsView.Title;
-import be.nbb.demetra.dfm.output.news.outline.TreeNode.CustomNode;
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseEvent;
 import java.util.EventObject;
 import java.util.List;
 import javax.swing.AbstractAction;
@@ -42,12 +41,13 @@ public class XOutline extends Outline {
 
         setRootVisible(false);
         getTableHeader().setReorderingAllowed(false);
-        setColumnHidingAllowed(false);
+        setColumnHidingAllowed(true);
         setRowSorter(null);
         setFillsViewportHeight(true);
         setDragEnabled(false);
         getTableHeader().setReorderingAllowed(false);
         setComponentPopupMenu(createPopupMenu());
+        setColumnSelectionOn(MouseEvent.BUTTON3, ColumnSelection.DIALOG);
     }
 
     private JPopupMenu createPopupMenu() {
@@ -124,5 +124,29 @@ public class XOutline extends Outline {
 
     public void setTitles(List<Title> titles) {
         this.titles = titles;
+    }
+    
+    public static class Title {
+
+        private final String title;
+        private final String htmlTitle;
+
+        public Title(String title) {
+            this.title = title;
+            this.htmlTitle = title;
+        }
+        
+        public Title(String title, String htmlTitle) {
+            this.title = title;
+            this.htmlTitle = htmlTitle;
+        }
+
+        public String getTitle() {
+            return title;
+        }
+
+        public String getHtmlTitle() {
+            return htmlTitle;
+        }
     }
 }

@@ -16,8 +16,7 @@
  */
 package be.nbb.demetra.dfm.output.news.outline;
 
-import be.nbb.demetra.dfm.output.news.NewsWeightsView.Title;
-import be.nbb.demetra.dfm.output.news.outline.TreeNode.VariableNode;
+import be.nbb.demetra.dfm.output.news.outline.XOutline.Title;
 import ec.tss.tsproviders.utils.Formatters;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
 import java.util.List;

@@ -21,6 +21,7 @@ import ec.nbdemetra.ui.awt.ListenableBean;
 /**
  *
  * @author Philippe Charles
+ * @author Mats Maggi
  */
 public final class DfmController extends ListenableBean {
 
@@ -34,19 +35,33 @@ public final class DfmController extends ListenableBean {
     };
 
     public static final String DFM_STATE_PROPERTY = "dfmState";
+    public static final String SIMULATION_STATE_PROPERTY = "simulationState";
 
     private DfmState dfmState;
+    private DfmState simulationState;
 
     public DfmController() {
         this.dfmState = DfmState.READY;
+        this.simulationState = DfmState.READY;
     }
 
     public DfmState getDfmState() {
         return dfmState;
-    }
+    }   
 
     public void setDfmState(DfmState state) {
         this.dfmState = state;
         firePropertyChange(DFM_STATE_PROPERTY, null, this.dfmState); // force refreshing in all cases
     }
+    
+    public DfmState getSimulationState() {
+        return simulationState;
+    }
+
+    public void setSimulationState(DfmState simulationState) {
+        this.simulationState = simulationState;
+        firePropertyChange(SIMULATION_STATE_PROPERTY, null, this.simulationState); // force refreshing in all cases
+    }
+    
+    
 }

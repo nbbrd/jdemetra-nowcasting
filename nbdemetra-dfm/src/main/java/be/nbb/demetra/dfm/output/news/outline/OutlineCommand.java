@@ -36,7 +36,7 @@ public class OutlineCommand extends JCommand<XOutline> {
         Transferable t = TssTransferSupport.getDefault().fromTable(table);
         Toolkit.getDefaultToolkit().getSystemClipboard().setContents(t, null);
     }
-    
+
     @Nonnull
     public static OutlineCommand copyAll() {
         return new OutlineCommand();
@@ -47,20 +47,23 @@ public class OutlineCommand extends JCommand<XOutline> {
         if (model.getRowCount() == 0 || model.getColumnCount() == 0) {
             return new Table<>(0, 0);
         }
-        
+
         int cols = outline.getColumnCount();
         int rows = outline.getRowCount();
-        Table<Object> result = new Table<>(model.getRowCount()+1, model.getColumnCount()+1);
-        for (int i = 0; i < outline.getTitles().size(); i++) {
-            result.set(0, i+1, outline.getTitles().get(i).getTitle());
-        }
-        
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                result.set(i+1, j, model.getValueAt(i, j).toString());
+        Table<Object> result = new Table<>(model.getRowCount() + 1, model.getColumnCount() + 1);
+        if (outline.getTitles() != null) {
+            for (int i = 0; i < outline.getTitles().size(); i++) {
+                result.set(0, i + 1, outline.getTitles().get(i).getTitle());
             }
         }
-        
+
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                Object r = model.getValueAt(i, j);
+                result.set(i + 1, j, (r == null ? "" : r.toString()));
+            }
+        }
+
         return result;
     }
 }

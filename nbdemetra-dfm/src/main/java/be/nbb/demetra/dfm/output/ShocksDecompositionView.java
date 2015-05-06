@@ -96,7 +96,7 @@ final class ShocksDecompositionView extends javax.swing.JPanel {
         this.noiseVisible = true;
         this.dfmResults = Optional.absent();
         
-        demetraUI = DemetraUI.getInstance();
+        demetraUI = DemetraUI.getDefault();
         formatter = demetraUI.getDataFormat().numberFormatter();
         defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
             @Override
@@ -548,7 +548,7 @@ final class ShocksDecompositionView extends javax.swing.JPanel {
             }
         }
         dragSelection = col;
-        return TssTransferSupport.getInstance().fromTsCollection(dragSelection);
+        return TssTransferSupport.getDefault().fromTsCollection(dragSelection);
     }
     
     public class TsCollectionTransferHandler extends TransferHandler {
