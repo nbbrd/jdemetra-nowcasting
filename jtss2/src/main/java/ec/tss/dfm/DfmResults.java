@@ -72,7 +72,7 @@ public class DfmResults implements IProcResults {
     private TsData[] smoothedSignalUncertainty; // incorporates stdev
     private DfmSeriesDescriptor[] description;
     private TsData[] smoothedSignalProjection; // incorporates mean and stdev
-
+    
     private final List<ProcessingInformation> infos = new ArrayList<>();
 
     public DfmResults(DynamicFactorModel model, TsInformationSet input) {

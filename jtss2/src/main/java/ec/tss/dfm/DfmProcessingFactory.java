@@ -38,7 +38,6 @@ import ec.tstoolkit.dfm.DefaultInitializer;
 import ec.tstoolkit.dfm.DfmEM;
 import ec.tstoolkit.dfm.DfmEM2;
 import ec.tstoolkit.dfm.DfmEstimator;
-import ec.tstoolkit.timeseries.information.TsInformationSet;
 import ec.tstoolkit.dfm.DfmModelSpec;
 import ec.tstoolkit.dfm.DfmSpec;
 import ec.tstoolkit.dfm.DynamicFactorModel;
@@ -53,7 +52,6 @@ import ec.tstoolkit.maths.realfunctions.ISsqFunctionInstance;
 import ec.tstoolkit.maths.realfunctions.ProxyMinimizer;
 import ec.tstoolkit.maths.realfunctions.levmar.LevenbergMarquardtMethod;
 import ec.tstoolkit.maths.realfunctions.riso.LbfgsMinimizer;
-import ec.tstoolkit.modelling.ComponentType;
 import ec.tstoolkit.modelling.ModellingDictionary;
 import ec.tstoolkit.modelling.SeriesInfo;
 import ec.tstoolkit.modelling.arima.PreprocessingModel;
@@ -61,6 +59,7 @@ import ec.tstoolkit.mssf2.MSsfFunctionInstance;
 import ec.tstoolkit.timeseries.Day;
 import ec.tstoolkit.timeseries.PeriodSelectorType;
 import ec.tstoolkit.timeseries.TsAggregationType;
+import ec.tstoolkit.timeseries.information.TsInformationSet;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDomain;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
@@ -254,15 +253,16 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
                     s.getValues().div(e);
                     desc[k].mean = m;
                     desc[k].stdev = e;
-                    desc[k].transformations=ms.getSeriesTransformations();
+                    desc[k].transformations = ms.getSeriesTransformations();
                     sc[k++] = s;
                 }
                 MultiTsData inputc = new MultiTsData("var", trs);
                 results.put(INPUTC, inputc);
                 TsInformationSet dinfo = new TsInformationSet(sc);
                 int fh = spec.getModelSpec().getForecastHorizon();
-                if (fh<0)
-                    fh=-fh*dinfo.getCurrentDomain().getFrequency().intValue();
+                if (fh < 0) {
+                    fh = -fh * dinfo.getCurrentDomain().getFrequency().intValue();
+                }
                 if (fh > 0) {
                     TsPeriod last = dinfo.getCurrentDomain().getLast();
                     last.move(fh);
@@ -350,7 +350,11 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
                 for (int i = 0; i < n; ++i) {
                     TsData s = dfm.getData(DfmResults.SMOOTHED + (i + 1), TsData.class);
                     if (s != null) {
-                        s = s.changeFrequency(input[i].getFrequency(), TsAggregationType.Last, true);
+                        try {
+                            s = s.changeFrequency(input[i].getFrequency(), TsAggregationType.Last, false);
+                        } catch (ArrayIndexOutOfBoundsException ex) {
+                            s = s.changeFrequency(input[i].getFrequency(), TsAggregationType.Last, false);
+                        }
                         DfmSeriesDescriptor desc = dfm.getDescription(i);
                         TsData[] stack = untransform(input[i], s, desc.transformations, spec.getSaSpec());
                         trs[i] = stack[0];
@@ -705,10 +709,10 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
         } else {
             x = TsData.add(seasc, cur);
         }
-        int del=orig.getStart().minus(x.getStart());
+        int del = orig.getStart().minus(x.getStart());
         for (int i = 0; i < orig.getLength(); ++i) {
             if (!orig.isMissing(i)) {
-                x.set(i+del, orig.get(i));
+                x.set(i + del, orig.get(i));
             }
         }
 

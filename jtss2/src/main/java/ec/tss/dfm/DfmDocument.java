@@ -33,7 +33,9 @@ import ec.tstoolkit.timeseries.simplets.TsData;
  * @author Jean Palate
  */
 public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> implements Cloneable {
-
+    
+    private DfmSimulation simulation_;
+    
     public DfmDocument() {
         super(new DfmProcessingFactory(), null);
         setSpecification(new DfmSpec());
@@ -42,6 +44,14 @@ public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> impl
     public DfmDocument(ProcessingContext context) {
         super(new DfmProcessingFactory(), context);
         setSpecification(new DfmSpec());
+    }
+    
+    public DfmSimulation getSimulationResults() {
+        return simulation_;
+    }
+    
+    public void setSimulation(DfmSimulation simulation) {
+        this.simulation_ = simulation;
     }
 
     @Override

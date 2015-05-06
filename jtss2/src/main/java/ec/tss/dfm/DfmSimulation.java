@@ -37,16 +37,27 @@ import java.util.Map;
  */
 public class DfmSimulation {
 
-    private Day horizon_;
-
-    private final Map<Day, DfmDocument> rslts_ = new HashMap<>();
+    private final Day horizon_;
+    private Map<Day, DfmDocument> rslts_ = new HashMap<>(); // Results of the simulation process
+    private final List<DfmSimulationResults> arimaResults;    // built results for arima
+    private final List<DfmSimulationResults> dfmResults;  // built results for dfm
 
     public DfmSimulation(Day horizon) {
         horizon_ = horizon;
+        arimaResults = new ArrayList<>();
+        dfmResults = new ArrayList<>();
     }
 
     public Map<Day, DfmDocument> getResults() {
-        return Collections.unmodifiableMap(rslts_);
+        return rslts_;
+    }
+
+    public List<DfmSimulationResults> getArimaResults() {
+        return arimaResults;
+    }
+
+    public List<DfmSimulationResults> getDfmResults() {
+        return dfmResults;
     }
 
     /**
@@ -58,7 +69,7 @@ public class DfmSimulation {
      * @return True if the process has finished
      */
     public boolean process(DfmDocument refdoc, Day[] ed, List<Day> estimationDays) {
-        rslts_.clear();
+        rslts_ = new HashMap<>();
         DfmSpec spec = refdoc.getSpecification();
         Ts[] input = refdoc.getInput();
 
@@ -92,6 +103,7 @@ public class DfmSimulation {
             //spec = curspec;
             rslts_.put(ed[i], doc);
         }
+
         return true;
     }
 
@@ -114,15 +126,13 @@ public class DfmSimulation {
         return found;
     }
 
-    public boolean process(DfmDocument refdoc, Day start, List<Day> estimationDays) {
+    public boolean process(DfmDocument refdoc, List<Day> estimationDays) {
         TsInformationSet info = new TsInformationSet(refdoc.getData());
 
-        if (start == null) {
-            Day last = info.getCurrentDomain().getEnd().firstday();
-            GregorianCalendar c = last.toCalendar();
-            c.add(GregorianCalendar.YEAR, refdoc.getSpecification().getSimulationSpec().getNumberOfYears());
-            start = new Day(c.getTime());
-        }
+        Day last = info.getCurrentDomain().getEnd().firstday();
+        GregorianCalendar c = last.toCalendar();
+        c.add(GregorianCalendar.YEAR, -refdoc.getSpecification().getSimulationSpec().getNumberOfYears());
+        Day start = new Day(c.getTime());
 
         List<TsData> data = new ArrayList<>();
         List<Integer> delays = new ArrayList<>();
