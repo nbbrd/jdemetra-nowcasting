@@ -34,51 +34,67 @@ public class ForecastEvaluationResults {
     //__________________________///////////////////////////////////////////////
     //__________________________///////////////////////////////////////////////
     public double calcRMSE() {
-        double temp = 0;
-        int count = 0;
-        for (int i = 0; i < e.getLength(); i++) {
-            if (!e.isMissing(i)) {
-                temp += Math.pow(e.get(i), 2);
-                count++;
+        try {
+            double temp = 0;
+            int count = 0;
+            for (int i = 0; i < e.getLength(); i++) {
+                if (!e.isMissing(i)) {
+                    temp += Math.pow(e.get(i), 2);
+                    count++;
+                }
             }
+            return Math.sqrt(temp / count);
+        } catch (ArithmeticException ex) {
+            return Double.NaN;
         }
-        return Math.sqrt(temp / count);
     }
 
     public double calcRMSE_Benchmark() {
-        double temp = 0;
-        int count = 0;
-        for (int i = 0; i < eB.getLength(); i++) {
-            if (!eB.isMissing(i)) {
-                temp += Math.pow(eB.get(i), 2);
-                count++;
+        try {
+            double temp = 0;
+            int count = 0;
+            for (int i = 0; i < eB.getLength(); i++) {
+                if (!eB.isMissing(i)) {
+                    temp += Math.pow(eB.get(i), 2);
+                    count++;
+                }
             }
+            return Math.sqrt(temp / count);
+        } catch (ArithmeticException ex) {
+            return Double.NaN;
         }
-        return Math.sqrt(temp / count);
     }
 
     public double calcMAE() {
-        double temp = 0;
-        int count = 0;
-        for (int i = 0; i < e.getLength(); i++) {
-            if (!e.isMissing(i)) {
-                temp += Math.abs(e.get(i));
-                count++;
+        try {
+            double temp = 0;
+            int count = 0;
+            for (int i = 0; i < e.getLength(); i++) {
+                if (!e.isMissing(i)) {
+                    temp += Math.abs(e.get(i));
+                    count++;
+                }
             }
+            return temp / count;
+        } catch (ArithmeticException ex) {
+            return Double.NaN;
         }
-        return temp / count;
     }
 
     public double calcMAE_Benchmark() {
-        double temp = 0;
-        int count = 0;
-        for (int i = 0; i < eB.getLength(); i++) {
-            if (!eB.isMissing(i)) {
-                temp += Math.abs(eB.get(i));
-                count++;
+        try {
+            double temp = 0;
+            int count = 0;
+            for (int i = 0; i < eB.getLength(); i++) {
+                if (!eB.isMissing(i)) {
+                    temp += Math.abs(eB.get(i));
+                    count++;
+                }
             }
+            return temp / count;
+        } catch (ArithmeticException ex) {
+            return Double.NaN;
         }
-        return temp / count;
     }
 
     public double calcMdAE() {
@@ -97,51 +113,67 @@ public class ForecastEvaluationResults {
     //__________________________///////////////////////////////////////////////
     //__________________________///////////////////////////////////////////////
     public double calcRMSPE() {
-        double temp = 0;
-        int count = 0;
-        for (int i = 0; i < e.getLength(); i++) {
-            if (!e.isMissing(i)) {
-                temp += Math.pow(e.get(i) / y.get(i), 2);
-                count++;
+        try {
+            double temp = 0;
+            int count = 0;
+            for (int i = 0; i < e.getLength(); i++) {
+                if (!e.isMissing(i)) {
+                    temp += Math.pow(e.get(i) / y.get(i), 2);
+                    count++;
+                }
             }
+            return 100 * Math.sqrt(temp / count);
+        } catch (ArithmeticException ex) {
+            return Double.NaN;
         }
-        return 100 * Math.sqrt(temp / count);
     }
 
     public double calcRMSPE_Benchmark() {
-        double temp = 0;
-        int count = 0;
-        for (int i = 0; i < eB.getLength(); i++) {
-            if (!eB.isMissing(i)) {
-                temp += Math.pow(eB.get(i) / y.get(i), 2);
-                count++;
+        try {
+            double temp = 0;
+            int count = 0;
+            for (int i = 0; i < eB.getLength(); i++) {
+                if (!eB.isMissing(i)) {
+                    temp += Math.pow(eB.get(i) / y.get(i), 2);
+                    count++;
+                }
             }
+            return 100 * Math.sqrt(temp / count);
+        } catch (ArithmeticException ex) {
+            return Double.NaN;
         }
-        return 100 * Math.sqrt(temp / count);
     }
 
     public double calc_sMAPE() {
-        double temp = 0;
-        int count = 0;
-        for (int i = 0; i < e.getLength(); i++) {
-            if (!e.isMissing(i)) {
-                temp += Math.abs(Math.abs(e.get(i)) / (y.get(i) + f.get(i)));
-                count++;
+        try {
+            double temp = 0;
+            int count = 0;
+            for (int i = 0; i < e.getLength(); i++) {
+                if (!e.isMissing(i)) {
+                    temp += Math.abs(Math.abs(e.get(i)) / (y.get(i) + f.get(i)));
+                    count++;
+                }
             }
+            return 200 * temp / count;
+        } catch (ArithmeticException ex) {
+            return Double.NaN;
         }
-        return 200 * temp / count;
     }
 
     public double calc_sMAPE_Benchmark() {
-        double temp = 0;
-        int count = 0;
-        for (int i = 0; i < eB.getLength(); i++) {
-            if (!eB.isMissing(i)) {
-                temp += Math.abs(Math.abs(eB.get(i)) / (y.get(i) + f.get(i)));
-                count++;
+        try {
+            double temp = 0;
+            int count = 0;
+            for (int i = 0; i < eB.getLength(); i++) {
+                if (!eB.isMissing(i)) {
+                    temp += Math.abs(Math.abs(eB.get(i)) / (y.get(i) + f.get(i)));
+                    count++;
+                }
             }
+            return 200 * temp / count;
+        } catch (ArithmeticException ex) {
+            return Double.NaN;
         }
-        return 200 * temp / count;
     }
 
     public double calc_sMdAPE() {
@@ -168,95 +200,111 @@ public class ForecastEvaluationResults {
     //__________________________///////////////////////////////////////////////
     //__________________________///////////////////////////////////////////////
     public double calcRMSSE() {
-        // calculate scaling factor first
-        double scaling;
-        double cumsum = 0;
-        int count = 0;
-        for (int i = 1; i < y.getLength(); i++) {
-            if (!e.isMissing(i) && !y.isMissing(i) && !y.isMissing(i - 1)) {
-                cumsum += Math.abs(y.get(i) - y.get(i - 1));
-                count++;
+        try {
+            // calculate scaling factor first
+            double scaling;
+            double cumsum = 0;
+            int count = 0;
+            for (int i = 1; i < y.getLength(); i++) {
+                if (!e.isMissing(i) && !y.isMissing(i) && !y.isMissing(i - 1)) {
+                    cumsum += Math.abs(y.get(i) - y.get(i - 1));
+                    count++;
+                }
             }
-        }
-        scaling = cumsum / count;
-        double temp = 0;
-        count = 0;
-        for (int i = 0; i < e.getLength(); i++) {
-            if (!e.isMissing(i)) {
-                temp += Math.pow(e.get(i) / scaling, 2);
-                count++;
+            scaling = cumsum / count;
+            double temp = 0;
+            count = 0;
+            for (int i = 0; i < e.getLength(); i++) {
+                if (!e.isMissing(i)) {
+                    temp += Math.pow(e.get(i) / scaling, 2);
+                    count++;
+                }
             }
+            return Math.sqrt(temp / count);
+        } catch (ArithmeticException ex) {
+            return Double.NaN;
         }
-        return Math.sqrt(temp / count);
     }
 
     public double calcRMSSE_Benchmark() {
-        // calculate scaling factor first
-        double scaling;
-        double cumsum = 0;
-        int count = 0;
-        for (int i = 1; i < y.getLength(); i++) {
-            if (!eB.isMissing(i) && !y.isMissing(i) && !y.isMissing(i - 1)) {
-                cumsum += Math.abs(y.get(i) - y.get(i - 1));
-                count++;
+        try {
+            // calculate scaling factor first
+            double scaling;
+            double cumsum = 0;
+            int count = 0;
+            for (int i = 1; i < y.getLength(); i++) {
+                if (!eB.isMissing(i) && !y.isMissing(i) && !y.isMissing(i - 1)) {
+                    cumsum += Math.abs(y.get(i) - y.get(i - 1));
+                    count++;
+                }
             }
-        }
-        scaling = cumsum / count;
-        double temp = 0;
-        count = 0;
-        for (int i = 0; i < eB.getLength(); i++) {
-            if (!e.isMissing(i)) {
-                temp += Math.pow(eB.get(i) / scaling, 2);
-                count++;
+            scaling = cumsum / count;
+            double temp = 0;
+            count = 0;
+            for (int i = 0; i < eB.getLength(); i++) {
+                if (!e.isMissing(i)) {
+                    temp += Math.pow(eB.get(i) / scaling, 2);
+                    count++;
+                }
             }
+            return Math.sqrt(temp / count);
+        } catch (ArithmeticException ex) {
+            return Double.NaN;
         }
-        return Math.sqrt(temp / count);
     }
 
     public double calcMASE() {
-        // calculate scaling factor first
-        double scaling;
-        double cumsum = 0;
-        int count = 0;
-        for (int i = 1; i < y.getLength(); i++) {
-            if (!e.isMissing(i) && !y.isMissing(i) && !y.isMissing(i - 1)) {
-                cumsum += Math.abs(y.get(i) - y.get(i - 1));
-                count++;
+        try {
+            // calculate scaling factor first
+            double scaling;
+            double cumsum = 0;
+            int count = 0;
+            for (int i = 1; i < y.getLength(); i++) {
+                if (!e.isMissing(i) && !y.isMissing(i) && !y.isMissing(i - 1)) {
+                    cumsum += Math.abs(y.get(i) - y.get(i - 1));
+                    count++;
+                }
             }
-        }
-        scaling = cumsum / count;
-        double temp = 0;
-        count = 0;
-        for (int i = 0; i < e.getLength(); i++) {
-            if (!e.isMissing(i)) {
-                temp += Math.abs(Math.abs(e.get(i)) / scaling);
-                count++;
+            scaling = cumsum / count;
+            double temp = 0;
+            count = 0;
+            for (int i = 0; i < e.getLength(); i++) {
+                if (!e.isMissing(i)) {
+                    temp += Math.abs(Math.abs(e.get(i)) / scaling);
+                    count++;
+                }
             }
+            return temp / count;
+        } catch (ArithmeticException ex) {
+            return Double.NaN;
         }
-        return temp / count;
     }
 
     public double calcMASE_Benchmark() {
-        // calculate scaling factor first
-        double scaling;
-        double cumsum = 0;
-        int count = 0;
-        for (int i = 1; i < y.getLength(); i++) {
-            if (!eB.isMissing(i) && !y.isMissing(i) && !y.isMissing(i - 1)) {
-                cumsum += Math.abs(y.get(i) - y.get(i - 1));
-                count++;
+        try {
+            // calculate scaling factor first
+            double scaling;
+            double cumsum = 0;
+            int count = 0;
+            for (int i = 1; i < y.getLength(); i++) {
+                if (!eB.isMissing(i) && !y.isMissing(i) && !y.isMissing(i - 1)) {
+                    cumsum += Math.abs(y.get(i) - y.get(i - 1));
+                    count++;
+                }
             }
-        }
-        scaling = cumsum / count;
-        double temp = 0;
-        count = 0;
-        for (int i = 0; i < eB.getLength(); i++) {
-            if (!eB.isMissing(i)) {
-                temp += Math.abs(Math.abs(eB.get(i)) / scaling);
-                count++;
+            scaling = cumsum / count;
+            double temp = 0;
+            count = 0;
+            for (int i = 0; i < eB.getLength(); i++) {
+                if (!eB.isMissing(i)) {
+                    temp += Math.abs(Math.abs(eB.get(i)) / scaling);
+                    count++;
+                }
             }
+            return temp / count;
+        } catch (ArithmeticException ex) {
+            return Double.NaN;
         }
-        return temp / count;
     }
 
     public double calcMdASE() {
@@ -317,43 +365,83 @@ public class ForecastEvaluationResults {
                 count++;
             }
         }
-        return 100 * temp / count;
+        if (count == 0) {
+            return Double.NaN;
+        } else {
+            return 100 * temp / count;
+        }
     }
 
     public double calcRelRMSE() {
-        return calcRMSE() / calcRMSE_Benchmark();
+        try {
+            return calcRMSE() / calcRMSE_Benchmark();
+        } catch (ArithmeticException ex) {
+            return Double.NaN;
+        }
     }
 
     public double calcRelMAE() {
-        return calcMAE() / calcMAE_Benchmark();
+        try {
+            return calcMAE() / calcMAE_Benchmark();
+        } catch (ArithmeticException ex) {
+            return Double.NaN;
+        }
     }
 
     public double calcRelMdAE() {
-        return calcMdAE() / calcMdAE_Benchmark();
+        try {
+            return calcMdAE() / calcMdAE_Benchmark();
+        } catch (ArithmeticException ex) {
+            return Double.NaN;
+        }
     }
 
     public double calcRelRMSPE() {
-        return calcRMSPE() / calcRMSPE_Benchmark();
+        try {
+            return calcRMSPE() / calcRMSPE_Benchmark();
+        } catch (ArithmeticException ex) {
+            return Double.NaN;
+        }
     }
 
     public double calcRel_sMAPE() {
-        return calc_sMAPE() / calc_sMAPE_Benchmark();
+        try {
+            return calc_sMAPE() / calc_sMAPE_Benchmark();
+        } catch (ArithmeticException ex) {
+            return Double.NaN;
+        }
     }
 
     public double calcRel_sMdAPE() {
-        return calc_sMdAPE() / calc_sMdAPE_Benchmark();
+        try {
+            return calc_sMdAPE() / calc_sMdAPE_Benchmark();
+        } catch (ArithmeticException ex) {
+            return Double.NaN;
+        }
     }
 
     public double calcRelRMSSE() {
-        return calcRMSSE() / calcRMSSE_Benchmark();
+        try {
+            return calcRMSSE() / calcRMSSE_Benchmark();
+        } catch (ArithmeticException ex) {
+            return Double.NaN;
+        }
     }
 
     public double calcRelMASE() {
-        return calcMASE() / calcMASE_Benchmark();
+        try {
+            return calcMASE() / calcMASE_Benchmark();
+        } catch (ArithmeticException ex) {
+            return Double.NaN;
+        }
     }
 
     public double calcRelMdASE() {
-        return calcMdASE() / calcMdASE_Benchmark();
+        try {
+            return calcMdASE() / calcMdASE_Benchmark();
+        } catch (ArithmeticException ex) {
+            return Double.NaN;
+        }
     }
 
 // DIEBOLD-MARIANO AND ENCOMPASING TESTS (I will put them in a different class) !!!!!!!!!!!!!!!!!!!!!!!!
@@ -403,18 +491,30 @@ public class ForecastEvaluationResults {
         }
 
         public double getDM_e() {
-            DM_e = get_d_eBar() / calcDM(get_d_e());
-            return DM_e;
+            try {
+                DM_e = get_d_eBar() / calcDM(get_d_e());
+                return DM_e;
+            } catch (ArithmeticException ex) {
+                return Double.NaN;
+            }
         }
 
         public double getDM() {
-            DM = get_dBar() / calcDM(get_d());
-            return DM;
+            try {
+                DM = get_dBar() / calcDM(get_d());
+                return DM;
+            } catch (ArithmeticException ex) {
+                return Double.NaN;
+            }
         }
 
         public double getDMabs() {
-            DMabs = get_dAbsBar() / calcDM(get_dAbs());
-            return DMabs;
+            try {
+                DMabs = get_dAbsBar() / calcDM(get_dAbs());
+                return DMabs;
+            } catch (ArithmeticException ex) {
+                return Double.NaN;
+            }
         }
 
         public double calcDM(TsData lossDiff) {
@@ -449,7 +549,7 @@ public class ForecastEvaluationResults {
                     T++;
                     gammaw += gamma[count] * w[count]; // sum w*gamma
                 }
-                
+
                 count++;
             }
 
