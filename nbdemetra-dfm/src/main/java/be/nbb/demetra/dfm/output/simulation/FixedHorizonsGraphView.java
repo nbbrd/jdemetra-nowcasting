@@ -251,7 +251,7 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
 
         TsDataCollector coll = new TsDataCollector();
         for (int i = 0; i < periods.size(); i++) {
-            if (trueValues.get(i) != null) {
+            if (trueValues.get(i) != null && trueValues.get(i) != Double.NaN) {
                 coll.addObservation(periods.get(i).middle(), trueValues.get(i));
             } else {
                 coll.addMissingValue(periods.get(i).middle());
@@ -267,7 +267,7 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
             if (filteredHorizons.contains(horizons.get(i))) {
                 coll.clear();
                 for (int j = 0; j < periods.size(); j++) {
-                    if (fcts[i][j] != null) {
+                    if (fcts[i][j] != null && fcts[i][j] != Double.NaN) {
                         coll.addObservation(periods.get(j).middle(), fcts[i][j]);
                     } else {
                         coll.addMissingValue(periods.get(j).middle());

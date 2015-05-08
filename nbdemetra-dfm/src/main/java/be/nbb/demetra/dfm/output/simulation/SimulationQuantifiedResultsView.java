@@ -49,13 +49,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.tree.TreeModel;
-import be.nbb.demetra.dfm.output.simulation.utils.FilterHorizonsPanel;
 import org.netbeans.swing.outline.DefaultOutlineModel;
 import org.netbeans.swing.outline.OutlineModel;
 
@@ -69,9 +71,17 @@ public class SimulationQuantifiedResultsView extends JPanel {
     public static final String D_M_TEST = "Squared loss";
     public static final String D_M_ABS_TEST = "Absolute loss";
     public static final String ENCOMPASING_TEST = "Encompasing Test";
-
-    private final XOutline outline;
+    
+    // Top bar
     private final JComboBox comboBox;
+    private final JPanel comboBoxPanel;
+    private final JLabel variableLabel;
+    private final JComboBox typeComboBox;
+    private final JLabel typeLabel;
+
+    // Center component
+    private final XOutline outline;
+    
     private final DemetraUI demetraUI;
     private Formatters.Formatter<Number> formatter;
     private SwingColorSchemeSupport defaultColorSchemeSupport;
@@ -81,15 +91,27 @@ public class SimulationQuantifiedResultsView extends JPanel {
 
     private List<CustomNode> nodes;
 
-    private FilterHorizonsPanel filterPanel;
-
     public SimulationQuantifiedResultsView(DfmDocument doc) {
         setLayout(new BorderLayout());
 
         this.document = doc;
-
-        filterPanel = new FilterHorizonsPanel();
-
+        
+        // Top panel
+        comboBoxPanel = new JPanel();
+        comboBoxPanel.setLayout(new BoxLayout(comboBoxPanel, BoxLayout.LINE_AXIS));
+        variableLabel = new JLabel("Variable :");
+        variableLabel.setBorder(BorderFactory.createEmptyBorder(1, 5, 1, 10));
+        comboBoxPanel.add(variableLabel);
+        
+        comboBox = new JComboBox(); 
+        comboBoxPanel.add(comboBox);
+        
+        typeLabel = new JLabel("Type :");
+        typeLabel.setBorder(BorderFactory.createEmptyBorder(1, 5, 1, 10));
+        comboBoxPanel.add(typeLabel);
+        typeComboBox = new JComboBox(new DefaultComboBoxModel(new String[] { "Level", "Year On Year", "Quarter On Quarter" }));
+        comboBoxPanel.add(typeComboBox);
+        
         demetraUI = DemetraUI.getDefault();
         formatter = demetraUI.getDataFormat().numberFormatter();
         defaultColorSchemeSupport = new SwingColorSchemeSupport() {
@@ -104,8 +126,13 @@ public class SimulationQuantifiedResultsView extends JPanel {
         outline = new XOutline();
         outline.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
-        comboBox = new JComboBox();
-
+        typeComboBox.addItemListener(new ItemListener() {
+            @Override
+            public void itemStateChanged(ItemEvent e) {
+                updateOutlineModel();
+            }
+        });
+        
         comboBox.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
@@ -145,7 +172,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
             }
         });
 
-        add(comboBox, BorderLayout.NORTH);
+        add(comboBoxPanel, BorderLayout.NORTH);
         add(p, BorderLayout.CENTER);
     }
 
@@ -190,7 +217,10 @@ public class SimulationQuantifiedResultsView extends JPanel {
     }
 
     private void updateOutlineModel() {
-        if (document != null && dfmSimulation.isPresent()) {
+        if (document != null 
+                && dfmSimulation.isPresent()
+                && comboBox.getSelectedIndex() != -1
+                && typeComboBox.getSelectedIndex() != -1) {
             calculateData();
             refreshModel();
         }
@@ -224,18 +254,17 @@ public class SimulationQuantifiedResultsView extends JPanel {
     private void calculateData() {
         nodes = new ArrayList<>();
         int selectedIndex = comboBox.getSelectedIndex();
+        int type = typeComboBox.getSelectedIndex();
 
         DfmSimulationResults dfm = dfmSimulation.get().getDfmResults().get(selectedIndex);
         DfmSimulationResults arima = dfmSimulation.get().getArimaResults().get(selectedIndex);
         periods = dfm.getEvaluationSample();
         horizons = dfm.getForecastHorizons();
 
-        filterPanel.setSelectedElements(horizons);
-
         createTitles();
-        List<Double> trueValues = dfm.getTrueValues();
-        Double[][] dfmFcts = dfm.getForecastsArray();
-        Double[][] arimaFcts = arima.getForecastsArray();
+        List<Double> trueValues = type == 1 ? dfm.getTrueValuesYoY() : type == 2 ? dfm.getTrueValuesQoQ() : dfm.getTrueValues();
+        Double[][] dfmFcts = type == 1 ? dfm.getForecastsArrayYoY() : type == 2 ? dfm.getForecastsArrayQoQ() : dfm.getForecastsArray();
+        Double[][] arimaFcts = type == 1 ? arima.getForecastsArrayYoY() : type == 2 ? arima.getForecastsArrayQoQ() : arima.getForecastsArray();
         Map<Integer, TsData> dfmTs = new HashMap<>();
         Map<Integer, TsData> arimaTs = new HashMap<>();
 

@@ -16,9 +16,6 @@
  */
 package be.nbb.demetra.dfm.output.news.outline;
 
-import be.nbb.demetra.dfm.output.news.outline.TreeNode.CustomNode;
-import be.nbb.demetra.dfm.output.news.outline.TreeNode.RootNode;
-import be.nbb.demetra.dfm.output.news.outline.TreeNode.VariableNode;
 import java.util.List;
 import javax.swing.event.TreeModelListener;
 import javax.swing.tree.TreeModel;
@@ -30,10 +27,10 @@ import javax.swing.tree.TreePath;
  */
 public class NewsTreeModel implements TreeModel {
 
-    private final RootNode root;
+    private final CustomNode root;
 
-    public NewsTreeModel(List<VariableNode> nodes) {
-        this.root = new RootNode(nodes);
+    public NewsTreeModel(List<CustomNode> nodes) {
+        this.root = new CustomNode(nodes);
     }
 
     @Override
@@ -46,13 +43,13 @@ public class NewsTreeModel implements TreeModel {
         return getChildren(parent).get(index);
     }
 
-    protected List<VariableNode> getChildren(Object node) {
+    protected List<CustomNode> getChildren(Object node) {
         return ((CustomNode) node).getChildren();
     }
 
     @Override
     public int getChildCount(Object parent) {
-        List<VariableNode> children = getChildren(parent);
+        List<CustomNode> children = getChildren(parent);
         return children == null ? 0 : children.size();
     }
 
