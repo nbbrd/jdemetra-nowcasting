@@ -36,6 +36,7 @@ import ec.tstoolkit.dfm.MeasurementSpec;
 import ec.tstoolkit.information.InformationSet;
 import ec.tstoolkit.modelling.arima.tramo.TramoSpecification;
 import ec.tstoolkit.timeseries.Day;
+import ec.tstoolkit.timeseries.TsException;
 import ec.tstoolkit.timeseries.forecasts.ArimaForecaster;
 import ec.tstoolkit.timeseries.information.TsInformationSet;
 import ec.tstoolkit.timeseries.simplets.TsData;
@@ -379,31 +380,39 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
                     Double current = table.getData(i, j);
 
                     Double growth;
-                    // /!\
-                    TsDataTableInfo infoLastYear = table.getDataInfo(i - frequency, j);    
-                    if (infoLastYear == TsDataTableInfo.Valid) {
-                        Double lastYear = table.getData(i - frequency, j); // /!\
-                        if (lastYear == 0) {
-                            growth = Double.NaN;
+
+                    try {
+                        TsDataTableInfo infoLastYear = table.getDataInfo(i - frequency, j);
+                        if (infoLastYear == TsDataTableInfo.Valid) {
+                            Double lastYear = table.getData(i - frequency, j); // /!\
+                            if (lastYear == 0) {
+                                growth = Double.NaN;
+                            } else {
+                                growth = ((current - lastYear) / lastYear) * 100.00;
+                            }
                         } else {
-                            growth = ((current - lastYear) / lastYear) * 100.00;
+                            growth = Double.NaN;
                         }
-                    } else {
+                    } catch (TsException ex) {
                         growth = Double.NaN;
                     }
 
                     map.get(diff)[i - i0] = current;
                     mapYoY.get(diff)[i - i0] = growth;
 
-                    TsDataTableInfo infoLastQuarter = table.getDataInfo(i - (frequency / 4), j); // /!\
-                    if (infoLastQuarter == TsDataTableInfo.Valid) {
-                        Double lastQuarter = table.getData(i - (frequency / 4), j); // /!\
-                        if (lastQuarter == 0) {
-                            growth = Double.NaN;
+                    try {
+                        TsDataTableInfo infoLastQuarter = table.getDataInfo(i - (frequency / 4), j); // /!\
+                        if (infoLastQuarter == TsDataTableInfo.Valid) {
+                            Double lastQuarter = table.getData(i - (frequency / 4), j); // /!\
+                            if (lastQuarter == 0) {
+                                growth = Double.NaN;
+                            } else {
+                                growth = ((current - lastQuarter) / lastQuarter) * 100;
+                            }
                         } else {
-                            growth = ((current - lastQuarter) / lastQuarter) * 100;
+                            growth = Double.NaN;
                         }
-                    } else {
+                    } catch (TsException ex) {
                         growth = Double.NaN;
                     }
 
@@ -414,30 +423,38 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
                         Double current = table.getData(i, table.getSeriesCount() - 1);
 
                         Double growth;
-                        TsDataTableInfo infoLastYear = table.getDataInfo(i - frequency, table.getSeriesCount() - 1);
-                        if (infoLastYear == TsDataTableInfo.Valid) {
-                            Double lastYear = table.getData(i - frequency, table.getSeriesCount() - 1);
-                            if (lastYear == 0) {
-                                growth = Double.NaN;
+                        try {
+                            TsDataTableInfo infoLastYear = table.getDataInfo(i - frequency, table.getSeriesCount() - 1);
+                            if (infoLastYear == TsDataTableInfo.Valid) {
+                                Double lastYear = table.getData(i - frequency, table.getSeriesCount() - 1);
+                                if (lastYear == 0) {
+                                    growth = Double.NaN;
+                                } else {
+                                    growth = ((current - lastYear) / lastYear) * 100.00;
+                                }
                             } else {
-                                growth = ((current - lastYear) / lastYear) * 100.00;
+                                growth = Double.NaN;
                             }
-                        } else {
+                        } catch (TsException ex) {
                             growth = Double.NaN;
                         }
 
                         map.get(diff)[i - i0] = current;
                         mapYoY.get(diff)[i - i0] = growth;
 
-                        TsDataTableInfo infoLastQuarter = table.getDataInfo(i - (frequency / 4), table.getSeriesCount() - 1);
-                        if (infoLastQuarter == TsDataTableInfo.Valid) {
-                            Double lastQuarter = table.getData(i - (frequency / 4), table.getSeriesCount() - 1);
-                            if (lastQuarter == 0) {
-                                growth = Double.NaN;
+                        try {
+                            TsDataTableInfo infoLastQuarter = table.getDataInfo(i - (frequency / 4), table.getSeriesCount() - 1);
+                            if (infoLastQuarter == TsDataTableInfo.Valid) {
+                                Double lastQuarter = table.getData(i - (frequency / 4), table.getSeriesCount() - 1);
+                                if (lastQuarter == 0) {
+                                    growth = Double.NaN;
+                                } else {
+                                    growth = ((current - lastQuarter) / lastQuarter) * 100;
+                                }
                             } else {
-                                growth = ((current - lastQuarter) / lastQuarter) * 100;
+                                growth = Double.NaN;
                             }
-                        } else {
+                        } catch (TsException ex) {
                             growth = Double.NaN;
                         }
 
@@ -514,25 +531,33 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
             if (dataInfo == TsDataTableInfo.Valid) {
                 Double val = table.getData(i, table.getSeriesCount() - 1);
 
-                TsDataTableInfo infoLastYear = table.getDataInfo(i - frequency, table.getSeriesCount() - 1);
-                if (infoLastYear == TsDataTableInfo.Valid) {
-                    Double valLastYear = table.getData(i - frequency, table.getSeriesCount() - 1);
-                    trueValuesYoY.add(valLastYear == 0 ? Double.NaN : ((val - valLastYear) / valLastYear) * 100.0);
-                } else {
+                try {
+                    TsDataTableInfo infoLastYear = table.getDataInfo(i - frequency, table.getSeriesCount() - 1);
+                    if (infoLastYear == TsDataTableInfo.Valid) {
+                        Double valLastYear = table.getData(i - frequency, table.getSeriesCount() - 1);
+                        trueValuesYoY.add(valLastYear == 0 ? Double.NaN : ((val - valLastYear) / valLastYear) * 100.0);
+                    } else {
+                        trueValuesYoY.add(Double.NaN);
+                    }
+                } catch (TsException ex) {
                     trueValuesYoY.add(Double.NaN);
                 }
-                TsDataTableInfo infoLastQuarter = table.getDataInfo(i - (frequency / 4), table.getSeriesCount() - 1);
-                if (infoLastQuarter == TsDataTableInfo.Valid) {
-                    Double valLastQuarter = table.getData(i - (frequency / 4), table.getSeriesCount() - 1);
-                    trueValuesQoQ.add(valLastQuarter == 0 ? Double.NaN : ((val - valLastQuarter) / valLastQuarter) * 100.0);
-                } else {
+                
+                try {
+                    TsDataTableInfo infoLastQuarter = table.getDataInfo(i - (frequency / 4), table.getSeriesCount() - 1);
+                    if (infoLastQuarter == TsDataTableInfo.Valid) {
+                        Double valLastQuarter = table.getData(i - (frequency / 4), table.getSeriesCount() - 1);
+                        trueValuesQoQ.add(valLastQuarter == 0 ? Double.NaN : ((val - valLastQuarter) / valLastQuarter) * 100.0);
+                    } else {
+                        trueValuesQoQ.add(Double.NaN);
+                    }
+                } catch (TsException ex) {
                     trueValuesQoQ.add(Double.NaN);
                 }
-                
+
                 writer.append('\t').append(fmt.format(val));
                 trueValues.add(val);
-                
-                
+
             } else {
                 writer.append('\t');
                 trueValues.add(null);
