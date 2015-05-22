@@ -512,7 +512,7 @@ final class ShocksDecompositionView extends javax.swing.JPanel {
         public void execute(ShocksDecompositionView c) throws Exception {
             Optional<DfmResults> dfmResults = c.getDfmResults();
             if (dfmResults.isPresent()) {
-                Transferable t = TssTransferSupport.getInstance().fromTsCollection(c.toCollection(dfmResults.get()));
+                Transferable t = TssTransferSupport.getDefault().fromTsCollection(c.toCollection(dfmResults.get()));
                 Toolkit.getDefaultToolkit().getSystemClipboard().setContents(t, null);
             }
         }

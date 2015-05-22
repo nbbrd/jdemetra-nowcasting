@@ -33,9 +33,10 @@ import ec.tstoolkit.timeseries.simplets.TsData;
  * @author Jean Palate
  */
 public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> implements Cloneable {
-    
+
+    //public static final String SIMULATION = "simulationResults";
     private DfmSimulation simulation_;
-    
+
     public DfmDocument() {
         super(new DfmProcessingFactory(), null);
         setSpecification(new DfmSpec());
@@ -45,11 +46,11 @@ public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> impl
         super(new DfmProcessingFactory(), context);
         setSpecification(new DfmSpec());
     }
-    
+
     public DfmSimulation getSimulationResults() {
         return simulation_;
     }
-    
+
     public void setSimulation(DfmSimulation simulation) {
         this.simulation_ = simulation;
     }
@@ -158,4 +159,40 @@ public class DfmDocument extends MultiTsDocument<DfmSpec, CompositeResults> impl
             setLocked(true);
         }
     }
+
+//    @Override
+//    public boolean read(InformationSet info) {
+//        if (!super.read(info)) {
+//            return false;
+//        } else {
+//            InformationSet subset = info.getSubSet(SIMULATION);
+//            subset.get
+//            
+//            return true;
+//        }
+//    }
+
+//    @Override
+//    public InformationSet write(boolean verbose) {
+//        InformationSet set = super.write(verbose);
+//
+//        if (simulation_ != null) {
+//            InformationSet simul = set.subSet(SIMULATION);
+//            if (simulation_.getArimaResults() != null && !simulation_.getArimaResults().isEmpty()) {
+//                int i = 0;
+//                for (DfmSimulationResults r : simulation_.getArimaResults()) {
+//                    simul.add("arima-" + i++, r.write(verbose));
+//                }
+//            }
+//            
+//            if (simulation_.getDfmResults() != null && !simulation_.getDfmResults().isEmpty()) {
+//                int i = 0;
+//                for (DfmSimulationResults r : simulation_.getDfmResults()) {
+//                    simul.add("arima-" + i++, r.write(verbose));
+//                }
+//            }
+//        }
+//        return set;
+//    }
+
 }

@@ -16,6 +16,7 @@
  */
 package be.nbb.demetra.dfm.output.simulation;
 
+import be.nbb.demetra.dfm.output.simulation.utils.FilterEvaluationSamplePanel;
 import com.google.common.base.Optional;
 import ec.nbdemetra.ui.DemetraUI;
 import ec.tss.dfm.DfmDocument;
@@ -33,6 +34,7 @@ import ec.ui.chart.TsCharts;
 import ec.ui.interfaces.ITsChart.LinesThickness;
 import ec.ui.view.JChartPanel;
 import ec.util.chart.ColorScheme;
+import ec.util.chart.ColorScheme.KnownColor;
 import ec.util.chart.swing.Charts;
 import ec.util.chart.swing.SwingColorSchemeSupport;
 import java.awt.BorderLayout;
@@ -54,6 +56,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.JOptionPane;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartMouseEvent;
 import org.jfree.chart.ChartMouseListener;
@@ -90,13 +93,15 @@ public class RMSEGraphView extends javax.swing.JPanel {
 
     private DfmDocument document;
 
+    private FilterEvaluationSamplePanel filterPanel;
+
     /**
      * Creates new form FixedHorizonsGraphView
      */
     public RMSEGraphView(DfmDocument doc) {
         initComponents();
         this.document = doc;
-        
+
         revealObs = new RevealObs();
 
         demetraUI = DemetraUI.getDefault();
@@ -122,6 +127,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
         comboBox.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
+                filterPanel = null;
                 updateChart();
             }
         });
@@ -140,6 +146,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
 
         updateComboBox();
         updateChart();
+        onColorSchemeChanged();
 
         demetraUI.addPropertyChangeListener(new PropertyChangeListener() {
             @Override
@@ -157,6 +164,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
 
         chartPanel.addChartMouseListener(new HighlightChartMouseListener2());
         chartPanel.addKeyListener(revealObs);
+        chartPanel.getChart().getPlot().setNoDataMessage("Select the evaluation sample by clicking the toolbar button.");
 
         add(chartPanel, BorderLayout.CENTER);
     }
@@ -204,6 +212,15 @@ public class RMSEGraphView extends javax.swing.JPanel {
                 return demetraUI.getColorScheme();
             }
         };
+        
+        XYPlot plot = chartPanel.getChart().getXYPlot();
+        plot.setBackgroundPaint(defaultColorSchemeSupport.getPlotColor());
+        plot.setDomainGridlinePaint(defaultColorSchemeSupport.getGridColor());
+        plot.setRangeGridlinePaint(defaultColorSchemeSupport.getGridColor());
+        chartPanel.getChart().setBackgroundPaint(defaultColorSchemeSupport.getBackColor());
+        
+        arimaRenderer.setBasePaint(defaultColorSchemeSupport.getLineColor(KnownColor.RED));
+        dfmRenderer.setBasePaint(defaultColorSchemeSupport.getLineColor(KnownColor.BLUE));
         //chart.setColorSchemeSupport(defaultColorSchemeSupport);
     }
 
@@ -230,6 +247,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
     }
 
     private void updateComboBox() {
+        filterPanel = null;
         if (dfmSimulation.isPresent()) {
             comboBox.setModel(toComboBoxModel(document.getDfmResults().getDescriptions()));
             comboBox.setEnabled(true);
@@ -260,6 +278,10 @@ public class RMSEGraphView extends javax.swing.JPanel {
         horizons = dfm.getForecastHorizons();
         periods = dfm.getEvaluationSample();
 
+        if (filterPanel == null) {
+            filterPanel = new FilterEvaluationSamplePanel(periods);
+        }
+
         Double[][] dfmFcts = dfm.getForecastsArray();
         Double[][] arimaFcts = arima.getForecastsArray();
 
@@ -281,15 +303,20 @@ public class RMSEGraphView extends javax.swing.JPanel {
         fillMap(dfmTs, dfmFcts, freq);
         fillMap(arimaTs, arimaFcts, freq);
 
-        double[] xvalues = new double[horizons.size()];
-        double[] dfmValues = new double[horizons.size()];
-        double[] arimaValues = new double[horizons.size()];
+        int size = dfmTs.size();
+        double[] xvalues = new double[size];
+        double[] dfmValues = new double[size];
+        double[] arimaValues = new double[size];
 
-        for (int i = 0; i < horizons.size(); i++) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizons.get(i)), arimaTs.get(horizons.get(i)), trueTsData);
-            dfmValues[i] = rslt.calcRMSE();
-            arimaValues[i] = rslt.calcRMSE_Benchmark();
-            xvalues[i] = horizons.get(i);
+        int index = 0;
+        for (Integer horizon : horizons) {
+            if (dfmTs.containsKey(horizon)) {
+                ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon), arimaTs.get(horizon), trueTsData);
+                dfmValues[index] = rslt.calcRMSE();
+                arimaValues[index] = rslt.calcRMSE_Benchmark();
+                xvalues[index] = horizon;
+                index++;
+            }
         }
         dfmDataset.addSeries("RMSE (simulation based rec. est.)", new double[][]{xvalues, dfmValues});
         arimaDataset.addSeries("RMSE (Arima recursive est.)", new double[][]{xvalues, arimaValues});
@@ -298,6 +325,9 @@ public class RMSEGraphView extends javax.swing.JPanel {
 
         plot.setDataset(DFM_INDEX, dfmDataset);
         plot.setDataset(ARIMA_INDEX, arimaDataset);
+
+        chartPanel.getChart().setTitle("Evaluation sample from " + periods.get(filterPanel.getStart()).toString()
+                + " to " + periods.get(filterPanel.getEnd()).toString());
     }
 
     private void fillMap(Map<Integer, TsData> map, Double[][] fcts, TsFrequency freq) {
@@ -311,7 +341,13 @@ public class RMSEGraphView extends javax.swing.JPanel {
                     coll.addMissingValue(periods.get(j).middle());
                 }
             }
-            map.put(horizons.get(i), coll.make(freq, TsAggregationType.None));
+            TsData ts = coll.make(freq, TsAggregationType.None);
+            ts = ts.cleanExtremities();
+
+            if (ts.getStart().isNotAfter(periods.get(filterPanel.getStart()))
+                    && ts.getEnd().isNotBefore(periods.get(filterPanel.getEnd()))) {
+                map.put(horizons.get(i), coll.make(freq, TsAggregationType.None));
+            }
         }
     }
 
@@ -351,6 +387,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
         comboBoxPanel = new javax.swing.JPanel();
         comboBox = new javax.swing.JComboBox();
         variableLabel = new javax.swing.JLabel();
+        filterButton = new javax.swing.JButton();
 
         setLayout(new java.awt.BorderLayout());
 
@@ -362,13 +399,29 @@ public class RMSEGraphView extends javax.swing.JPanel {
         variableLabel.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 5, 1, 10));
         comboBoxPanel.add(variableLabel, java.awt.BorderLayout.WEST);
 
+        org.openide.awt.Mnemonics.setLocalizedText(filterButton, org.openide.util.NbBundle.getMessage(RMSEGraphView.class, "RMSEGraphView.filterButton.text")); // NOI18N
+        filterButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                filterButtonActionPerformed(evt);
+            }
+        });
+        comboBoxPanel.add(filterButton, java.awt.BorderLayout.LINE_END);
+
         add(comboBoxPanel, java.awt.BorderLayout.NORTH);
     }// </editor-fold>//GEN-END:initComponents
+
+    private void filterButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_filterButtonActionPerformed
+        int r = JOptionPane.showConfirmDialog(chartPanel, filterPanel, "Select evaluation sample", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (r == JOptionPane.OK_OPTION) {
+            updateChart();
+        }
+    }//GEN-LAST:event_filterButtonActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JComboBox comboBox;
     private javax.swing.JPanel comboBoxPanel;
+    private javax.swing.JButton filterButton;
     private javax.swing.JLabel variableLabel;
     // End of variables declaration//GEN-END:variables
 
@@ -451,7 +504,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
             String name = dataset.getSeriesKey(series).toString();
             double x = dataset.getXValue(series, item);
             double y = dataset.getYValue(series, item);
-            String label = name + "\nForecast horizon : " + (int)x + "\nValue : ";
+            String label = name + "\nForecast horizon : " + (int) x + "\nValue : ";
             label += y;
             return label;
         }

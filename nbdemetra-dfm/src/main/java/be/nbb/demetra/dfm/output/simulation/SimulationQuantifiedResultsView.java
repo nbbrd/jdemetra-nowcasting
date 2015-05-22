@@ -23,6 +23,7 @@ import be.nbb.demetra.dfm.output.news.outline.XOutline.Title;
 import be.nbb.demetra.dfm.output.simulation.outline.SimulationNode;
 import be.nbb.demetra.dfm.output.simulation.outline.SimulationOutlineCellRenderer;
 import be.nbb.demetra.dfm.output.simulation.outline.SimulationRowModel;
+import be.nbb.demetra.dfm.output.simulation.utils.FilterEvaluationSamplePanel;
 import com.google.common.base.Optional;
 import ec.nbdemetra.ui.DemetraUI;
 import ec.tss.dfm.DfmDocument;
@@ -41,19 +42,23 @@ import ec.util.chart.ColorScheme;
 import ec.util.chart.swing.SwingColorSchemeSupport;
 import ec.util.various.swing.ModernUI;
 import java.awt.BorderLayout;
+import java.awt.event.ActionEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -71,17 +76,18 @@ public class SimulationQuantifiedResultsView extends JPanel {
     public static final String D_M_TEST = "Squared loss";
     public static final String D_M_ABS_TEST = "Absolute loss";
     public static final String ENCOMPASING_TEST = "Encompasing Test";
-    
+
     // Top bar
     private final JComboBox comboBox;
     private final JPanel comboBoxPanel;
     private final JLabel variableLabel;
     private final JComboBox typeComboBox;
     private final JLabel typeLabel;
+    private final JButton filterButton;
 
     // Center component
     private final XOutline outline;
-    
+
     private final DemetraUI demetraUI;
     private Formatters.Formatter<Number> formatter;
     private SwingColorSchemeSupport defaultColorSchemeSupport;
@@ -90,28 +96,39 @@ public class SimulationQuantifiedResultsView extends JPanel {
     private Optional<DfmSimulation> dfmSimulation;
 
     private List<CustomNode> nodes;
+    private FilterEvaluationSamplePanel filterPanel;
 
     public SimulationQuantifiedResultsView(DfmDocument doc) {
         setLayout(new BorderLayout());
 
         this.document = doc;
-        
+
         // Top panel
         comboBoxPanel = new JPanel();
         comboBoxPanel.setLayout(new BoxLayout(comboBoxPanel, BoxLayout.LINE_AXIS));
         variableLabel = new JLabel("Variable :");
         variableLabel.setBorder(BorderFactory.createEmptyBorder(1, 5, 1, 10));
         comboBoxPanel.add(variableLabel);
-        
-        comboBox = new JComboBox(); 
+
+        comboBox = new JComboBox();
         comboBoxPanel.add(comboBox);
-        
+
         typeLabel = new JLabel("Type :");
         typeLabel.setBorder(BorderFactory.createEmptyBorder(1, 5, 1, 10));
         comboBoxPanel.add(typeLabel);
-        typeComboBox = new JComboBox(new DefaultComboBoxModel(new String[] { "Level", "Year On Year", "Quarter On Quarter" }));
+        typeComboBox = new JComboBox(new DefaultComboBoxModel(new String[]{"Level", "Year On Year", "Quarter On Quarter"}));
         comboBoxPanel.add(typeComboBox);
-        
+
+        filterButton = new JButton("Filter evaluation sample");
+        typeLabel.setBorder(BorderFactory.createEmptyBorder(1, 5, 0, 0));
+        filterButton.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent evt) {
+                filterButtonActionPerformed(evt);
+            }
+        });
+        comboBoxPanel.add(filterButton);
+
         demetraUI = DemetraUI.getDefault();
         formatter = demetraUI.getDataFormat().numberFormatter();
         defaultColorSchemeSupport = new SwingColorSchemeSupport() {
@@ -129,13 +146,15 @@ public class SimulationQuantifiedResultsView extends JPanel {
         typeComboBox.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
+                filterPanel = null;
                 updateOutlineModel();
             }
         });
-        
+
         comboBox.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
+                filterPanel = null;
                 updateOutlineModel();
             }
         });
@@ -202,6 +221,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
     //</editor-fold>
 
     private void updateComboBox() {
+        filterPanel = null;
         if (dfmSimulation.isPresent()) {
             comboBox.setModel(toComboBoxModel(document.getDfmResults().getDescriptions()));
             comboBox.setEnabled(true);
@@ -217,12 +237,19 @@ public class SimulationQuantifiedResultsView extends JPanel {
     }
 
     private void updateOutlineModel() {
-        if (document != null 
+        if (document != null
                 && dfmSimulation.isPresent()
                 && comboBox.getSelectedIndex() != -1
                 && typeComboBox.getSelectedIndex() != -1) {
             calculateData();
             refreshModel();
+        }
+    }
+
+    private void filterButtonActionPerformed(ActionEvent evt) {
+        int r = JOptionPane.showConfirmDialog(outline, filterPanel, "Select evaluation sample", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (r == JOptionPane.OK_OPTION) {
+            updateOutlineModel();
         }
     }
 
@@ -243,10 +270,10 @@ public class SimulationQuantifiedResultsView extends JPanel {
     private List<Integer> horizons;
     private List<Title> titles;
 
-    private void createTitles() {
+    private void createTitles(List<Integer> data) {
         titles = new ArrayList<>();
-        for (int i = 0; i < horizons.size(); i++) {
-            titles.add(new Title(String.valueOf(horizons.get(i))));
+        for (Integer i : data) {
+            titles.add(new Title(String.valueOf(i)));
         }
         outline.setTitles(titles);
     }
@@ -261,7 +288,10 @@ public class SimulationQuantifiedResultsView extends JPanel {
         periods = dfm.getEvaluationSample();
         horizons = dfm.getForecastHorizons();
 
-        createTitles();
+        if (filterPanel == null) {
+            filterPanel = new FilterEvaluationSamplePanel(periods);
+        }
+
         List<Double> trueValues = type == 1 ? dfm.getTrueValuesYoY() : type == 2 ? dfm.getTrueValuesQoQ() : dfm.getTrueValues();
         Double[][] dfmFcts = type == 1 ? dfm.getForecastsArrayYoY() : type == 2 ? dfm.getForecastsArrayQoQ() : dfm.getForecastsArray();
         Double[][] arimaFcts = type == 1 ? arima.getForecastsArrayYoY() : type == 2 ? arima.getForecastsArrayQoQ() : arima.getForecastsArray();
@@ -282,6 +312,12 @@ public class SimulationQuantifiedResultsView extends JPanel {
 
         fillMap(dfmTs, dfmFcts, freq);
         fillMap(arimaTs, arimaFcts, freq);
+        
+        List<Integer> filteredHorizons = new ArrayList<>();
+        filteredHorizons.addAll(dfmTs.keySet());
+        Collections.sort(filteredHorizons);
+
+        createTitles(filteredHorizons);
 
         // Base
         SimulationNode scale = new SimulationNode("Scale dependent", null);
@@ -289,7 +325,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
         List<Double> valuesRMSE = new ArrayList<>();
         List<Double> valuesMAE = new ArrayList<>();
         List<Double> valuesMdAE = new ArrayList<>();
-        for (Integer horizon : horizons) {
+        for (Integer horizon : filteredHorizons) {
             ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon), arimaTs.get(horizon), trueTsData);
             valuesRMSE.add(rslt.calcRMSE());
             valuesMAE.add(rslt.calcMAE());
@@ -306,7 +342,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
         List<Double> valuesRMSPE = new ArrayList<>();
         List<Double> values_sMAPE = new ArrayList<>();
         List<Double> values_sMdAPE = new ArrayList<>();
-        for (Integer horizon : horizons) {
+        for (Integer horizon : filteredHorizons) {
             ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon), arimaTs.get(horizon), trueTsData);
             valuesRMSPE.add(rslt.calcRMSPE());
             values_sMAPE.add(rslt.calc_sMAPE());
@@ -323,7 +359,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
         List<Double> valuesRMSSE = new ArrayList<>();
         List<Double> valuesMASE = new ArrayList<>();
         List<Double> values_MdASE = new ArrayList<>();
-        for (Integer horizon : horizons) {
+        for (Integer horizon : filteredHorizons) {
             ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon), arimaTs.get(horizon), trueTsData);
             valuesRMSSE.add(rslt.calcRMSSE());
             valuesMASE.add(rslt.calcMASE());
@@ -342,7 +378,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
         valuesRMSE = new ArrayList<>();
         valuesMAE = new ArrayList<>();
         valuesMdAE = new ArrayList<>();
-        for (Integer horizon : horizons) {
+        for (Integer horizon : filteredHorizons) {
             ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon), arimaTs.get(horizon), trueTsData);
             valuesRMSE.add(rslt.calcRelRMSE());
             valuesMAE.add(rslt.calcRelMAE());
@@ -359,7 +395,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
         valuesRMSPE = new ArrayList<>();
         values_sMAPE = new ArrayList<>();
         values_sMdAPE = new ArrayList<>();
-        for (Integer horizon : horizons) {
+        for (Integer horizon : filteredHorizons) {
             ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon), arimaTs.get(horizon), trueTsData);
             valuesRMSPE.add(rslt.calcRelRMSPE());
             values_sMAPE.add(rslt.calcRel_sMAPE());
@@ -376,7 +412,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
         valuesRMSSE = new ArrayList<>();
         valuesMASE = new ArrayList<>();
         values_MdASE = new ArrayList<>();
-        for (Integer horizon : horizons) {
+        for (Integer horizon : filteredHorizons) {
             ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon), arimaTs.get(horizon), trueTsData);
             valuesRMSSE.add(rslt.calcRelRMSSE());
             valuesMASE.add(rslt.calcRelMASE());
@@ -389,7 +425,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
         relative.addChild(errors);
 
         List<Double> pbValues = new ArrayList<>();
-        for (Integer horizon : horizons) {
+        for (Integer horizon : filteredHorizons) {
             ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon), arimaTs.get(horizon), trueTsData);
             pbValues.add(rslt.calcPB());
         }
@@ -402,7 +438,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
 
         List<Double> dmSqValues = new ArrayList<>();
         List<Double> dmAbsValues = new ArrayList<>();
-        for (Integer horizon : horizons) {
+        for (Integer horizon : filteredHorizons) {
             ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon), arimaTs.get(horizon), trueTsData);
             AccuracyTests test = rslt.new AccuracyTests();
             dmSqValues.add(test.getDM());
@@ -414,7 +450,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
         nodes.add(dm);
 
         List<Double> encValues = new ArrayList<>();
-        for (Integer horizon : horizons) {
+        for (Integer horizon : filteredHorizons) {
             ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon), arimaTs.get(horizon), trueTsData);
             AccuracyTests test = rslt.new AccuracyTests();
             encValues.add(test.getDM_e());
@@ -435,7 +471,14 @@ public class SimulationQuantifiedResultsView extends JPanel {
                     coll.addMissingValue(periods.get(j).middle());
                 }
             }
-            map.put(horizons.get(i), coll.make(freq, TsAggregationType.None));
+
+            TsData ts = coll.make(freq, TsAggregationType.None);
+            ts = ts.cleanExtremities();
+
+            if (ts.getStart().isNotAfter(periods.get(filterPanel.getStart()))
+                    && ts.getEnd().isNotBefore(periods.get(filterPanel.getEnd()))) {
+                map.put(horizons.get(i), coll.make(freq, TsAggregationType.None));
+            }
         }
     }
 }

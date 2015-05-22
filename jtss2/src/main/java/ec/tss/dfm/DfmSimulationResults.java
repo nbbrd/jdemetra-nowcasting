@@ -24,7 +24,7 @@ import java.util.List;
  * @author Mats Maggi
  */
 public class DfmSimulationResults {
-    
+
     private List<Integer> forecastHorizons;
     private List<Double> trueValues;
     private List<Double> trueValuesYoY;
@@ -37,7 +37,7 @@ public class DfmSimulationResults {
     public List<Integer> getForecastHorizons() {
         return forecastHorizons;
     }
-    
+
     public void setForecastHorizons(List<Integer> forecastHorizons) {
         this.forecastHorizons = forecastHorizons;
     }
@@ -45,7 +45,7 @@ public class DfmSimulationResults {
     public List<Double> getTrueValues() {
         return trueValues;
     }
-    
+
     public void setTrueValues(List<Double> trueValues) {
         this.trueValues = trueValues;
     }
@@ -57,7 +57,7 @@ public class DfmSimulationResults {
     public void setTrueValuesYoY(List<Double> trueValues) {
         this.trueValuesYoY = trueValues;
     }
-    
+
     public List<Double> getTrueValuesQoQ() {
         return trueValuesQoQ;
     }
@@ -65,7 +65,7 @@ public class DfmSimulationResults {
     public void setTrueValuesQoQ(List<Double> trueValues) {
         this.trueValuesQoQ = trueValues;
     }
-    
+
     public Double[][] getForecastsArray() {
         return forecastsArray;
     }
@@ -77,11 +77,11 @@ public class DfmSimulationResults {
     public Double[][] getForecastsArrayYoY() {
         return forecastsArrayYoY;
     }
-    
+
     public Double[][] getForecastsArrayQoQ() {
         return forecastsArrayQoQ;
     }
-    
+
     public void setForecastsArrayQoQ(Double[][] forecastsArray) {
         this.forecastsArrayQoQ = forecastsArray;
     }
@@ -97,4 +97,14 @@ public class DfmSimulationResults {
     public List<TsPeriod> getEvaluationSample() {
         return evaluationSample;
     }
+
+//    @Override
+//    public InformationSet write(boolean verbose) {
+//        throw new UnsupportedOperationException("Not supported yet.");
+//    }
+//
+//    @Override
+//    public boolean read(InformationSet info) {
+//        throw new UnsupportedOperationException("Not supported yet.");
+//    }
 }

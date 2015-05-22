@@ -48,8 +48,6 @@ import ec.tstoolkit.utilities.Paths;
 import ec.ui.view.tsprocessing.DefaultProcessingViewer;
 import static ec.ui.view.tsprocessing.DefaultProcessingViewer.Type.NONE;
 import ec.util.various.swing.JCommand;
-import java.awt.BorderLayout;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.io.File;
@@ -143,11 +141,6 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
         startStop.setToolTipText("Start/Stop");
 
         return toolBar;
-    }
-
-    private void switchTo(Component c) {
-        removeAll();
-        add(c, BorderLayout.CENTER);
     }
 
     @Override

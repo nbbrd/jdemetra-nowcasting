@@ -16,6 +16,7 @@
  */
 package be.nbb.demetra.dfm.output.simulation;
 
+import be.nbb.demetra.dfm.output.simulation.utils.FilterEvaluationSamplePanel;
 import be.nbb.demetra.dfm.output.simulation.utils.FilterHorizonsPanel;
 import com.google.common.base.Optional;
 import ec.nbdemetra.ui.DemetraUI;
@@ -39,20 +40,28 @@ import ec.util.chart.ColorScheme;
 import ec.util.chart.ObsFunction;
 import ec.util.chart.SeriesFunction;
 import ec.util.chart.TimeSeriesChart;
+import static ec.util.chart.swing.JTimeSeriesChartCommand.copyImage;
+import static ec.util.chart.swing.JTimeSeriesChartCommand.printImage;
+import static ec.util.chart.swing.JTimeSeriesChartCommand.saveImage;
 import ec.util.chart.swing.SwingColorSchemeSupport;
+import ec.util.various.swing.JCommand;
 import java.awt.Image;
+import java.awt.Toolkit;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.SortedSet;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComponent;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.TransferHandler;
@@ -74,7 +83,8 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
     private TsCollection collection;
 
     private DfmDocument document;
-    private FilterHorizonsPanel filterPanel;
+    private FilterHorizonsPanel filterHorizonsPanel;
+    private FilterEvaluationSamplePanel filterSamplePanel;
 
     /**
      * Creates new form FixedHorizonsGraphView
@@ -97,7 +107,8 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         comboBox.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
-                filterPanel = null;
+                filterHorizonsPanel = null;
+                filterSamplePanel = null;
                 updateChart();
             }
         });
@@ -140,6 +151,8 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         chart.setColorSchemeSupport(defaultColorSchemeSupport);
         chart.setNoDataMessage("No data produced");
         chart.setMouseWheelEnabled(true);
+        
+        chart.setPopupMenu(createChartMenu().getPopupMenu());
 
         chart.setTransferHandler(new TsCollectionTransferHandler());
 
@@ -215,7 +228,8 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
     }
 
     private void updateComboBox() {
-        filterPanel = null;
+        filterHorizonsPanel = null;
+        filterSamplePanel = null;
         if (dfmSimulation.isPresent()) {
             comboBox.setModel(toComboBoxModel(document.getDfmResults().getDescriptions()));
             comboBox.setEnabled(true);
@@ -243,8 +257,8 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         List<TsPeriod> periods = dfm.getEvaluationSample();
         List<Integer> horizons = dfm.getForecastHorizons();
 
-        if (filterPanel == null) {
-            filterPanel = new FilterHorizonsPanel(null, horizons);
+        if (filterSamplePanel == null) {
+            filterSamplePanel = new FilterEvaluationSamplePanel(periods);
         }
 
         TsFrequency freq = periods.get(0).getFrequency();
@@ -260,24 +274,61 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         TsData trueTsData = coll.make(freq, TsAggregationType.None);
 
         result.quietAdd(TsFactory.instance.createTs("True data", null, trueTsData));
+        List<Ts> allTs = new ArrayList<>();
+        List<Integer> filteredHorizons = new ArrayList<>();
 
         // Add horizons
-        SortedSet<Integer> filteredHorizons = filterPanel.getSelectedElements();
+        //SortedSet<Integer> filteredHorizons = filterHorizonsPanel.getSelectedElements();
         for (int i = 0; i < horizons.size(); i++) {
-            if (filteredHorizons.contains(horizons.get(i))) {
-                coll.clear();
-                for (int j = 0; j < periods.size(); j++) {
-                    if (fcts[i][j] != null && fcts[i][j] != Double.NaN) {
-                        coll.addObservation(periods.get(j).middle(), fcts[i][j]);
-                    } else {
-                        coll.addMissingValue(periods.get(j).middle());
-                    }
+            coll.clear();
+            for (int j = 0; j < periods.size(); j++) {
+                if (fcts[i][j] != null && fcts[i][j] != Double.NaN) {
+                    coll.addObservation(periods.get(j).middle(), fcts[i][j]);
+                } else {
+                    coll.addMissingValue(periods.get(j).middle());
                 }
-                result.quietAdd(TsFactory.instance.createTs("fh(" + horizons.get(i) + ")", null, coll.make(freq, TsAggregationType.None)));
             }
 
+            TsData ts = coll.make(freq, TsAggregationType.None);
+            ts = ts.cleanExtremities();
+            if (ts.getStart().isNotAfter(periods.get(filterSamplePanel.getStart()))
+                    && ts.getEnd().isNotBefore(periods.get(filterSamplePanel.getEnd()))) {
+                filteredHorizons.add(horizons.get(i));
+                allTs.add(TsFactory.instance.createTs("fh(" + horizons.get(i) + ")", null, coll.make(freq, TsAggregationType.None)));
+            }
         }
+
+        if (filterHorizonsPanel == null) {
+            filterHorizonsPanel = new FilterHorizonsPanel(null, filteredHorizons);
+        }
+
+        SortedSet<Integer> selectedHorizons = filterHorizonsPanel.getSelectedElements();
+        for (int i = 0; i < filteredHorizons.size(); i++) {
+            if (selectedHorizons.contains(filteredHorizons.get(i))) {
+                result.quietAdd(allTs.get(i));
+            }
+        }
+
         return result;
+    }
+
+    private JMenu createChartMenu() {
+        JMenu menu = new JMenu();
+        JMenuItem item = menu.add(CopyCommand.INSTANCE.toAction(this));
+        item.setText("Copy all");
+
+        menu.addSeparator();
+        menu.add(newExportMenu());
+
+        return menu;
+    }
+
+    private JMenu newExportMenu() {
+        JMenu menu = new JMenu("Export image to");
+        menu.add(printImage().toAction(chart)).setText("Printer...");
+        menu.add(copyImage().toAction(chart)).setText("Clipboard");
+        menu.add(saveImage().toAction(chart)).setText("File...");
+        return menu;
     }
 
     /**
@@ -295,6 +346,7 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         variableLabel1 = new javax.swing.JLabel();
         typeComboBox = new javax.swing.JComboBox();
         filterButton = new javax.swing.JButton();
+        filterSampleButton = new javax.swing.JButton();
         chart = new ec.util.chart.swing.JTimeSeriesChart();
 
         setLayout(new java.awt.BorderLayout());
@@ -322,6 +374,14 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         });
         comboBoxPanel.add(filterButton);
 
+        org.openide.awt.Mnemonics.setLocalizedText(filterSampleButton, org.openide.util.NbBundle.getMessage(FixedHorizonsGraphView.class, "FixedHorizonsGraphView.filterSampleButton.text")); // NOI18N
+        filterSampleButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                filterSampleButtonActionPerformed(evt);
+            }
+        });
+        comboBoxPanel.add(filterSampleButton);
+
         add(comboBoxPanel, java.awt.BorderLayout.NORTH);
 
         chart.setNoDataMessage(org.openide.util.NbBundle.getMessage(FixedHorizonsGraphView.class, "FixedHorizonsGraphView.chart.noDataMessage")); // NOI18N
@@ -329,11 +389,19 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
     }// </editor-fold>//GEN-END:initComponents
 
     private void filterButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_filterButtonActionPerformed
-        int r = JOptionPane.showConfirmDialog(chart, filterPanel, "Select horizons to display", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        int r = JOptionPane.showConfirmDialog(chart, filterHorizonsPanel, "Select horizons to display", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
         if (r == JOptionPane.OK_OPTION) {
             updateChart();
         }
     }//GEN-LAST:event_filterButtonActionPerformed
+
+    private void filterSampleButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_filterSampleButtonActionPerformed
+        int r = JOptionPane.showConfirmDialog(chart, filterSamplePanel, "Select evaluation sample", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (r == JOptionPane.OK_OPTION) {
+            filterHorizonsPanel = null;
+            updateChart();
+        }
+    }//GEN-LAST:event_filterSampleButtonActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -341,6 +409,7 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
     private javax.swing.JComboBox comboBox;
     private javax.swing.JPanel comboBoxPanel;
     private javax.swing.JButton filterButton;
+    private javax.swing.JButton filterSampleButton;
     private javax.swing.JComboBox typeComboBox;
     private javax.swing.JLabel variableLabel;
     private javax.swing.JLabel variableLabel1;
@@ -381,6 +450,30 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         @Override
         public boolean canImport(TransferHandler.TransferSupport support) {
             return false;
+        }
+    }
+
+    private static final class CopyCommand extends JCommand<FixedHorizonsGraphView> {
+
+        public static final CopyCommand INSTANCE = new CopyCommand();
+
+        @Override
+        public void execute(FixedHorizonsGraphView c) throws Exception {
+            Optional<DfmSimulation> simulationResults = c.getSimulationResults();
+            if (simulationResults.isPresent()) {
+                Transferable t = TssTransferSupport.getDefault().fromTsCollection(c.toCollection(simulationResults.get()));
+                Toolkit.getDefaultToolkit().getSystemClipboard().setContents(t, null);
+            }
+        }
+
+        @Override
+        public boolean isEnabled(FixedHorizonsGraphView c) {
+            return c.getSimulationResults().isPresent();
+        }
+
+        @Override
+        public JCommand.ActionAdapter toAction(FixedHorizonsGraphView c) {
+            return super.toAction(c).withWeakPropertyChangeListener(c, DFM_SIMULATION_PROPERTY);
         }
     }
 }
