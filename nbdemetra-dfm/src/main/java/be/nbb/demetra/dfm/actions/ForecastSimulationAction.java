@@ -25,9 +25,12 @@ import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.nodes.ItemWsNode;
 import ec.tss.dfm.DfmDocument;
 import ec.tss.dfm.DfmProcessingFactory;
+import ec.tss.dfm.DfmResults;
 import ec.tss.dfm.DfmSimulation;
 import ec.tss.dfm.DfmSimulationResults;
 import ec.tss.dfm.VersionedDfmDocument;
+import ec.tstoolkit.data.DataBlock;
+import ec.tstoolkit.dfm.DfmNews;
 import ec.tstoolkit.dfm.MeasurementSpec;
 import ec.tstoolkit.information.InformationSet;
 import ec.tstoolkit.modelling.arima.tramo.TramoSpecification;
@@ -124,8 +127,23 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
             Arrays.sort(cal);
             for (int s = 0; s < info.getSeriesCount(); ++s) {
                 TsDataTable tble = new TsDataTable();
+                TsInformationSet oinfo = null;
                 for (int i = 0; i < cal.length; ++i) {
-                    TsData f = results.get(cal[i]).getResults().getData(InformationSet.concatenate(DfmProcessingFactory.FINALC, "var" + (s + 1)), TsData.class);
+                    DfmDocument doc = results.get(cal[i]);
+                    DfmResults dr = doc.getDfmResults();
+                    // be aware that the standard deviations correspond to the series used in the estimation (log, sa...)
+                    TsData stde = dr.getSmoothedSeriesStdev(i);
+                    if (oinfo != null) {
+                        TsInformationSet ninfo = dr.getInput();
+                        DfmNews dfmnews = new DfmNews(dr.getModel());
+                        dfmnews.process(oinfo, ninfo);
+                        DataBlock w = dfmnews.weights(i, last);
+                        oinfo = ninfo;
+                        /*
+                        insert the results you want
+                        */
+                    }
+                    TsData f = doc.getResults().getData(InformationSet.concatenate(DfmProcessingFactory.FINALC, "var" + (s + 1)), TsData.class);
                     tble.insert(-1, f);
                 }
                 tble.insert(-1, info.series(s));
@@ -182,7 +200,7 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
                     writer.append(swriter.toString());
                 } catch (IOException err) {
                 }
-                
+
             }
             publish("Done !");
             return null;
@@ -273,7 +291,7 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
         if (dom == null || dom.isEmpty() || cal == null || cal.length == 0) {
             return null;
         }
-        
+
         DfmSimulationResults r = new DfmSimulationResults();
 
         NumberFormat fmt = NumberFormat.getNumberInstance();
@@ -292,7 +310,7 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
             evaluationSample.add(dom.get(i));
             writer.append('\t').append(dom.get(i).toString());
         }
-        
+
         r.setEvaluationSample(evaluationSample);
 
         Map<Integer, Double[]> map = new TreeMap<>();
@@ -320,7 +338,7 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
             Double[] values = map.get(index);
             array[iArray] = new Double[nbHeaders];
             System.arraycopy(values, 0, array[iArray++], 0, values.length);
-            
+
             fctsHorizons.add(index);
         }
         r.setForecastHorizons(fctsHorizons);    // Set forecast horizons (keys)
@@ -349,9 +367,9 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
                 }
             }
         }
-        
+
         r.setForecastsArray(array);
-        
+
         Integer[] keysArray = map.keySet().toArray(new Integer[map.keySet().size()]);
         for (int i = keysArray.length - 1; i >= 0; i--) {
             writer.append("\r\n").append(String.valueOf(keysArray[i]));
@@ -377,9 +395,9 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
                 trueValues.add(null);
             }
         }
-        
+
         r.setTrueValues(trueValues);
-        
+
         return r;
     }
 
