@@ -35,7 +35,7 @@ import org.netbeans.swing.outline.Outline;
 public class XOutline extends Outline {
 
     private List<Title> titles;
-    
+
     public XOutline() {
         super();
 
@@ -125,7 +125,7 @@ public class XOutline extends Outline {
     public void setTitles(List<Title> titles) {
         this.titles = titles;
     }
-    
+
     public static class Title {
 
         private final String title;
@@ -135,7 +135,7 @@ public class XOutline extends Outline {
             this.title = title;
             this.htmlTitle = title;
         }
-        
+
         public Title(String title, String htmlTitle) {
             this.title = title;
             this.htmlTitle = htmlTitle;

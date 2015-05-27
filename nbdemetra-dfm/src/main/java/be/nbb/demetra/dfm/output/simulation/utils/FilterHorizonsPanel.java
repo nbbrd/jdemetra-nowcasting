@@ -92,6 +92,11 @@ public class FilterHorizonsPanel extends JPanel {
             public int getSize() { return strings.length; }
             public Object getElementAt(int i) { return strings[i]; }
         });
+        availableList.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                availableListMouseClicked(evt);
+            }
+        });
         availableList.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
             public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
                 availableListValueChanged(evt);
@@ -158,6 +163,11 @@ public class FilterHorizonsPanel extends JPanel {
             public int getSize() { return strings.length; }
             public Object getElementAt(int i) { return strings[i]; }
         });
+        selectedList.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                selectedListMouseClicked(evt);
+            }
+        });
         selectedList.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
             public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
                 selectedListValueChanged(evt);
@@ -217,6 +227,32 @@ public class FilterHorizonsPanel extends JPanel {
     private void selectedListValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_selectedListValueChanged
         removeButton.setEnabled(!selectedList.isSelectionEmpty());
     }//GEN-LAST:event_selectedListValueChanged
+
+    private void availableListMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_availableListMouseClicked
+        if (evt.getClickCount() == 2) {
+            Object selected = availableList.getSelectedValue();
+            if (selected != null) {
+                model.removeElement((Integer) selected);
+                model2.addElement((Integer) selected);
+            }
+
+            selectedList.clearSelection();
+            availableList.clearSelection();
+        }
+    }//GEN-LAST:event_availableListMouseClicked
+
+    private void selectedListMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_selectedListMouseClicked
+        if (evt.getClickCount() == 2) {
+            Object selected = selectedList.getSelectedValue();
+            if (selected != null) {
+                model2.removeElement((Integer) selected);
+                model.addElement((Integer) selected);
+            }
+
+            selectedList.clearSelection();
+            availableList.clearSelection();
+        }
+    }//GEN-LAST:event_selectedListMouseClicked
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton addAllButton;

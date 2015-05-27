@@ -19,12 +19,14 @@ package be.nbb.demetra.dfm.output.simulation;
 import be.nbb.demetra.dfm.output.simulation.utils.FilterEvaluationSamplePanel;
 import com.google.common.base.Optional;
 import ec.nbdemetra.ui.DemetraUI;
+import ec.tss.datatransfer.TssTransferSupport;
 import ec.tss.dfm.DfmDocument;
 import ec.tss.dfm.DfmSeriesDescriptor;
 import ec.tss.dfm.DfmSimulation;
 import ec.tss.dfm.DfmSimulationResults;
 import ec.tss.dfm.ForecastEvaluationResults;
 import ec.tss.tsproviders.utils.Formatters;
+import ec.tstoolkit.data.Table;
 import ec.tstoolkit.timeseries.TsAggregationType;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDataCollector;
@@ -44,6 +46,8 @@ import java.awt.Graphics2D;
 import java.awt.Paint;
 import java.awt.Shape;
 import java.awt.Stroke;
+import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
@@ -55,7 +59,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import javax.swing.AbstractAction;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartMouseEvent;
@@ -161,12 +168,24 @@ public class RMSEGraphView extends javax.swing.JPanel {
                 }
             }
         });
+        
+        chartPanel.setPopupMenu(buildMenu().getPopupMenu());
 
         chartPanel.addChartMouseListener(new HighlightChartMouseListener2());
         chartPanel.addKeyListener(revealObs);
-        chartPanel.getChart().getPlot().setNoDataMessage("Select the evaluation sample by clicking the toolbar button.");
+        chartPanel.getChart().getPlot().setNoDataMessage("Select evaluation sample by clicking on the toolbar button.");
 
         add(chartPanel, BorderLayout.CENTER);
+    }
+    
+    private JMenu buildMenu() {
+        JMenu menu = new JMenu();
+        JMenuItem item;
+        item = new JMenuItem(new CopyAction());
+        item.setText("Copy data");
+        menu.add(item);
+
+        return menu;
     }
 
     private JFreeChart createChart() {
@@ -262,8 +281,11 @@ public class RMSEGraphView extends javax.swing.JPanel {
         return result;
     }
 
-    List<Integer> horizons;
-    List<TsPeriod> periods;
+    private List<Integer> horizons;
+    private List<TsPeriod> periods;
+    private double[] xvalues;
+    private double[] dfmValues;
+    private double[] arimaValues;
 
     private void toDataset(DfmSimulation dfmSimulation) {
         DefaultXYDataset dfmDataset = new DefaultXYDataset();
@@ -304,9 +326,9 @@ public class RMSEGraphView extends javax.swing.JPanel {
         fillMap(arimaTs, arimaFcts, freq);
 
         int size = dfmTs.size();
-        double[] xvalues = new double[size];
-        double[] dfmValues = new double[size];
-        double[] arimaValues = new double[size];
+        xvalues = new double[size];
+        dfmValues = new double[size];
+        arimaValues = new double[size];
 
         int index = 0;
         for (Integer horizon : horizons) {
@@ -543,6 +565,27 @@ public class RMSEGraphView extends javax.swing.JPanel {
         public boolean isEnabled() {
             return enabled;
         }
+    }
+    
+    private class CopyAction extends AbstractAction {
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if (xvalues != null && arimaValues != null && dfmValues != null) {
+                Table t = new Table(xvalues.length + 1, 3);
+                t.set(0, 0, "Forecast horizon");
+                t.set(0, 1, "RMSE (simulation based recursive estimation)");
+                t.set(0, 2, "RMSE (arima recursive estimation)");
+                for (int i = 0; i < xvalues.length; i++) {
+                    t.set(i+1, 0, xvalues[i]);
+                    t.set(i+1, 1, (dfmValues[i] == Double.NaN) ? "" : dfmValues[i]);
+                    t.set(i+1, 2, (arimaValues[i] == Double.NaN) ? "" : arimaValues[i]);
+                }
+                
+                Toolkit.getDefaultToolkit().getSystemClipboard().setContents(TssTransferSupport.getDefault().fromTable(t), null);
+            }
+        }
+
     }
 }
 
