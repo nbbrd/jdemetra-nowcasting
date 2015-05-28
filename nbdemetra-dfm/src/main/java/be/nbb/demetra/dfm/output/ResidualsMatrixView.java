@@ -94,7 +94,7 @@ public class ResidualsMatrixView extends JPanel {
             }
         });
 
-        matrix.addPropertyChangeListener(new PropertyChangeListener() {
+        matrix.getGrid().addPropertyChangeListener(new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
                 switch (evt.getPropertyName()) {
@@ -105,8 +105,8 @@ public class ResidualsMatrixView extends JPanel {
             }
         });
 
-        matrix.addMouseListener(new PopupListener.PopupAdapter(buildGridMenu().getPopupMenu()));
-        add(matrix, BorderLayout.CENTER);
+        matrix.getGrid().addMouseListener(new PopupListener.PopupAdapter(buildGridMenu().getPopupMenu()));
+        add(matrix.getGrid(), BorderLayout.CENTER);
 
         updateMatrix();
     }
@@ -137,7 +137,7 @@ public class ResidualsMatrixView extends JPanel {
             font = originalFont.deriveFont(scaledSize);
         }
 
-        matrix.setFont(font);
+        matrix.getGrid().setFont(font);
     }
 
     public int getZoomRatio() {
@@ -172,16 +172,16 @@ public class ResidualsMatrixView extends JPanel {
 
     private void updateMatrix() {
         if (results == null || !results.isPresent()) {
-            matrix.setModel(null);
+            matrix.getGrid().setModel(null);
         } else {
-            matrix.setModel(createModel());
+            matrix.getGrid().setModel(createModel());
         }
     }
 
     private JZoomableGrid createMatrix() {
         final JZoomableGrid result = new JZoomableGrid();
-        result.setOddBackground(null);
-        result.setRowRenderer(new GridRowHeaderRenderer() {
+        result.getGrid().setOddBackground(null);
+        result.getGrid().setRowRenderer(new GridRowHeaderRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 JLabel result = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
@@ -192,7 +192,7 @@ public class ResidualsMatrixView extends JPanel {
 
         HeatMapCellRenderer cellRenderer = new HeatMapCellRenderer();
         cellRenderer.setHorizontalAlignment(JLabel.CENTER);
-        result.setDefaultRenderer(Object.class, cellRenderer);
+        result.getGrid().setDefaultRenderer(Object.class, cellRenderer);
 
         return result;
     }

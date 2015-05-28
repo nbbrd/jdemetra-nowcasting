@@ -34,8 +34,10 @@ import javax.swing.event.ChangeListener;
  *
  * @author Mats Maggi
  */
-public class JZoomableGrid extends JGrid implements IZoomableGrid {
+public class JZoomableGrid implements IZoomableGrid {
 
+    private final JGrid grid;
+    
     private int zoomRatio = 100;
     private double colorScale = 1.0;
     private Font originalFont;
@@ -43,7 +45,9 @@ public class JZoomableGrid extends JGrid implements IZoomableGrid {
     public JZoomableGrid() {
         super();
         
-        addPropertyChangeListener(new PropertyChangeListener() {
+        grid = new JGrid();
+        
+        grid.addPropertyChangeListener(new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
                 switch (evt.getPropertyName()) {
@@ -58,7 +62,7 @@ public class JZoomableGrid extends JGrid implements IZoomableGrid {
     public JMenu buildGridMenu() {
         JMenu result = new JMenu();
         
-        result.add(TableGridCommand.copyAll(true, true).toAction(this)).setText("Copy");
+        result.add(TableGridCommand.copyAll(true, true).toAction(grid)).setText("Copy");
 
         JMenu zoom = new JMenu("Zoom");
         final JSlider slider = new JSlider(10, 200, 100);
@@ -70,7 +74,7 @@ public class JZoomableGrid extends JGrid implements IZoomableGrid {
                     setZoomRatio(slider.getValue());
                 }
             });
-            addPropertyChangeListener(ZOOM_PROPERTY, new PropertyChangeListener() {
+            grid.addPropertyChangeListener(ZOOM_PROPERTY, new PropertyChangeListener() {
                 @Override
                 public void propertyChange(PropertyChangeEvent evt) {
                     slider.setValue(getZoomRatio());
@@ -95,7 +99,7 @@ public class JZoomableGrid extends JGrid implements IZoomableGrid {
                     setColorScale((double)slider2.getValue()/10.0);
                 }
             });
-            addPropertyChangeListener(COLOR_SCALE_PROPERTY, new PropertyChangeListener() {
+            grid.addPropertyChangeListener(COLOR_SCALE_PROPERTY, new PropertyChangeListener() {
                 @Override
                 public void propertyChange(PropertyChangeEvent evt) {
                     slider2.setValue((int)(getColorScale()*10.0));
@@ -120,13 +124,13 @@ public class JZoomableGrid extends JGrid implements IZoomableGrid {
     public void setZoomRatio(int zoomRatio) {
         int old = this.zoomRatio;
         this.zoomRatio = zoomRatio >= 10 && zoomRatio <= 200 ? zoomRatio : 100;
-        firePropertyChange(ZOOM_PROPERTY, old, this.zoomRatio);
+        grid.firePropertyChange(ZOOM_PROPERTY, old, this.zoomRatio);
     }
 
     
     protected void onZoomChange() {
         if (originalFont == null) {
-            originalFont = getFont();
+            originalFont = grid.getFont();
         }
 
         Font font = originalFont;
@@ -137,7 +141,7 @@ public class JZoomableGrid extends JGrid implements IZoomableGrid {
             font = originalFont.deriveFont(scaledSize);
         }
 
-        setFont(font);
+        grid.setFont(font);
     }
 
     @Override
@@ -149,6 +153,10 @@ public class JZoomableGrid extends JGrid implements IZoomableGrid {
     public void setColorScale(double scale) {
         double old = this.colorScale;
         this.colorScale = scale >= 0.1 && scale <= 10.0 ? scale : 1.0;
-        firePropertyChange(COLOR_SCALE_PROPERTY, old, this.colorScale);
+        grid.firePropertyChange(COLOR_SCALE_PROPERTY, old, this.colorScale);
+    }
+
+    public JGrid getGrid() {
+        return grid;
     }
 }

@@ -27,6 +27,7 @@ import ec.tss.dfm.DfmSimulationResults;
 import ec.tss.dfm.ForecastEvaluationResults;
 import ec.tss.tsproviders.utils.Formatters;
 import ec.tstoolkit.data.Table;
+import ec.tstoolkit.timeseries.Day;
 import ec.tstoolkit.timeseries.TsAggregationType;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDataCollector;
@@ -55,6 +56,8 @@ import java.awt.event.KeyListener;
 import java.awt.geom.Ellipse2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -87,6 +90,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
     public static final String DFM_SIMULATION_PROPERTY = "dfmSimulation";
     private static final int DFM_INDEX = 0;
     private static final int ARIMA_INDEX = 1;
+    private static final int STDEV_INDEX = 2;
 
     private Optional<DfmSimulation> dfmSimulation;
 
@@ -94,7 +98,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
     private Formatters.Formatter<Number> formatter;
     private SwingColorSchemeSupport defaultColorSchemeSupport;
     private final JChartPanel chartPanel;
-    private final XYLineAndShapeRenderer dfmRenderer, arimaRenderer;
+    private final XYLineAndShapeRenderer dfmRenderer, arimaRenderer, stdevRenderer;
     private static XYItemEntity highlight;
     private final RevealObs revealObs;
 
@@ -103,7 +107,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
     private FilterEvaluationSamplePanel filterPanel;
 
     /**
-     * Creates new form FixedHorizonsGraphView
+     * Creates new form RMSEGraphView
      */
     public RMSEGraphView(DfmDocument doc) {
         initComponents();
@@ -124,6 +128,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
 
         dfmRenderer = new LineRenderer(DFM_INDEX);
         arimaRenderer = new LineRenderer(ARIMA_INDEX);
+        stdevRenderer = new LineRenderer(STDEV_INDEX);
 
         highlight = null;
 
@@ -168,7 +173,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
                 }
             }
         });
-        
+
         chartPanel.setPopupMenu(buildMenu().getPopupMenu());
 
         chartPanel.addChartMouseListener(new HighlightChartMouseListener2());
@@ -177,7 +182,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
 
         add(chartPanel, BorderLayout.CENTER);
     }
-    
+
     private JMenu buildMenu() {
         JMenu menu = new JMenu();
         JMenuItem item;
@@ -205,6 +210,11 @@ public class RMSEGraphView extends javax.swing.JPanel {
         plot.mapDatasetToDomainAxis(ARIMA_INDEX, 0);
         plot.mapDatasetToRangeAxis(ARIMA_INDEX, 0);
 
+        plot.setDataset(STDEV_INDEX, Charts.emptyXYDataset());
+        plot.setRenderer(STDEV_INDEX, stdevRenderer);
+        plot.mapDatasetToDomainAxis(STDEV_INDEX, 0);
+        plot.mapDatasetToRangeAxis(STDEV_INDEX, 0);
+
         plot.setDatasetRenderingOrder(DatasetRenderingOrder.FORWARD);
 
         NumberAxis rangeAxis = new NumberAxis();
@@ -231,16 +241,16 @@ public class RMSEGraphView extends javax.swing.JPanel {
                 return demetraUI.getColorScheme();
             }
         };
-        
+
         XYPlot plot = chartPanel.getChart().getXYPlot();
         plot.setBackgroundPaint(defaultColorSchemeSupport.getPlotColor());
         plot.setDomainGridlinePaint(defaultColorSchemeSupport.getGridColor());
         plot.setRangeGridlinePaint(defaultColorSchemeSupport.getGridColor());
         chartPanel.getChart().setBackgroundPaint(defaultColorSchemeSupport.getBackColor());
-        
+
         arimaRenderer.setBasePaint(defaultColorSchemeSupport.getLineColor(KnownColor.RED));
         dfmRenderer.setBasePaint(defaultColorSchemeSupport.getLineColor(KnownColor.BLUE));
-        //chart.setColorSchemeSupport(defaultColorSchemeSupport);
+        stdevRenderer.setBasePaint(defaultColorSchemeSupport.getLineColor(KnownColor.YELLOW));
     }
 
     //<editor-fold defaultstate="collapsed" desc="Getters/Setters">
@@ -286,10 +296,13 @@ public class RMSEGraphView extends javax.swing.JPanel {
     private double[] xvalues;
     private double[] dfmValues;
     private double[] arimaValues;
+    List<Integer> xStdev;
+    List<Double> yStdev;
 
     private void toDataset(DfmSimulation dfmSimulation) {
         DefaultXYDataset dfmDataset = new DefaultXYDataset();
         DefaultXYDataset arimaDataset = new DefaultXYDataset();
+        DefaultXYDataset stdevDataset = new DefaultXYDataset();
 
         Objects.requireNonNull(dfmSimulation);
 
@@ -343,10 +356,45 @@ public class RMSEGraphView extends javax.swing.JPanel {
         dfmDataset.addSeries("RMSE (simulation based rec. est.)", new double[][]{xvalues, dfmValues});
         arimaDataset.addSeries("RMSE (Arima recursive est.)", new double[][]{xvalues, arimaValues});
 
+        // Stdev
+        Map<Day, DfmDocument> results = this.dfmSimulation.get().getResults();
+        Day[] cal = new Day[results.size()];
+        cal = results.keySet().toArray(cal);
+        Arrays.sort(cal);
+        TsPeriod lastPeriod = periods.get(periods.size() - 1);
+
+        xStdev = new ArrayList<>();
+        yStdev = new ArrayList<>();
+
+        index = 0;
+        for (Day d : cal) {
+            int horizon = d.difference(lastPeriod.lastday());
+            if (dfmTs.containsKey(horizon)) {
+                TsData stdevs = results.get(d).getDfmResults().getSmoothedSeriesStdev(selectedIndex);
+                if (!stdevs.getFrequency().equals(lastPeriod.getFrequency())) {
+                    stdevs = stdevs.changeFrequency(lastPeriod.getFrequency(), TsAggregationType.Last, true);
+                }
+                Double stdev = stdevs.get(lastPeriod);
+                xStdev.add(horizon);
+                yStdev.add(stdev);
+                index++;
+            }
+        }
+
+        double[] xStdevArray = new double[xStdev.size()];
+        double[] yStdevArray = new double[xStdev.size()];
+        for (int i = 0; i < xStdevArray.length; i++) {
+            xStdevArray[i] = xStdev.get(i);
+            yStdevArray[i] = yStdev.get(i);
+        }
+
+        stdevDataset.addSeries("Stdev", new double[][]{xStdevArray, yStdevArray});
+
         XYPlot plot = chartPanel.getChart().getXYPlot();
 
         plot.setDataset(DFM_INDEX, dfmDataset);
         plot.setDataset(ARIMA_INDEX, arimaDataset);
+        plot.setDataset(STDEV_INDEX, stdevDataset);
 
         chartPanel.getChart().setTitle("Evaluation sample from " + periods.get(filterPanel.getStart()).toString()
                 + " to " + periods.get(filterPanel.getEnd()).toString());
@@ -462,7 +510,19 @@ public class RMSEGraphView extends javax.swing.JPanel {
             setBaseShape(ITEM_SHAPE);
             setUseFillPaint(true);
             this.index = index;
-            this.color = defaultColorSchemeSupport.getLineColor(index == 0 ? ColorScheme.KnownColor.BLUE : ColorScheme.KnownColor.RED);
+            switch (index) {
+                case DFM_INDEX:
+                    this.color = defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.BLUE);
+                    break;
+                case ARIMA_INDEX:
+                    this.color = defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.RED);
+                    break;
+                case STDEV_INDEX:
+                    this.color = defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.YELLOW);
+                    break;
+                default:
+                    this.color = defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.GRAY);
+            }
         }
 
         @Override
@@ -566,64 +626,31 @@ public class RMSEGraphView extends javax.swing.JPanel {
             return enabled;
         }
     }
-    
+
     private class CopyAction extends AbstractAction {
 
         @Override
         public void actionPerformed(ActionEvent e) {
             if (xvalues != null && arimaValues != null && dfmValues != null) {
-                Table t = new Table(xvalues.length + 1, 3);
+                Table t = new Table(xvalues.length + 1, 4);
                 t.set(0, 0, "Forecast horizon");
                 t.set(0, 1, "RMSE (simulation based recursive estimation)");
                 t.set(0, 2, "RMSE (arima recursive estimation)");
+                t.set(0, 3, "Stdev");
                 for (int i = 0; i < xvalues.length; i++) {
-                    t.set(i+1, 0, xvalues[i]);
-                    t.set(i+1, 1, (dfmValues[i] == Double.NaN) ? "" : dfmValues[i]);
-                    t.set(i+1, 2, (arimaValues[i] == Double.NaN) ? "" : arimaValues[i]);
+                    t.set(i + 1, 0, xvalues[i]);
+                    t.set(i + 1, 1, (dfmValues[i] == Double.NaN) ? "" : dfmValues[i]);
+                    t.set(i + 1, 2, (arimaValues[i] == Double.NaN) ? "" : arimaValues[i]);
+
+                    int index = xStdev.indexOf((int)xvalues[i]);
+                    if (index > -1) {
+                        t.set(i + 1, 3, (yStdev.get(index) == Double.NaN) ? "" : yStdev.get(index));
+                    }
                 }
-                
+
                 Toolkit.getDefaultToolkit().getSystemClipboard().setContents(TssTransferSupport.getDefault().fromTable(t), null);
             }
         }
 
     }
 }
-
-//    private TsCollection dragSelection = null;
-//
-//    protected Transferable transferableOnSelection() {
-//        TsCollection col = TsFactory.instance.createTsCollection();
-//
-//        ListSelectionModel model = chart.getSeriesSelectionModel();
-//        if (!model.isSelectionEmpty()) {
-//            for (int i = model.getMinSelectionIndex(); i <= model.getMaxSelectionIndex(); i++) {
-//                if (model.isSelectedIndex(i)) {
-//                    col.quietAdd(collection.get(i));
-//                }
-//            }
-//        }
-//        dragSelection = col;
-//        return TssTransferSupport.getDefault().fromTsCollection(dragSelection);
-//    }
-//
-//    public class TsCollectionTransferHandler extends TransferHandler {
-//
-//        @Override
-//        public int getSourceActions(JComponent c) {
-//            transferableOnSelection();
-//            TsDragRenderer r = dragSelection.getCount() < 10 ? TsDragRenderer.asChart() : TsDragRenderer.asCount();
-//            Image image = r.getTsDragRendererImage(Arrays.asList(dragSelection.toArray()));
-//            setDragImage(image);
-//            return COPY;
-//        }
-//
-//        @Override
-//        protected Transferable createTransferable(JComponent c) {
-//            return transferableOnSelection();
-//        }
-//
-//        @Override
-//        public boolean canImport(TransferHandler.TransferSupport support) {
-//            return false;
-//        }
-//    }
