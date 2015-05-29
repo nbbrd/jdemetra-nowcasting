@@ -326,7 +326,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
 
         TsPeriod start = filteredPeriods.get(filterPanel.getStart());
         TsPeriod end = filteredPeriods.get(filterPanel.getEnd());
-        TsDomain dom = new TsDomain(start, end.minus(start));
+        TsDomain dom = new TsDomain(start, end.minus(start)+1);
 
         // Base
         SimulationNode scale = new SimulationNode("Scale dependent", null);

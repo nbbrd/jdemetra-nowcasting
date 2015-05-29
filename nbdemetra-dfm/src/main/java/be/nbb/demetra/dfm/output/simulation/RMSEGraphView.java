@@ -350,7 +350,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
 
         TsPeriod start = filteredPeriods.get(filterPanel.getStart());
         TsPeriod end = filteredPeriods.get(filterPanel.getEnd());
-        TsDomain dom = new TsDomain(start, end.minus(start));
+        TsDomain dom = new TsDomain(start, end.minus(start)+1);
 
         int index = 0;
         for (Integer horizon : horizons) {

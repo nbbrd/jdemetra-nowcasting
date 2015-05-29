@@ -269,7 +269,7 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         
         TsPeriod start = filteredPeriods.get(filterSamplePanel.getStart());
         TsPeriod end = filteredPeriods.get(filterSamplePanel.getEnd());
-        TsDomain dom = new TsDomain(start, end.minus(start));
+        TsDomain dom = new TsDomain(start, end.minus(start)+1);
 
         TsFrequency freq = periods.get(0).getFrequency();
 
