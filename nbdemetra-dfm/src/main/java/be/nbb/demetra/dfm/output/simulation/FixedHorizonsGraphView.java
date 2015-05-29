@@ -33,6 +33,7 @@ import ec.tss.tsproviders.utils.Formatters;
 import ec.tstoolkit.timeseries.TsAggregationType;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDataCollector;
+import ec.tstoolkit.timeseries.simplets.TsDomain;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
 import ec.ui.chart.TsXYDatasets;
@@ -265,6 +266,10 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         if (filterSamplePanel == null) {
             filterSamplePanel = new FilterEvaluationSamplePanel(filteredPeriods);
         }
+        
+        TsPeriod start = filteredPeriods.get(filterSamplePanel.getStart());
+        TsPeriod end = filteredPeriods.get(filterSamplePanel.getEnd());
+        TsDomain dom = new TsDomain(start, end.minus(start));
 
         TsFrequency freq = periods.get(0).getFrequency();
 
@@ -278,9 +283,11 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         }
         TsData trueTsData = coll.make(freq, TsAggregationType.None);
 
-        result.quietAdd(TsFactory.instance.createTs("True data", null, trueTsData));
+        result.quietAdd(TsFactory.instance.createTs("True data", null, trueTsData.fittoDomain(dom)));
         List<Ts> allTs = new ArrayList<>();
         List<Integer> filteredHorizons = new ArrayList<>();
+        
+        
 
         // Add horizons
         //SortedSet<Integer> filteredHorizons = filterHorizonsPanel.getSelectedElements();
@@ -299,7 +306,7 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
             if (ts.getStart().isNotAfter(filteredPeriods.get(filterSamplePanel.getStart()))
                     && ts.getEnd().isNotBefore(filteredPeriods.get(filterSamplePanel.getEnd()))) {
                 filteredHorizons.add(horizons.get(i));
-                allTs.add(TsFactory.instance.createTs("fh(" + horizons.get(i) + ")", null, coll.make(freq, TsAggregationType.None)));
+                allTs.add(TsFactory.instance.createTs("fh(" + horizons.get(i) + ")", null, coll.make(freq, TsAggregationType.None).fittoDomain(dom)));
             }
         }
 
