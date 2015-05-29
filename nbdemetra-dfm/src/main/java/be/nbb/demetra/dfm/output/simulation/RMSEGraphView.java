@@ -31,7 +31,6 @@ import ec.tstoolkit.timeseries.Day;
 import ec.tstoolkit.timeseries.TsAggregationType;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDataCollector;
-import ec.tstoolkit.timeseries.simplets.TsDomain;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
 import ec.ui.chart.TsCharts;
@@ -294,7 +293,6 @@ public class RMSEGraphView extends javax.swing.JPanel {
 
     private List<Integer> horizons;
     private List<TsPeriod> periods;
-    private List<TsPeriod> filteredPeriods;
     private double[] xvalues;
     private double[] dfmValues;
     private double[] arimaValues;
@@ -316,10 +314,10 @@ public class RMSEGraphView extends javax.swing.JPanel {
         periods = dfm.getEvaluationSample();
 
         // Remove periods of evaluation sample not in true values domain
-        filteredPeriods = filterEvaluationSample(trueValues);
+        periods = filterEvaluationSample(trueValues);
 
         if (filterPanel == null) {
-            filterPanel = new FilterEvaluationSamplePanel(filteredPeriods);
+            filterPanel = new FilterEvaluationSamplePanel(periods);
         }
 
         Double[][] dfmFcts = dfm.getForecastsArray();
@@ -348,14 +346,10 @@ public class RMSEGraphView extends javax.swing.JPanel {
         dfmValues = new double[size];
         arimaValues = new double[size];
 
-        TsPeriod start = filteredPeriods.get(filterPanel.getStart());
-        TsPeriod end = filteredPeriods.get(filterPanel.getEnd());
-        TsDomain dom = new TsDomain(start, end.minus(start));
-
         int index = 0;
         for (Integer horizon : horizons) {
             if (dfmTs.containsKey(horizon)) {
-                ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon).fittoDomain(dom), arimaTs.get(horizon).fittoDomain(dom), trueTsData);
+                ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon), arimaTs.get(horizon), trueTsData);
                 dfmValues[index] = rslt.calcRMSE();
                 arimaValues[index] = rslt.calcRMSE_Benchmark();
                 xvalues[index] = horizon;
@@ -370,7 +364,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
         Day[] cal = new Day[results.size()];
         cal = results.keySet().toArray(cal);
         Arrays.sort(cal);
-        TsPeriod lastPeriod = filteredPeriods.get(filterPanel.getEnd());
+        TsPeriod lastPeriod = periods.get(filterPanel.getEnd());
 
         xStdev = new ArrayList<>();
         yStdev = new ArrayList<>();
@@ -405,8 +399,8 @@ public class RMSEGraphView extends javax.swing.JPanel {
         plot.setDataset(ARIMA_INDEX, arimaDataset);
         plot.setDataset(STDEV_INDEX, stdevDataset);
 
-        chartPanel.getChart().setTitle("Evaluation sample from " + filteredPeriods.get(filterPanel.getStart()).toString()
-                + " to " + filteredPeriods.get(filterPanel.getEnd()).toString());
+        chartPanel.getChart().setTitle("Evaluation sample from " + periods.get(filterPanel.getStart()).toString()
+                + " to " + periods.get(filterPanel.getEnd()).toString());
     }
 
     private void fillMap(Map<Integer, TsData> map, Double[][] fcts, TsFrequency freq) {
@@ -423,8 +417,8 @@ public class RMSEGraphView extends javax.swing.JPanel {
             TsData ts = coll.make(freq, TsAggregationType.None);
             ts = ts.cleanExtremities();
 
-            if (ts.getStart().isNotAfter(filteredPeriods.get(filterPanel.getStart()))
-                    && ts.getEnd().isNotBefore(filteredPeriods.get(filterPanel.getEnd()))) {
+            if (ts.getStart().isNotAfter(periods.get(filterPanel.getStart()))
+                    && ts.getEnd().isNotBefore(periods.get(filterPanel.getEnd()))) {
                 map.put(horizons.get(i), coll.make(freq, TsAggregationType.None));
             }
         }

@@ -260,10 +260,10 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         List<Integer> horizons = dfm.getForecastHorizons();
 
         // Remove periods of evaluation sample not in true values domain
-        List<TsPeriod> filteredPeriods = filterEvaluationSample(trueValues);
+        periods = filterEvaluationSample(trueValues);
 
         if (filterSamplePanel == null) {
-            filterSamplePanel = new FilterEvaluationSamplePanel(filteredPeriods);
+            filterSamplePanel = new FilterEvaluationSamplePanel(periods);
         }
 
         TsFrequency freq = periods.get(0).getFrequency();
@@ -296,8 +296,8 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
 
             TsData ts = coll.make(freq, TsAggregationType.None);
             ts = ts.cleanExtremities();
-            if (ts.getStart().isNotAfter(filteredPeriods.get(filterSamplePanel.getStart()))
-                    && ts.getEnd().isNotBefore(filteredPeriods.get(filterSamplePanel.getEnd()))) {
+            if (ts.getStart().isNotAfter(periods.get(filterSamplePanel.getStart()))
+                    && ts.getEnd().isNotBefore(periods.get(filterSamplePanel.getEnd()))) {
                 filteredHorizons.add(horizons.get(i));
                 allTs.add(TsFactory.instance.createTs("fh(" + horizons.get(i) + ")", null, coll.make(freq, TsAggregationType.None)));
             }
@@ -313,9 +313,6 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
                 result.quietAdd(allTs.get(i));
             }
         }
-        
-        chart.setTitle("Evaluation sample from " + filteredPeriods.get(filterSamplePanel.getStart()).toString()
-                + " to " + filteredPeriods.get(filterSamplePanel.getEnd()).toString());
 
         return result;
     }
