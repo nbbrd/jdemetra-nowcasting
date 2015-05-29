@@ -313,6 +313,9 @@ public class RMSEGraphView extends javax.swing.JPanel {
         horizons = dfm.getForecastHorizons();
         periods = dfm.getEvaluationSample();
 
+        // Remove periods of evaluation sample not in true values domain
+        periods = filterEvaluationSample(trueValues);
+
         if (filterPanel == null) {
             filterPanel = new FilterEvaluationSamplePanel(periods);
         }
@@ -361,7 +364,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
         Day[] cal = new Day[results.size()];
         cal = results.keySet().toArray(cal);
         Arrays.sort(cal);
-        TsPeriod lastPeriod = periods.get(periods.size() - 1);
+        TsPeriod lastPeriod = periods.get(filterPanel.getEnd());
 
         xStdev = new ArrayList<>();
         yStdev = new ArrayList<>();
@@ -419,6 +422,16 @@ public class RMSEGraphView extends javax.swing.JPanel {
                 map.put(horizons.get(i), coll.make(freq, TsAggregationType.None));
             }
         }
+    }
+
+    private List<TsPeriod> filterEvaluationSample(List<Double> trueValues) {
+        List<TsPeriod> p = new ArrayList<>();
+        for (int i = 0; i < trueValues.size(); i++) {
+            if (trueValues.get(i) != null) {
+                p.add(periods.get(i));
+            }
+        }
+        return p;
     }
 
     private final class HighlightChartMouseListener2 implements ChartMouseListener {
@@ -642,7 +655,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
                     t.set(i + 1, 1, (dfmValues[i] == Double.NaN) ? "" : dfmValues[i]);
                     t.set(i + 1, 2, (arimaValues[i] == Double.NaN) ? "" : arimaValues[i]);
 
-                    int index = xStdev.indexOf((int)xvalues[i]);
+                    int index = xStdev.indexOf((int) xvalues[i]);
                     if (index > -1) {
                         t.set(i + 1, 3, (yStdev.get(index) == Double.NaN) ? "" : yStdev.get(index));
                     }

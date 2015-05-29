@@ -151,7 +151,7 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         chart.setColorSchemeSupport(defaultColorSchemeSupport);
         chart.setNoDataMessage("No data produced");
         chart.setMouseWheelEnabled(true);
-        
+
         chart.setPopupMenu(createChartMenu().getPopupMenu());
 
         chart.setTransferHandler(new TsCollectionTransferHandler());
@@ -244,6 +244,8 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         return result;
     }
 
+    private List<TsPeriod> periods;
+    
     private TsCollection toCollection(DfmSimulation dfmSimulation) {
         Objects.requireNonNull(dfmSimulation);
 
@@ -254,8 +256,11 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         int type = typeComboBox.getSelectedIndex();
         List<Double> trueValues = type == 1 ? dfm.getTrueValuesYoY() : type == 2 ? dfm.getTrueValuesQoQ() : dfm.getTrueValues();
         Double[][] fcts = type == 1 ? dfm.getForecastsArrayYoY() : type == 2 ? dfm.getForecastsArrayQoQ() : dfm.getForecastsArray();
-        List<TsPeriod> periods = dfm.getEvaluationSample();
+        periods = dfm.getEvaluationSample();
         List<Integer> horizons = dfm.getForecastHorizons();
+
+        // Remove periods of evaluation sample not in true values domain
+        periods = filterEvaluationSample(trueValues);
 
         if (filterSamplePanel == null) {
             filterSamplePanel = new FilterEvaluationSamplePanel(periods);
@@ -310,6 +315,16 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         }
 
         return result;
+    }
+    
+    private List<TsPeriod> filterEvaluationSample(List<Double> trueValues) {
+        List<TsPeriod> p = new ArrayList<>();
+        for (int i = 0; i < trueValues.size(); i++) {
+            if (trueValues.get(i) != null) {
+                p.add(periods.get(i));
+            }
+        }
+        return p;
     }
 
     private JMenu createChartMenu() {

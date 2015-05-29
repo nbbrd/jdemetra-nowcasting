@@ -16,7 +16,6 @@
  */
 package be.nbb.demetra.dfm.actions;
 
-import be.nbb.demetra.dfm.DfmDocumentManager;
 import com.google.common.base.Stopwatch;
 import ec.nbdemetra.ui.nodes.SingleNodeAction;
 import ec.nbdemetra.ui.notification.MessageType;
@@ -64,23 +63,19 @@ import org.netbeans.api.progress.ProgressHandle;
 import org.netbeans.api.progress.ProgressHandleFactory;
 import org.openide.DialogDisplayer;
 import org.openide.NotifyDescriptor;
-import org.openide.awt.ActionID;
-import org.openide.awt.ActionReference;
-import org.openide.awt.ActionReferences;
-import org.openide.awt.ActionRegistration;
 import org.openide.util.Cancellable;
 import org.openide.util.HelpCtx;
 import org.openide.util.NbBundle.Messages;
 
-@ActionID(
-        category = "Edit",
-        id = "be.nbb.demetra.dfm.actions.ForecastSimulationAction"
-)
-@ActionRegistration(displayName = "#CTL_ForecastSimulationAction", lazy = false)
-@ActionReferences({
-    //    @ActionReference(path = "Menu/Edit"),
-    @ActionReference(path = DfmDocumentManager.ITEMPATH, position = 1500)
-})
+//@ActionID(
+//        category = "Edit",
+//        id = "be.nbb.demetra.dfm.actions.ForecastSimulationAction"
+//)
+//@ActionRegistration(displayName = "#CTL_ForecastSimulationAction", lazy = false)
+//@ActionReferences({
+//    //    @ActionReference(path = "Menu/Edit"),
+//    @ActionReference(path = DfmDocumentManager.ITEMPATH, position = 1500)
+//})
 @Messages("CTL_ForecastSimulationAction=Forecast simulation...")
 public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode> {
 

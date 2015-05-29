@@ -288,15 +288,18 @@ public class SimulationQuantifiedResultsView extends JPanel {
         periods = dfm.getEvaluationSample();
         horizons = dfm.getForecastHorizons();
 
-        if (filterPanel == null) {
-            filterPanel = new FilterEvaluationSamplePanel(periods);
-        }
-
         List<Double> trueValues = type == 1 ? dfm.getTrueValuesYoY() : type == 2 ? dfm.getTrueValuesQoQ() : dfm.getTrueValues();
         Double[][] dfmFcts = type == 1 ? dfm.getForecastsArrayYoY() : type == 2 ? dfm.getForecastsArrayQoQ() : dfm.getForecastsArray();
         Double[][] arimaFcts = type == 1 ? arima.getForecastsArrayYoY() : type == 2 ? arima.getForecastsArrayQoQ() : arima.getForecastsArray();
         Map<Integer, TsData> dfmTs = new HashMap<>();
         Map<Integer, TsData> arimaTs = new HashMap<>();
+
+        // Remove periods of evaluation sample not in true values domain
+        periods = filterEvaluationSample(trueValues);
+
+        if (filterPanel == null) {
+            filterPanel = new FilterEvaluationSamplePanel(periods);
+        }
 
         TsFrequency freq = periods.get(0).getFrequency();
 
@@ -312,7 +315,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
 
         fillMap(dfmTs, dfmFcts, freq);
         fillMap(arimaTs, arimaFcts, freq);
-        
+
         List<Integer> filteredHorizons = new ArrayList<>();
         filteredHorizons.addAll(dfmTs.keySet());
         Collections.sort(filteredHorizons);
@@ -458,6 +461,16 @@ public class SimulationQuantifiedResultsView extends JPanel {
         SimulationNode enc = new SimulationNode(ENCOMPASING_TEST, encValues);
 
         nodes.add(enc);
+    }
+
+    private List<TsPeriod> filterEvaluationSample(List<Double> trueValues) {
+        List<TsPeriod> p = new ArrayList<>();
+        for (int i = 0; i < trueValues.size(); i++) {
+            if (trueValues.get(i) != null) {
+                p.add(periods.get(i));
+            }
+        }
+        return p;
     }
 
     private void fillMap(Map<Integer, TsData> map, Double[][] fcts, TsFrequency freq) {
