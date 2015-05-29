@@ -36,6 +36,7 @@ import ec.tss.tsproviders.utils.Formatters;
 import ec.tstoolkit.timeseries.TsAggregationType;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsDataCollector;
+import ec.tstoolkit.timeseries.simplets.TsDomain;
 import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
 import ec.util.chart.ColorScheme;
@@ -269,6 +270,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
     private List<TsPeriod> periods;
     private List<Integer> horizons;
     private List<Title> titles;
+    private List<TsPeriod> filteredPeriods;
 
     private void createTitles(List<Integer> data) {
         titles = new ArrayList<>();
@@ -295,10 +297,10 @@ public class SimulationQuantifiedResultsView extends JPanel {
         Map<Integer, TsData> arimaTs = new HashMap<>();
 
         // Remove periods of evaluation sample not in true values domain
-        periods = filterEvaluationSample(trueValues);
+        filteredPeriods = filterEvaluationSample(trueValues);
 
         if (filterPanel == null) {
-            filterPanel = new FilterEvaluationSamplePanel(periods);
+            filterPanel = new FilterEvaluationSamplePanel(filteredPeriods);
         }
 
         TsFrequency freq = periods.get(0).getFrequency();
@@ -322,6 +324,10 @@ public class SimulationQuantifiedResultsView extends JPanel {
 
         createTitles(filteredHorizons);
 
+        TsPeriod start = filteredPeriods.get(filterPanel.getStart());
+        TsPeriod end = filteredPeriods.get(filterPanel.getEnd());
+        TsDomain dom = new TsDomain(start, end.minus(start));
+
         // Base
         SimulationNode scale = new SimulationNode("Scale dependent", null);
 
@@ -329,7 +335,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
         List<Double> valuesMAE = new ArrayList<>();
         List<Double> valuesMdAE = new ArrayList<>();
         for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon), arimaTs.get(horizon), trueTsData);
+            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon).fittoDomain(dom), arimaTs.get(horizon).fittoDomain(dom), trueTsData.fittoDomain(dom));
             valuesRMSE.add(rslt.calcRMSE());
             valuesMAE.add(rslt.calcMAE());
             valuesMdAE.add(rslt.calcMdAE());
@@ -346,7 +352,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
         List<Double> values_sMAPE = new ArrayList<>();
         List<Double> values_sMdAPE = new ArrayList<>();
         for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon), arimaTs.get(horizon), trueTsData);
+            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon).fittoDomain(dom), arimaTs.get(horizon).fittoDomain(dom), trueTsData.fittoDomain(dom));
             valuesRMSPE.add(rslt.calcRMSPE());
             values_sMAPE.add(rslt.calc_sMAPE());
             values_sMdAPE.add(rslt.calc_sMdAPE());
@@ -363,7 +369,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
         List<Double> valuesMASE = new ArrayList<>();
         List<Double> values_MdASE = new ArrayList<>();
         for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon), arimaTs.get(horizon), trueTsData);
+            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon).fittoDomain(dom), arimaTs.get(horizon).fittoDomain(dom), trueTsData.fittoDomain(dom));
             valuesRMSSE.add(rslt.calcRMSSE());
             valuesMASE.add(rslt.calcMASE());
             values_MdASE.add(rslt.calcMdASE());
@@ -382,7 +388,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
         valuesMAE = new ArrayList<>();
         valuesMdAE = new ArrayList<>();
         for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon), arimaTs.get(horizon), trueTsData);
+            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon).fittoDomain(dom), arimaTs.get(horizon).fittoDomain(dom), trueTsData.fittoDomain(dom));
             valuesRMSE.add(rslt.calcRelRMSE());
             valuesMAE.add(rslt.calcRelMAE());
             valuesMdAE.add(rslt.calcRelMdAE());
@@ -399,7 +405,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
         values_sMAPE = new ArrayList<>();
         values_sMdAPE = new ArrayList<>();
         for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon), arimaTs.get(horizon), trueTsData);
+            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon).fittoDomain(dom), arimaTs.get(horizon).fittoDomain(dom), trueTsData.fittoDomain(dom));
             valuesRMSPE.add(rslt.calcRelRMSPE());
             values_sMAPE.add(rslt.calcRel_sMAPE());
             values_sMdAPE.add(rslt.calcRel_sMdAPE());
@@ -416,7 +422,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
         valuesMASE = new ArrayList<>();
         values_MdASE = new ArrayList<>();
         for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon), arimaTs.get(horizon), trueTsData);
+            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon).fittoDomain(dom), arimaTs.get(horizon).fittoDomain(dom), trueTsData.fittoDomain(dom));
             valuesRMSSE.add(rslt.calcRelRMSSE());
             valuesMASE.add(rslt.calcRelMASE());
             values_MdASE.add(rslt.calcRelMdASE());
@@ -429,7 +435,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
 
         List<Double> pbValues = new ArrayList<>();
         for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon), arimaTs.get(horizon), trueTsData);
+            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon).fittoDomain(dom), arimaTs.get(horizon).fittoDomain(dom), trueTsData.fittoDomain(dom));
             pbValues.add(rslt.calcPB());
         }
         relative.addChild(new SimulationNode("Percentage better", pbValues));
@@ -442,7 +448,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
         List<Double> dmSqValues = new ArrayList<>();
         List<Double> dmAbsValues = new ArrayList<>();
         for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon), arimaTs.get(horizon), trueTsData);
+            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon).fittoDomain(dom), arimaTs.get(horizon).fittoDomain(dom), trueTsData.fittoDomain(dom));
             AccuracyTests test = rslt.new AccuracyTests();
             dmSqValues.add(test.getDM());
             dmAbsValues.add(test.getDMabs());
@@ -454,7 +460,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
 
         List<Double> encValues = new ArrayList<>();
         for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon), arimaTs.get(horizon), trueTsData);
+            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon).fittoDomain(dom), arimaTs.get(horizon).fittoDomain(dom), trueTsData.fittoDomain(dom));
             AccuracyTests test = rslt.new AccuracyTests();
             encValues.add(test.getDM_e());
         }
@@ -488,8 +494,8 @@ public class SimulationQuantifiedResultsView extends JPanel {
             TsData ts = coll.make(freq, TsAggregationType.None);
             ts = ts.cleanExtremities();
 
-            if (ts.getStart().isNotAfter(periods.get(filterPanel.getStart()))
-                    && ts.getEnd().isNotBefore(periods.get(filterPanel.getEnd()))) {
+            if (ts.getStart().isNotAfter(filteredPeriods.get(filterPanel.getStart()))
+                    && ts.getEnd().isNotBefore(filteredPeriods.get(filterPanel.getEnd()))) {
                 map.put(horizons.get(i), coll.make(freq, TsAggregationType.None));
             }
         }
