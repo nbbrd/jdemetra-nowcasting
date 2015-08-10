@@ -25,6 +25,7 @@ import ec.tss.dfm.DfmSeriesDescriptor;
 import ec.tss.dfm.DfmSimulation;
 import ec.tss.dfm.DfmSimulationResults;
 import ec.tss.dfm.ForecastEvaluationResults;
+import ec.tss.dfm.SimulationResultsDocument;
 import ec.tss.tsproviders.utils.Formatters;
 import ec.tstoolkit.data.Table;
 import ec.tstoolkit.timeseries.Day;
@@ -103,8 +104,6 @@ public class RMSEGraphView extends javax.swing.JPanel {
     private static XYItemEntity highlight;
     private final RevealObs revealObs;
 
-    private DfmDocument document;
-
     private FilterEvaluationSamplePanel filterPanel;
 
     /**
@@ -112,7 +111,6 @@ public class RMSEGraphView extends javax.swing.JPanel {
      */
     public RMSEGraphView(DfmDocument doc) {
         initComponents();
-        this.document = doc;
 
         revealObs = new RevealObs();
 
@@ -136,7 +134,8 @@ public class RMSEGraphView extends javax.swing.JPanel {
         chartPanel = new JChartPanel(createChart());
         Charts.avoidScaling(chartPanel);
         Charts.enableFocusOnClick(chartPanel);
-
+        
+        comboBox.setRenderer(new ComboBoxRenderer());
         comboBox.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
@@ -279,7 +278,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
     private void updateComboBox() {
         filterPanel = null;
         if (dfmSimulation.isPresent()) {
-            comboBox.setModel(toComboBoxModel(document.getDfmResults().getDescriptions()));
+            comboBox.setModel(toComboBoxModel(dfmSimulation.get().getDescriptions()));
             comboBox.setEnabled(true);
         } else {
             comboBox.setModel(new DefaultComboBoxModel());
@@ -287,8 +286,15 @@ public class RMSEGraphView extends javax.swing.JPanel {
         }
     }
 
-    private static DefaultComboBoxModel toComboBoxModel(DfmSeriesDescriptor[] data) {
-        DefaultComboBoxModel result = new DefaultComboBoxModel(data);
+    private DefaultComboBoxModel toComboBoxModel(List<DfmSeriesDescriptor> data) {
+        List<DfmSeriesDescriptor> desc = new ArrayList<>();
+        List<Boolean> watched = dfmSimulation.get().getWatched();
+        for (int i = 0; i < watched.size(); i++) {
+            if (watched.get(i)) {
+                desc.add(data.get(i));
+            }
+        }
+        DefaultComboBoxModel result = new DefaultComboBoxModel(desc.toArray());
         return result;
     }
 
@@ -366,7 +372,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
         arimaDataset.addSeries("RMSE (Arima recursive est.)", new double[][]{xvalues, arimaValues});
 
         // Stdev
-        Map<Day, DfmDocument> results = this.dfmSimulation.get().getResults();
+        Map<Day, SimulationResultsDocument> results = dfmSimulation.getResults();
         Day[] cal = new Day[results.size()];
         cal = results.keySet().toArray(cal);
         Arrays.sort(cal);
@@ -376,10 +382,22 @@ public class RMSEGraphView extends javax.swing.JPanel {
         yStdev = new ArrayList<>();
 
         index = 0;
+        DfmSeriesDescriptor selected = (DfmSeriesDescriptor)comboBox.getSelectedItem();
+        List<DfmSeriesDescriptor> descs = dfmSimulation.getDescriptions();
+        int realIndex = 0;
+        boolean found = false;
+        while (!found) {
+            if (selected.description.equals(descs.get(realIndex).description)) {
+                found = true;
+            } else {
+                realIndex++;
+            } 
+        }
+        
         for (Day d : cal) {
             int horizon = d.difference(lastPeriod.lastday());
             if (dfmTs.containsKey(horizon)) {
-                TsData stdevs = results.get(d).getDfmResults().getSmoothedSeriesStdev(selectedIndex);
+                TsData stdevs = results.get(d).getSmoothedSeriesStdev()[selectedIndex];
                 if (!stdevs.getFrequency().equals(lastPeriod.getFrequency())) {
                     stdevs = stdevs.changeFrequency(lastPeriod.getFrequency(), TsAggregationType.Last, true);
                 }
@@ -474,19 +492,19 @@ public class RMSEGraphView extends javax.swing.JPanel {
     private void initComponents() {
 
         comboBoxPanel = new javax.swing.JPanel();
-        comboBox = new javax.swing.JComboBox();
         variableLabel = new javax.swing.JLabel();
+        comboBox = new javax.swing.JComboBox();
         filterButton = new javax.swing.JButton();
 
         setLayout(new java.awt.BorderLayout());
 
-        comboBoxPanel.setLayout(new java.awt.BorderLayout());
-
-        comboBoxPanel.add(comboBox, java.awt.BorderLayout.CENTER);
+        comboBoxPanel.setLayout(new javax.swing.BoxLayout(comboBoxPanel, javax.swing.BoxLayout.LINE_AXIS));
 
         org.openide.awt.Mnemonics.setLocalizedText(variableLabel, org.openide.util.NbBundle.getMessage(RMSEGraphView.class, "RMSEGraphView.variableLabel.text")); // NOI18N
         variableLabel.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 5, 1, 10));
-        comboBoxPanel.add(variableLabel, java.awt.BorderLayout.WEST);
+        comboBoxPanel.add(variableLabel);
+
+        comboBoxPanel.add(comboBox);
 
         org.openide.awt.Mnemonics.setLocalizedText(filterButton, org.openide.util.NbBundle.getMessage(RMSEGraphView.class, "RMSEGraphView.filterButton.text")); // NOI18N
         filterButton.addActionListener(new java.awt.event.ActionListener() {
@@ -494,7 +512,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
                 filterButtonActionPerformed(evt);
             }
         });
-        comboBoxPanel.add(filterButton, java.awt.BorderLayout.LINE_END);
+        comboBoxPanel.add(filterButton);
 
         add(comboBoxPanel, java.awt.BorderLayout.NORTH);
     }// </editor-fold>//GEN-END:initComponents

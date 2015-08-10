@@ -83,7 +83,6 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
     private SwingColorSchemeSupport defaultColorSchemeSupport;
     private TsCollection collection;
 
-    private DfmDocument document;
     private FilterHorizonsPanel filterHorizonsPanel;
     private FilterEvaluationSamplePanel filterSamplePanel;
 
@@ -92,7 +91,6 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
      */
     public FixedHorizonsGraphView(DfmDocument doc) {
         initComponents();
-        this.document = doc;
 
         demetraUI = DemetraUI.getDefault();
         formatter = demetraUI.getDataFormat().numberFormatter();
@@ -105,6 +103,7 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
 
         this.dfmSimulation = Optional.absent();
 
+        comboBox.setRenderer(new ComboBoxRenderer());
         comboBox.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
@@ -232,7 +231,7 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         filterHorizonsPanel = null;
         filterSamplePanel = null;
         if (dfmSimulation.isPresent()) {
-            comboBox.setModel(toComboBoxModel(document.getDfmResults().getDescriptions()));
+            comboBox.setModel(toComboBoxModel(dfmSimulation.get().getDescriptions()));
             comboBox.setEnabled(true);
         } else {
             comboBox.setModel(new DefaultComboBoxModel());
@@ -240,8 +239,15 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         }
     }
 
-    private static DefaultComboBoxModel toComboBoxModel(DfmSeriesDescriptor[] data) {
-        DefaultComboBoxModel result = new DefaultComboBoxModel(data);
+    private DefaultComboBoxModel toComboBoxModel(List<DfmSeriesDescriptor> data) {
+        List<DfmSeriesDescriptor> desc = new ArrayList<>();
+        List<Boolean> watched = dfmSimulation.get().getWatched();
+        for (int i = 0; i < watched.size(); i++) {
+            if (watched.get(i)) {
+                desc.add(data.get(i));
+            }
+        }
+        DefaultComboBoxModel result = new DefaultComboBoxModel(desc.toArray());
         return result;
     }
 
@@ -366,30 +372,40 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
     private void initComponents() {
 
         comboBoxPanel = new javax.swing.JPanel();
+        jPanel1 = new javax.swing.JPanel();
         variableLabel = new javax.swing.JLabel();
         comboBox = new javax.swing.JComboBox();
+        jPanel2 = new javax.swing.JPanel();
         variableLabel1 = new javax.swing.JLabel();
         typeComboBox = new javax.swing.JComboBox();
+        filler1 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 0));
         filterButton = new javax.swing.JButton();
         filterSampleButton = new javax.swing.JButton();
         chart = new ec.util.chart.swing.JTimeSeriesChart();
 
         setLayout(new java.awt.BorderLayout());
 
-        comboBoxPanel.setLayout(new javax.swing.BoxLayout(comboBoxPanel, javax.swing.BoxLayout.LINE_AXIS));
+        comboBoxPanel.setLayout(new javax.swing.BoxLayout(comboBoxPanel, javax.swing.BoxLayout.PAGE_AXIS));
+
+        jPanel1.setLayout(new javax.swing.BoxLayout(jPanel1, javax.swing.BoxLayout.LINE_AXIS));
 
         org.openide.awt.Mnemonics.setLocalizedText(variableLabel, org.openide.util.NbBundle.getMessage(FixedHorizonsGraphView.class, "FixedHorizonsGraphView.variableLabel.text")); // NOI18N
         variableLabel.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 5, 1, 10));
-        comboBoxPanel.add(variableLabel);
+        jPanel1.add(variableLabel);
 
-        comboBoxPanel.add(comboBox);
+        jPanel1.add(comboBox);
+
+        comboBoxPanel.add(jPanel1);
+
+        jPanel2.setLayout(new javax.swing.BoxLayout(jPanel2, javax.swing.BoxLayout.LINE_AXIS));
 
         org.openide.awt.Mnemonics.setLocalizedText(variableLabel1, org.openide.util.NbBundle.getMessage(FixedHorizonsGraphView.class, "FixedHorizonsGraphView.variableLabel1.text")); // NOI18N
         variableLabel1.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 5, 1, 10));
-        comboBoxPanel.add(variableLabel1);
+        jPanel2.add(variableLabel1);
 
         typeComboBox.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Level", "Year On Year", "Quarter On Quarter" }));
-        comboBoxPanel.add(typeComboBox);
+        jPanel2.add(typeComboBox);
+        jPanel2.add(filler1);
 
         org.openide.awt.Mnemonics.setLocalizedText(filterButton, org.openide.util.NbBundle.getMessage(FixedHorizonsGraphView.class, "FixedHorizonsGraphView.filterButton.text")); // NOI18N
         filterButton.addActionListener(new java.awt.event.ActionListener() {
@@ -397,7 +413,7 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
                 filterButtonActionPerformed(evt);
             }
         });
-        comboBoxPanel.add(filterButton);
+        jPanel2.add(filterButton);
 
         org.openide.awt.Mnemonics.setLocalizedText(filterSampleButton, org.openide.util.NbBundle.getMessage(FixedHorizonsGraphView.class, "FixedHorizonsGraphView.filterSampleButton.text")); // NOI18N
         filterSampleButton.addActionListener(new java.awt.event.ActionListener() {
@@ -405,7 +421,9 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
                 filterSampleButtonActionPerformed(evt);
             }
         });
-        comboBoxPanel.add(filterSampleButton);
+        jPanel2.add(filterSampleButton);
+
+        comboBoxPanel.add(jPanel2);
 
         add(comboBoxPanel, java.awt.BorderLayout.NORTH);
 
@@ -433,8 +451,11 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
     private ec.util.chart.swing.JTimeSeriesChart chart;
     private javax.swing.JComboBox comboBox;
     private javax.swing.JPanel comboBoxPanel;
+    private javax.swing.Box.Filler filler1;
     private javax.swing.JButton filterButton;
     private javax.swing.JButton filterSampleButton;
+    private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel2;
     private javax.swing.JComboBox typeComboBox;
     private javax.swing.JLabel variableLabel;
     private javax.swing.JLabel variableLabel1;

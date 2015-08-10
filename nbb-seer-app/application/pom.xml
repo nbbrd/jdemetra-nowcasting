@@ -14,7 +14,7 @@
     <name>nbb-seer-app-app</name>
 
     <properties>
-        <netbeans.run.params> -J-Xms128m -J-Xmx1024m -J-XX:MaxPermSize=128m</netbeans.run.params>
+        <netbeans.run.params> -J-Xms128m -J-Xmx4096m -J-XX:MaxPermSize=128m -J-XX:MaxHeapFreeRatio=50</netbeans.run.params>
         <all.clusters>${project.build.directory}/${brandingToken}</all.clusters>
     </properties>
 

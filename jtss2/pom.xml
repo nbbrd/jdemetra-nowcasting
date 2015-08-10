@@ -28,7 +28,7 @@
             <groupId>eu.europa.ec.joinup.sat</groupId>
             <artifactId>demetra-utils</artifactId>
         </dependency>
-         <dependency>
+        <dependency>
             <groupId>eu.europa.ec.joinup.sat</groupId>
             <artifactId>demetra-tss</artifactId>
         </dependency>
@@ -41,5 +41,15 @@
             <artifactId>jsr305</artifactId>
         </dependency>        
     </dependencies>
+    
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>cobertura-maven-plugin</artifactId>
+                <version>2.4</version>
+            </plugin>
+        </plugins>
+    </reporting>
   
 </project>

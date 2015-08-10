@@ -93,7 +93,6 @@ public class SimulationQuantifiedResultsView extends JPanel {
     private Formatters.Formatter<Number> formatter;
     private SwingColorSchemeSupport defaultColorSchemeSupport;
 
-    private DfmDocument document;
     private Optional<DfmSimulation> dfmSimulation;
 
     private List<CustomNode> nodes;
@@ -101,8 +100,6 @@ public class SimulationQuantifiedResultsView extends JPanel {
 
     public SimulationQuantifiedResultsView(DfmDocument doc) {
         setLayout(new BorderLayout());
-
-        this.document = doc;
 
         // Top panel
         comboBoxPanel = new JPanel();
@@ -112,6 +109,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
         comboBoxPanel.add(variableLabel);
 
         comboBox = new JComboBox();
+        comboBox.setRenderer(new ComboBoxRenderer());
         comboBoxPanel.add(comboBox);
 
         typeLabel = new JLabel("Type :");
@@ -120,7 +118,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
         typeComboBox = new JComboBox(new DefaultComboBoxModel(new String[]{"Level", "Year On Year", "Quarter On Quarter"}));
         comboBoxPanel.add(typeComboBox);
 
-        filterButton = new JButton("Filter evaluation sample");
+        filterButton = new JButton("Filter sample");
         typeLabel.setBorder(BorderFactory.createEmptyBorder(1, 5, 0, 0));
         filterButton.addActionListener(new java.awt.event.ActionListener() {
             @Override
@@ -224,7 +222,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
     private void updateComboBox() {
         filterPanel = null;
         if (dfmSimulation.isPresent()) {
-            comboBox.setModel(toComboBoxModel(document.getDfmResults().getDescriptions()));
+            comboBox.setModel(toComboBoxModel(dfmSimulation.get().getDescriptions()));
             comboBox.setEnabled(true);
         } else {
             comboBox.setModel(new DefaultComboBoxModel());
@@ -232,13 +230,20 @@ public class SimulationQuantifiedResultsView extends JPanel {
         }
     }
 
-    private static DefaultComboBoxModel toComboBoxModel(DfmSeriesDescriptor[] data) {
-        DefaultComboBoxModel result = new DefaultComboBoxModel(data);
+    private DefaultComboBoxModel toComboBoxModel(List<DfmSeriesDescriptor> data) {
+        List<DfmSeriesDescriptor> desc = new ArrayList<>();
+        List<Boolean> watched = dfmSimulation.get().getWatched();
+        for (int i = 0; i < watched.size(); i++) {
+            if (watched.get(i)) {
+                desc.add(data.get(i));
+            }
+        }
+        DefaultComboBoxModel result = new DefaultComboBoxModel(desc.toArray());
         return result;
     }
 
     private void updateOutlineModel() {
-        if (document != null
+        if (dfmSimulation != null
                 && dfmSimulation.isPresent()
                 && comboBox.getSelectedIndex() != -1
                 && typeComboBox.getSelectedIndex() != -1) {
@@ -335,7 +340,11 @@ public class SimulationQuantifiedResultsView extends JPanel {
         List<Double> valuesMAE = new ArrayList<>();
         List<Double> valuesMdAE = new ArrayList<>();
         for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon).fittoDomain(dom), arimaTs.get(horizon).fittoDomain(dom), trueTsData.fittoDomain(dom));
+            ForecastEvaluationResults rslt = new ForecastEvaluationResults(
+                    dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom), 
+                    arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom), 
+                    trueTsData.fittoDomain(dom));
+            
             valuesRMSE.add(rslt.calcRMSE());
             valuesMAE.add(rslt.calcMAE());
             valuesMdAE.add(rslt.calcMdAE());
@@ -352,7 +361,11 @@ public class SimulationQuantifiedResultsView extends JPanel {
         List<Double> values_sMAPE = new ArrayList<>();
         List<Double> values_sMdAPE = new ArrayList<>();
         for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon).fittoDomain(dom), arimaTs.get(horizon).fittoDomain(dom), trueTsData.fittoDomain(dom));
+            ForecastEvaluationResults rslt = new ForecastEvaluationResults(
+                    dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom), 
+                    arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom), 
+                    trueTsData.fittoDomain(dom));
+            
             valuesRMSPE.add(rslt.calcRMSPE());
             values_sMAPE.add(rslt.calc_sMAPE());
             values_sMdAPE.add(rslt.calc_sMdAPE());
@@ -369,7 +382,11 @@ public class SimulationQuantifiedResultsView extends JPanel {
         List<Double> valuesMASE = new ArrayList<>();
         List<Double> values_MdASE = new ArrayList<>();
         for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon).fittoDomain(dom), arimaTs.get(horizon).fittoDomain(dom), trueTsData.fittoDomain(dom));
+            ForecastEvaluationResults rslt = new ForecastEvaluationResults(
+                    dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom), 
+                    arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom), 
+                    trueTsData.fittoDomain(dom));
+            
             valuesRMSSE.add(rslt.calcRMSSE());
             valuesMASE.add(rslt.calcMASE());
             values_MdASE.add(rslt.calcMdASE());
@@ -388,7 +405,11 @@ public class SimulationQuantifiedResultsView extends JPanel {
         valuesMAE = new ArrayList<>();
         valuesMdAE = new ArrayList<>();
         for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon).fittoDomain(dom), arimaTs.get(horizon).fittoDomain(dom), trueTsData.fittoDomain(dom));
+            ForecastEvaluationResults rslt = new ForecastEvaluationResults(
+                    dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom), 
+                    arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom), 
+                    trueTsData.fittoDomain(dom));
+            
             valuesRMSE.add(rslt.calcRelRMSE());
             valuesMAE.add(rslt.calcRelMAE());
             valuesMdAE.add(rslt.calcRelMdAE());
@@ -405,7 +426,11 @@ public class SimulationQuantifiedResultsView extends JPanel {
         values_sMAPE = new ArrayList<>();
         values_sMdAPE = new ArrayList<>();
         for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon).fittoDomain(dom), arimaTs.get(horizon).fittoDomain(dom), trueTsData.fittoDomain(dom));
+            ForecastEvaluationResults rslt = new ForecastEvaluationResults(
+                    dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom), 
+                    arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom), 
+                    trueTsData.fittoDomain(dom));
+            
             valuesRMSPE.add(rslt.calcRelRMSPE());
             values_sMAPE.add(rslt.calcRel_sMAPE());
             values_sMdAPE.add(rslt.calcRel_sMdAPE());
@@ -422,7 +447,11 @@ public class SimulationQuantifiedResultsView extends JPanel {
         valuesMASE = new ArrayList<>();
         values_MdASE = new ArrayList<>();
         for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon).fittoDomain(dom), arimaTs.get(horizon).fittoDomain(dom), trueTsData.fittoDomain(dom));
+            ForecastEvaluationResults rslt = new ForecastEvaluationResults(
+                    dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom), 
+                    arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom), 
+                    trueTsData.fittoDomain(dom));
+            
             valuesRMSSE.add(rslt.calcRelRMSSE());
             valuesMASE.add(rslt.calcRelMASE());
             values_MdASE.add(rslt.calcRelMdASE());
@@ -435,7 +464,11 @@ public class SimulationQuantifiedResultsView extends JPanel {
 
         List<Double> pbValues = new ArrayList<>();
         for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon).fittoDomain(dom), arimaTs.get(horizon).fittoDomain(dom), trueTsData.fittoDomain(dom));
+            ForecastEvaluationResults rslt = new ForecastEvaluationResults(
+                    dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom), 
+                    arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom), 
+                    trueTsData.fittoDomain(dom));
+            
             pbValues.add(rslt.calcPB());
         }
         relative.addChild(new SimulationNode("Percentage better", pbValues));
@@ -448,7 +481,11 @@ public class SimulationQuantifiedResultsView extends JPanel {
         List<Double> dmSqValues = new ArrayList<>();
         List<Double> dmAbsValues = new ArrayList<>();
         for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon).fittoDomain(dom), arimaTs.get(horizon).fittoDomain(dom), trueTsData.fittoDomain(dom));
+            ForecastEvaluationResults rslt = new ForecastEvaluationResults(
+                    dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom), 
+                    arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom), 
+                    trueTsData.fittoDomain(dom));
+            
             AccuracyTests test = rslt.new AccuracyTests();
             dmSqValues.add(test.getDM());
             dmAbsValues.add(test.getDMabs());
@@ -460,7 +497,11 @@ public class SimulationQuantifiedResultsView extends JPanel {
 
         List<Double> encValues = new ArrayList<>();
         for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(dfmTs.get(horizon).fittoDomain(dom), arimaTs.get(horizon).fittoDomain(dom), trueTsData.fittoDomain(dom));
+            ForecastEvaluationResults rslt = new ForecastEvaluationResults(
+                    dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom), 
+                    arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom), 
+                    trueTsData.fittoDomain(dom));
+            
             AccuracyTests test = rslt.new AccuracyTests();
             encValues.add(test.getDM_e());
         }

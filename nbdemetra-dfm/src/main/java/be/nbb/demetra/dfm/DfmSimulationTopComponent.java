@@ -29,6 +29,7 @@ import ec.tss.dfm.DfmDocument;
 import ec.tss.dfm.DfmProcessingFactory;
 import ec.tss.dfm.DfmSimulation;
 import ec.tss.dfm.DfmSimulationResults;
+import ec.tss.dfm.SimulationResultsDocument;
 import ec.tss.dfm.VersionedDfmDocument;
 import ec.tstoolkit.dfm.DfmSimulationSpec;
 import ec.tstoolkit.dfm.DfmSpec;
@@ -71,6 +72,7 @@ import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
 import javax.swing.SwingWorker;
@@ -220,7 +222,7 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
 //            last.move(-3 * last.getFrequency().intValue());
             publish("Processing simulation of DFM...");
             simulation.process(vdoc.getCurrent(), new ArrayList<>(Arrays.asList(vdoc.getCurrent().getSpecification().getSimulationSpec().getEstimationDays())));
-            Map<Day, DfmDocument> results = simulation.getResults();
+            Map<Day, SimulationResultsDocument> results = simulation.getResults();
             Day[] cal = new Day[results.size()];
             cal = results.keySet().toArray(cal);
             Arrays.sort(cal);
@@ -231,64 +233,68 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
             }
 
             for (int s = 0; s < info.getSeriesCount(); ++s) {
-                TsDataTable tble = new TsDataTable();
-                for (int i = 0; i < cal.length; ++i) {
-                    TsData f = results.get(cal[i]).getResults().getData(InformationSet.concatenate(DfmProcessingFactory.FINALC, "var" + (s + 1)), TsData.class);
-                    tble.insert(-1, f);
-                }
-                tble.insert(-1, info.series(s));
+                boolean isWatched = vdoc.getCurrent().getSpecification().getModelSpec().getMeasurements().get(s).isWatched();
 
-                TsDataTable tble2 = new TsDataTable();
-                ArimaForecaster af = new ArimaForecaster(TramoSpecification.TRfull.build());
+                if (isWatched) {
+                    TsDataTable tble = new TsDataTable();
+                    for (int i = 0; i < cal.length; ++i) {
+                        TsData f = results.get(cal[i]).getSimulationResults().getData(InformationSet.concatenate(DfmProcessingFactory.FINALC, "var" + (s + 1)), TsData.class);
+                        
+                        tble.insert(-1, f);
+                    }
+                    tble.insert(-1, info.series(s));
 
-                publish("Processing simulation of Arima for series #" + s + "...");
-                for (int i = 0; i < cal.length; ++i) {
-                    af.process(info.generateInformation(delays, cal[i]), s, horizon);
-                    TsData f = af.getForecast();
+                    TsDataTable tble2 = new TsDataTable();
+                    ArimaForecaster af = new ArimaForecaster(TramoSpecification.TRfull.build());
+
+                    publish("Processing simulation of Arima for series #" + s + "...");
+                    for (int i = 0; i < cal.length; ++i) {
+                        af.process(info.generateInformation(delays, cal[i]), s, horizon);
+                        TsData f = af.getForecast();
 
                     // Fill with true values
-                    //fillValues(f, info.series(s), tble.getDomain(), cal);
-                    tble2.insert(-1, f);
-                }
-                tble2.insert(-1, info.series(s));
+                        //fillValues(f, info.series(s), tble.getDomain(), cal);
+                        tble2.insert(-1, f);
+                    }
+                    tble2.insert(-1, info.series(s));
 
-                publish("Writing result's files to selected folder...");
-                String nfile = Paths.concatenate(folder.getAbsolutePath(), "dfm-" + (s + 1));
-                nfile = Paths.changeExtension(nfile, "txt");
-                try (FileWriter writer = new FileWriter(nfile)) {
-                    StringWriter swriter = new StringWriter();
-                    write(swriter, tble, cal);
-                    writer.append(swriter.toString());
-                } catch (IOException err) {
-                }
+                    publish("Writing result's files to selected folder...");
+                    String nfile = Paths.concatenate(folder.getAbsolutePath(), "dfm-" + (s + 1));
+                    nfile = Paths.changeExtension(nfile, "txt");
+                    try (FileWriter writer = new FileWriter(nfile)) {
+                        StringWriter swriter = new StringWriter();
+                        write(swriter, tble, cal);
+                        writer.append(swriter.toString());
+                    } catch (IOException err) {
+                    }
 
-                nfile = Paths.concatenate(folder.getAbsolutePath(), "dfm-test-" + (s + 1));
-                nfile = Paths.changeExtension(nfile, "txt");
-                try (FileWriter writer = new FileWriter(nfile)) {
-                    StringWriter swriter = new StringWriter();
-                    simulation.getDfmResults().add(createFHTable(swriter, tble, cal, delays.get(s)));
-                    writer.append(swriter.toString());
-                } catch (IOException err) {
-                }
+                    nfile = Paths.concatenate(folder.getAbsolutePath(), "dfm-test-" + (s + 1));
+                    nfile = Paths.changeExtension(nfile, "txt");
+                    try (FileWriter writer = new FileWriter(nfile)) {
+                        StringWriter swriter = new StringWriter();
+                        simulation.getDfmResults().add(createFHTable(swriter, tble, cal, delays.get(s)));
+                        writer.append(swriter.toString());
+                    } catch (IOException err) {
+                    }
 
-                nfile = Paths.concatenate(folder.getAbsolutePath(), "arima-" + (s + 1));
-                nfile = Paths.changeExtension(nfile, "txt");
-                try (FileWriter writer = new FileWriter(nfile)) {
-                    StringWriter swriter = new StringWriter();
-                    write(swriter, tble2, cal);
-                    writer.append(swriter.toString());
-                } catch (IOException err) {
-                }
+                    nfile = Paths.concatenate(folder.getAbsolutePath(), "arima-" + (s + 1));
+                    nfile = Paths.changeExtension(nfile, "txt");
+                    try (FileWriter writer = new FileWriter(nfile)) {
+                        StringWriter swriter = new StringWriter();
+                        write(swriter, tble2, cal);
+                        writer.append(swriter.toString());
+                    } catch (IOException err) {
+                    }
 
-                nfile = Paths.concatenate(folder.getAbsolutePath(), "arima-test-" + (s + 1));
-                nfile = Paths.changeExtension(nfile, "txt");
-                try (FileWriter writer = new FileWriter(nfile)) {
-                    StringWriter swriter = new StringWriter();
-                    simulation.getArimaResults().add(createFHTable(swriter, tble2, cal, delays.get(s)));
-                    writer.append(swriter.toString());
-                } catch (IOException err) {
+                    nfile = Paths.concatenate(folder.getAbsolutePath(), "arima-test-" + (s + 1));
+                    nfile = Paths.changeExtension(nfile, "txt");
+                    try (FileWriter writer = new FileWriter(nfile)) {
+                        StringWriter swriter = new StringWriter();
+                        simulation.getArimaResults().add(createFHTable(swriter, tble2, cal, delays.get(s)));
+                        writer.append(swriter.toString());
+                    } catch (IOException err) {
+                    }
                 }
-
             }
             publish("Done !");
 
@@ -535,7 +541,7 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
                 } catch (TsException ex) {
                     trueValuesYoY.add(Double.NaN);
                 }
-                
+
                 try {
                     TsDataTableInfo infoLastQuarter = table.getDataInfo(i - (frequency / 4), table.getSeriesCount() - 1);
                     if (infoLastQuarter == TsDataTableInfo.Valid) {
@@ -562,7 +568,7 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
         r.setTrueValues(trueValues);
         r.setTrueValuesYoY(trueValuesYoY);
         r.setTrueValuesQoQ(trueValuesQoQ);
-
+        
         return r;
     }
 
@@ -745,6 +751,11 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
             } else {
                 if (c.getDocument() != null && !c.getDocument().isReadOnly()) {
                     if (c.getDocument().getElement() instanceof VersionedDfmDocument) {
+                        if (c.controller.getDfmState() != DfmState.DONE) {
+                            JOptionPane.showMessageDialog(null, "DFM processing must be done before the simulation !", "Error", JOptionPane.ERROR_MESSAGE);
+                            return;
+                        }
+                        
                         chooser.setDialogTitle("Select the output folder");
                         chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
                         chooser.setAcceptAllFileFilterUsed(false);

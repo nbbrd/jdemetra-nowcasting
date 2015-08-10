@@ -25,6 +25,7 @@ import ec.tstoolkit.timeseries.information.TsInformationSet;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -38,17 +39,21 @@ import java.util.Map;
 public class DfmSimulation {
 
     private final Day horizon_;
-    private Map<Day, DfmDocument> rslts_ = new HashMap<>(); // Results of the simulation process
+    private Map<Day, SimulationResultsDocument> rslts_ = new HashMap<>(); // Results of the simulation process
     private final List<DfmSimulationResults> arimaResults;    // built results for arima
     private final List<DfmSimulationResults> dfmResults;  // built results for dfm
+    private final List<DfmSeriesDescriptor> descriptions;
+    private final List<Boolean> watched;
 
     public DfmSimulation(Day horizon) {
         horizon_ = horizon;
         arimaResults = new ArrayList<>();
         dfmResults = new ArrayList<>();
+        descriptions = new ArrayList<>();
+        watched = new ArrayList<>();
     }
 
-    public Map<Day, DfmDocument> getResults() {
+    public Map<Day, SimulationResultsDocument> getResults() {
         return rslts_;
     }
 
@@ -58,6 +63,14 @@ public class DfmSimulation {
 
     public List<DfmSimulationResults> getDfmResults() {
         return dfmResults;
+    }
+
+    public List<DfmSeriesDescriptor> getDescriptions() {
+        return descriptions;
+    }
+
+    public List<Boolean> getWatched() {
+        return watched;
     }
 
     /**
@@ -75,13 +88,21 @@ public class DfmSimulation {
 
         TsInformationSet info = new TsInformationSet(refdoc.getData());
 
+        descriptions.addAll(Arrays.asList(refdoc.getDfmResults().getDescriptions()));
+        for (MeasurementSpec ms : refdoc.getSpecification().getModelSpec().getMeasurements()) {
+            watched.add(ms.isWatched());
+        }
+
+        DfmDocument doc;
         for (int i = 0; i < ed.length; ++i) {
-            DfmDocument doc = new DfmDocument();
+            doc = new DfmDocument();
             // current information
             TsInformationSet cinfo = info.generateInformation(spec.getModelSpec().getPublicationDelays(), ed[i]);
             Ts[] curinput = new Ts[input.length];
             for (int j = 0; j < input.length; ++j) {
+                //if (watched.get(j)) {
                 curinput[j] = TsFactory.instance.createTs(input[j].getRawName(), null, cinfo.series(j));
+                //}
             }
             doc.setInput(curinput);
             // update the specification
@@ -100,8 +121,11 @@ public class DfmSimulation {
             doc.setSpecification(curspec);
             doc.getResults();
             spec = doc.getSpecification();
+
             //spec = curspec;
-            rslts_.put(ed[i], doc);
+            SimulationResultsDocument rslts = new SimulationResultsDocument(doc.getResults(), doc.getDfmResults());
+            rslts.setSmoothedSeriesStdev(doc.getDfmResults().getSmoothedSeriesStdev());
+            rslts_.put(ed[i], rslts);
         }
 
         return true;

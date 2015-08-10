@@ -18,7 +18,6 @@ package ec.tstoolkit.mssf2;
 
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.design.Development;
-import ec.tstoolkit.maths.matrices.LowerTriangularMatrix;
 import ec.tstoolkit.ssf2.ResidualsCumulator;
 
 /**

@@ -18,8 +18,6 @@ package ec.tstoolkit.mssf2;
 
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.data.DataBlockIterator;
-import ec.tstoolkit.eco.DiffuseLikelihood;
-import ec.tstoolkit.eco.Likelihood;
 import ec.tstoolkit.maths.matrices.LowerTriangularMatrix;
 import ec.tstoolkit.maths.matrices.Matrix;
 import ec.tstoolkit.maths.matrices.SubMatrix;

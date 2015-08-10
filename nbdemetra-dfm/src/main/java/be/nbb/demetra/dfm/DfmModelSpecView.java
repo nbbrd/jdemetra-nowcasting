@@ -97,6 +97,7 @@ public final class DfmModelSpecView extends JComponent {
         this.view = new XTable();
 
         view.addMouseListener(new PopupListener.PopupAdapter(createMenu().getPopupMenu()));
+        view.setDefaultRenderer(String.class, new SeriesNameRenderer());
         view.setDefaultRenderer(Transformation[].class, new TransformationRenderer());
         view.setDefaultRenderer(Integer.class, new DelayRenderer());
         view.setDefaultRenderer(MeasurementType.class, new MeasurementTypeRenderer());
@@ -182,6 +183,7 @@ public final class DfmModelSpecView extends JComponent {
         result.add(new MoveVariableUpCommand().toAction(view)).setText("Move up");
         result.add(new MoveVariableDownCommand().toAction(view)).setText("Move down");
         result.add(new Separator());
+        result.add(new WatchSerieCommand().toAction(view)).setText("Enable/disable the generation of data");
         result.add(new UseForGenerationCommand().toAction(view)).setText("Enable/disable use for calendar generation");
         return result;
     }
@@ -325,7 +327,18 @@ public final class DfmModelSpecView extends JComponent {
             }
         }
         
-        
+        public void watchSeries(int[] rows) {
+            if (!model.isLocked() && rows != null && rows.length > 0 && rows.length <= variables.getCount()) {
+                DfmSpec spec = model.getSpecification().cloneDefinition();
+                for (int r : rows) {
+                    spec.getModelSpec().getMeasurements().get(r).toggleWatched();
+                }
+
+                model.setInput(variables.isEmpty() ? null : variables.toArray());
+                model.setSpecification(spec);
+                firePropertyChange(MODEL_PROPERTY, null, model);
+            }
+        }
 
         public void moveVariableUp(int row) {
             if (!model.isLocked() && row > 0) {
@@ -405,6 +418,50 @@ public final class DfmModelSpecView extends JComponent {
             l.setToolTipText(used ? "Used to generate publication calendar" : null);
             l.setHorizontalAlignment(SwingConstants.RIGHT);
             l.setHorizontalTextPosition(SwingConstants.LEFT);
+
+            return l;
+        }
+
+        private String convertToString(Object value) {
+            if (value instanceof Integer) {
+                int val = (int) value;
+                if (val == 0) {
+                    return "0 days";
+                } else {
+                    String string = "";
+                    if (val % 30 == 0) {
+                        int months = Math.abs(val / 30);
+                        string = months + " month" + (months > 1 ? "s" : "");
+                    } else if (val % 7 == 0) {
+                        int weeks = Math.abs(val / 7);
+                        string = weeks + " week" + (weeks > 1 ? "s" : "");
+                    } else {
+                        string = Math.abs(val) + " day" + (Math.abs(val) > 1 ? "s" : "");
+                    }
+
+                    string += val > 0 ? " after" : " before";
+                    return string;
+                }
+            } else {
+                return value.toString();
+            }
+        }
+    }
+    
+    private static final class SeriesNameRenderer extends DefaultTableCellRenderer {
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            JLabel l = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+            ModelSpecModel model = (ModelSpecModel) table.getModel();
+            boolean watched = model.getMeasurements().get(row).isWatched();
+
+            l.setText(convertToString(value));
+            l.setIcon(FontAwesome.FA_EYE.getIcon(watched ? isSelected ? Color.WHITE : Color.BLUE : Color.LIGHT_GRAY, l.getFont().getSize()));
+            l.setToolTipText(watched ? "Data for this series will be generated" : null);
+            l.setHorizontalAlignment(SwingConstants.LEFT);
+            l.setHorizontalTextPosition(SwingConstants.RIGHT);
 
             return l;
         }
@@ -557,6 +614,35 @@ public final class DfmModelSpecView extends JComponent {
                 rows[i] = component.convertRowIndexToModel(component.getSelectedRows()[i]);
             }
             model.useForCalendarGeneration(rows);
+        }
+
+        @Override
+        public boolean isEnabled(XTable component) {
+            return !component.isEditing() && component.getSelectedRowCount() > 0;
+        }
+
+        @Override
+        public JCommand.ActionAdapter toAction(XTable component) {
+            return super.toAction(component)
+                    .withWeakListSelectionListener(component.getSelectionModel())
+                    .withWeakPropertyChangeListener(component, "tableCellEditor");
+        }
+    }
+    
+    private static final class WatchSerieCommand extends JCommand<XTable> {
+
+        @Override
+        public void execute(XTable component) throws Exception {
+            if (!component.isEnabled()) {
+                return;
+            }
+
+            ModelSpecModel model = (ModelSpecModel) component.getModel();
+            int[] rows = new int[component.getSelectedRowCount()];
+            for (int i = 0; i < component.getSelectedRowCount(); i++) {
+                rows[i] = component.convertRowIndexToModel(component.getSelectedRows()[i]);
+            }
+            model.watchSeries(rows);
         }
 
         @Override

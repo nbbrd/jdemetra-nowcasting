@@ -22,11 +22,11 @@ import ec.nbdemetra.ui.notification.MessageType;
 import ec.nbdemetra.ui.notification.NotifyUtil;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.nodes.ItemWsNode;
-import ec.tss.dfm.DfmDocument;
 import ec.tss.dfm.DfmProcessingFactory;
 import ec.tss.dfm.DfmResults;
 import ec.tss.dfm.DfmSimulation;
 import ec.tss.dfm.DfmSimulationResults;
+import ec.tss.dfm.SimulationResultsDocument;
 import ec.tss.dfm.VersionedDfmDocument;
 import ec.tstoolkit.data.DataBlock;
 import ec.tstoolkit.dfm.DfmNews;
@@ -116,7 +116,7 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
             last.move(-3 * last.getFrequency().intValue());
             publish("Processing simulation of DFM...");
             simulation.process(vdoc.getCurrent(), new ArrayList<>(Arrays.asList(vdoc.getCurrent().getSpecification().getSimulationSpec().getEstimationDays())));
-            Map<Day, DfmDocument> results = simulation.getResults();
+            Map<Day, SimulationResultsDocument> results = simulation.getResults();
             Day[] cal = new Day[results.size()];
             cal = results.keySet().toArray(cal);
             Arrays.sort(cal);
@@ -124,10 +124,10 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
                 TsDataTable tble = new TsDataTable();
                 TsInformationSet oinfo = null;
                 for (int i = 0; i < cal.length; ++i) {
-                    DfmDocument doc = results.get(cal[i]);
+                    SimulationResultsDocument doc = results.get(cal[i]);
                     DfmResults dr = doc.getDfmResults();
                     // be aware that the standard deviations correspond to the series used in the estimation (log, sa...)
-                    TsData stde = dr.getSmoothedSeriesStdev(i);
+                    //TsData stde = dr.getSmoothedSeriesStdev(i);
                     if (oinfo != null) {
                         TsInformationSet ninfo = dr.getInput();
                         DfmNews dfmnews = new DfmNews(dr.getModel());
@@ -138,8 +138,9 @@ public final class ForecastSimulationAction extends SingleNodeAction<ItemWsNode>
                         insert the results you want
                         */
                     }
-                    TsData f = doc.getResults().getData(InformationSet.concatenate(DfmProcessingFactory.FINALC, "var" + (s + 1)), TsData.class);
+                    TsData f = doc.getDfmResults().getData(InformationSet.concatenate(DfmProcessingFactory.FINALC, "var" + (s + 1)), TsData.class).clone();
                     tble.insert(-1, f);
+                    dr.clear();
                 }
                 tble.insert(-1, info.series(s));
 

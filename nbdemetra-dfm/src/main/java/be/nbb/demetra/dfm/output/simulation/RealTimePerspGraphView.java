@@ -16,6 +16,7 @@
  */
 package be.nbb.demetra.dfm.output.simulation;
 
+import be.nbb.demetra.dfm.output.simulation.utils.FilterEvaluationSamplePanel;
 import com.google.common.base.Optional;
 import ec.nbdemetra.ui.DemetraUI;
 import ec.tss.dfm.DfmDocument;
@@ -50,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.JOptionPane;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.NumberTickUnit;
@@ -90,16 +92,15 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
     private JFreeChart detailChart;
     private JChartPanel chartPanel;
 
-    private int indexSelected = -1;
+    private FilterEvaluationSamplePanel filterPanel;
 
-    private DfmDocument document;
+    private int indexSelected = -1;
 
     /**
      * Creates new form FixedHorizonsGraphView
      */
     public RealTimePerspGraphView(DfmDocument doc) {
         initComponents();
-        this.document = doc;
 
         demetraUI = DemetraUI.getDefault();
         formatter = demetraUI.getDataFormat().numberFormatter();
@@ -163,9 +164,11 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
             }
         });
 
+        comboBox.setRenderer(new ComboBoxRenderer());
         comboBox.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
+                filterPanel = null;
                 updateChart();
             }
         });
@@ -228,6 +231,8 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
     }
 
     private void showMain() {
+        XYPlot plot = mainChart.getXYPlot();
+        rescaleAxis((NumberAxis) plot.getRangeAxis());
         chartPanel.setChart(mainChart);
         onColorSchemeChanged();
     }
@@ -312,7 +317,7 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
 
     private void updateComboBox() {
         if (dfmSimulation.isPresent()) {
-            comboBox.setModel(toComboBoxModel(document.getDfmResults().getDescriptions()));
+            comboBox.setModel(toComboBoxModel(dfmSimulation.get().getDescriptions()));
             comboBox.setEnabled(true);
         } else {
             comboBox.setModel(new DefaultComboBoxModel());
@@ -320,13 +325,21 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
         }
     }
 
-    private static DefaultComboBoxModel toComboBoxModel(DfmSeriesDescriptor[] data) {
-        DefaultComboBoxModel result = new DefaultComboBoxModel(data);
+    private DefaultComboBoxModel toComboBoxModel(List<DfmSeriesDescriptor> data) {
+        List<DfmSeriesDescriptor> desc = new ArrayList<>();
+        List<Boolean> watched = dfmSimulation.get().getWatched();
+        for (int i = 0; i < watched.size(); i++) {
+            if (watched.get(i)) {
+                desc.add(data.get(i));
+            }
+        }
+        DefaultComboBoxModel result = new DefaultComboBoxModel(desc.toArray());
         return result;
     }
 
-    List<Integer> horizons;
-    List<TsPeriod> periods;
+    private List<Integer> horizons;
+    private List<TsPeriod> periods;
+    private List<TsPeriod> filteredPeriods;
 
     private void displayResults(DfmSimulation dfmSimulation) {
         graphs_.clear();
@@ -345,6 +358,13 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
         horizons = dfm.getForecastHorizons();
         periods = dfm.getEvaluationSample();
 
+        // Remove periods of evaluation sample not in true values domain
+        filteredPeriods = filterEvaluationSample(trueValues);
+
+        if (filterPanel == null) {
+            filterPanel = new FilterEvaluationSamplePanel(filteredPeriods);
+        }
+
         int np = horizons.size() - 1; // - 1 ???
         double xstart = -0.4;
         double xend = 0.4;
@@ -354,71 +374,86 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
         Double[][] arimaFcts = arima.getForecastsArray();
 
         //Double[][] arimaFcts = arima.getForecastsArray();
-        for (int i = 0; i < periods.size(); i++) {
-            double x = xstart;
-            double[] dfmData = new double[horizons.size()];
-            double[] arimaData = new double[horizons.size()];
-            for (int j = 0; j < horizons.size(); j++) {
-                dfmData[j] = dfmFcts[j][i] == null ? Double.NaN : dfmFcts[j][i];
-                arimaData[j] = arimaFcts[j][i] == null ? Double.NaN : arimaFcts[j][i];
-            }
+        TsPeriod start = filteredPeriods.get(filterPanel.getStart());
+        TsPeriod end = filteredPeriods.get(filterPanel.getEnd());
+        int startIndex = periods.indexOf(start);
+        int endIndex = periods.indexOf(end);
+        
+        for (int i = startIndex; i <= endIndex; i++) {
+                double x = xstart;
+                double[] dfmData = new double[horizons.size()];
+                double[] arimaData = new double[horizons.size()];
+                for (int j = 0; j < horizons.size(); j++) {
+                    dfmData[j] = dfmFcts[j][i] == null ? Double.NaN : dfmFcts[j][i];
+                    arimaData[j] = arimaFcts[j][i] == null ? Double.NaN : arimaFcts[j][i];
+                }
 
-            int n = dfmData.length;
-            double m = trueValues.get(i) == null ? Double.NaN : trueValues.get(i);
-            double[] trueX = {xstart, xend};
-            double[] true2X = {horizons.get(0), horizons.get(np)};
-            double[] trueY = {m, m};
-            double[] dfmX = new double[n], dfm2X = new double[n];
-            double[] dfmY = new double[n], dfm2Y = new double[n];
-            double[] arimaX = new double[n], arima2X = new double[n];
-            double[] arimaY = new double[n], arima2Y = new double[n];
+                int n = dfmData.length;
+                double m = trueValues.get(i) == null ? Double.NaN : trueValues.get(i);
+                double[] trueX = {xstart, xend};
+                double[] true2X = {horizons.get(0), horizons.get(np)};
+                double[] trueY = {m, m};
+                double[] dfmX = new double[n], dfm2X = new double[n];
+                double[] dfmY = new double[n], dfm2Y = new double[n];
+                double[] arimaX = new double[n], arima2X = new double[n];
+                double[] arimaY = new double[n], arima2Y = new double[n];
 
-            for (int j = 0; j < n; j++) {
-                dfmX[j] = x;
-                dfmY[j] = dfmData[j];
-                dfm2X[j] = horizons.get(j).doubleValue();
-                dfm2Y[j] = dfmData[j];
-                
-                arimaX[j] = x;
-                arimaY[j] = arimaData[j];
-                arima2X[j] = horizons.get(j).doubleValue();
-                arima2Y[j] = arimaData[j];
-                
-                x += xstep;
-            }
+                for (int j = 0; j < n; j++) {
+                    dfmX[j] = x;
+                    dfmY[j] = dfmData[j];
+                    dfm2X[j] = horizons.get(j).doubleValue();
+                    dfm2Y[j] = dfmData[j];
 
-            String itemName = periods.get(i).toString();
-            BasicXYDataset.Series mean = BasicXYDataset.Series.of(itemName, trueX, trueY);
-            BasicXYDataset.Series mean2 = BasicXYDataset.Series.of(itemName, true2X, trueY);
-            BasicXYDataset.Series points = BasicXYDataset.Series.of(itemName, dfmX, dfmY);
-            BasicXYDataset.Series points2 = BasicXYDataset.Series.of(itemName, dfm2X, dfm2Y);
-            BasicXYDataset.Series arimaSeries = BasicXYDataset.Series.of(itemName, arimaX, arimaY);
-            BasicXYDataset.Series arima2Series = BasicXYDataset.Series.of(itemName, arima2X, arima2Y);
+                    arimaX[j] = x;
+                    arimaY[j] = arimaData[j];
+                    arima2X[j] = horizons.get(j).doubleValue();
+                    arima2Y[j] = arimaData[j];
 
-            Bornes b = new Bornes(xstart, xend);
-            Graphs g = new Graphs(mean2, points2, arima2Series, itemName);
-            graphs_.put(b, g);
+                    x += xstep;
+                }
 
-            trueDataset.addSeries(mean);
-            fctsDataset.addSeries(points);
-            arimaDataset.addSeries(arimaSeries);
+                String itemName = periods.get(i).toString();
+                BasicXYDataset.Series mean = BasicXYDataset.Series.of(itemName, trueX, trueY);
+                BasicXYDataset.Series mean2 = BasicXYDataset.Series.of(itemName, true2X, trueY);
+                BasicXYDataset.Series points = BasicXYDataset.Series.of(itemName, dfmX, dfmY);
+                BasicXYDataset.Series points2 = BasicXYDataset.Series.of(itemName, dfm2X, dfm2Y);
+                BasicXYDataset.Series arimaSeries = BasicXYDataset.Series.of(itemName, arimaX, arimaY);
+                BasicXYDataset.Series arima2Series = BasicXYDataset.Series.of(itemName, arima2X, arima2Y);
 
-            xstart++;
-            xend++;
+                Bornes b = new Bornes(xstart, xend);
+                Graphs g = new Graphs(mean2, points2, arima2Series, itemName);
+                graphs_.put(b, g);
+
+                trueDataset.addSeries(mean);
+                fctsDataset.addSeries(points);
+                arimaDataset.addSeries(arimaSeries);
+
+                xstart++;
+                xend++;
         }
 
         XYPlot plot = mainChart.getXYPlot();
-        configureAxis(plot);
+        configureAxis(plot, startIndex, endIndex);
         plot.setDataset(TRUE_DATA_INDEX, trueDataset);
         plot.setDataset(FCTS_INDEX, fctsDataset);
         plot.setDataset(ARIMA_DATA_INDEX, arimaDataset);
     }
 
-    private void configureAxis(XYPlot plot) {
+    private List<TsPeriod> filterEvaluationSample(List<Double> trueValues) {
+        List<TsPeriod> p = new ArrayList<>();
+        for (int i = 0; i < trueValues.size(); i++) {
+            if (trueValues.get(i) != null) {
+                p.add(periods.get(i));
+            }
+        }
+        return p;
+    }
+
+    private void configureAxis(XYPlot plot, int start, int end) {
         int nb = graphs_.size();
         List<String> names = new ArrayList<>();
-        for (TsPeriod p : periods) {
-            names.add(p.toString());
+        for (int i = start; i <= end; i++) {
+            names.add(periods.get(i).toString());
         }
 
         NumberAxis xAxis = new NumberAxis();
@@ -452,26 +487,43 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
     private void initComponents() {
 
         comboBoxPanel = new javax.swing.JPanel();
-        comboBox = new javax.swing.JComboBox();
         variableLabel = new javax.swing.JLabel();
+        comboBox = new javax.swing.JComboBox();
+        filterSampleButton = new javax.swing.JButton();
 
         setLayout(new java.awt.BorderLayout());
 
-        comboBoxPanel.setLayout(new java.awt.BorderLayout());
-
-        comboBoxPanel.add(comboBox, java.awt.BorderLayout.CENTER);
+        comboBoxPanel.setLayout(new javax.swing.BoxLayout(comboBoxPanel, javax.swing.BoxLayout.LINE_AXIS));
 
         org.openide.awt.Mnemonics.setLocalizedText(variableLabel, org.openide.util.NbBundle.getMessage(RealTimePerspGraphView.class, "RealTimePerspGraphView.variableLabel.text")); // NOI18N
         variableLabel.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 5, 1, 10));
-        comboBoxPanel.add(variableLabel, java.awt.BorderLayout.WEST);
+        comboBoxPanel.add(variableLabel);
+
+        comboBoxPanel.add(comboBox);
+
+        org.openide.awt.Mnemonics.setLocalizedText(filterSampleButton, org.openide.util.NbBundle.getMessage(RealTimePerspGraphView.class, "RealTimePerspGraphView.filterSampleButton.text")); // NOI18N
+        filterSampleButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                filterSampleButtonActionPerformed(evt);
+            }
+        });
+        comboBoxPanel.add(filterSampleButton);
 
         add(comboBoxPanel, java.awt.BorderLayout.NORTH);
     }// </editor-fold>//GEN-END:initComponents
+
+    private void filterSampleButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_filterSampleButtonActionPerformed
+        int r = JOptionPane.showConfirmDialog(chartPanel, filterPanel, "Select evaluation sample", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (r == JOptionPane.OK_OPTION) {
+            updateChart();
+        }
+    }//GEN-LAST:event_filterSampleButtonActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JComboBox comboBox;
     private javax.swing.JPanel comboBoxPanel;
+    private javax.swing.JButton filterSampleButton;
     private javax.swing.JLabel variableLabel;
     // End of variables declaration//GEN-END:variables
 
@@ -506,7 +558,7 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
             if (elements < S2_.getItemCount()) {
                 elements = S2_.getItemCount();
             }
-            
+
             if (elements < S3_.getItemCount()) {
                 elements = S3_.getItemCount();
             }

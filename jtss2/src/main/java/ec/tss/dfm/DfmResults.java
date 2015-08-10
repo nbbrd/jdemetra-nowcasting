@@ -51,7 +51,7 @@ public class DfmResults implements IProcResults {
 
     private final DynamicFactorModel model;
     private IMSsf mssf;
-    private final TsInformationSet input;
+    private TsInformationSet input;
     // optimization (if any)
     private Likelihood likelihood;
     private Matrix information; // D2(log likelihood)
@@ -72,7 +72,7 @@ public class DfmResults implements IProcResults {
     private TsData[] smoothedSignalUncertainty; // incorporates stdev
     private DfmSeriesDescriptor[] description;
     private TsData[] smoothedSignalProjection; // incorporates mean and stdev
-    
+
     private final List<ProcessingInformation> infos = new ArrayList<>();
 
     public DfmResults(DynamicFactorModel model, TsInformationSet input) {
@@ -82,6 +82,24 @@ public class DfmResults implements IProcResults {
 
     public DynamicFactorModel getModel() {
         return model;
+    }
+
+    public void clear() {
+        if (filtering != null) {
+            filtering.clear();
+        }
+        if (smoothing != null) {
+            smoothing.clear();
+        }
+        score = null;
+        if (information != null) {
+            information.clear();
+        }
+        input = null;
+        mssf = null;
+        if (likelihood != null) {
+            likelihood.clear();
+        }
     }
 
     public TsInformationSet getInput() {
@@ -234,7 +252,7 @@ public class DfmResults implements IProcResults {
         }
         TsDomain currentDomain = input.getCurrentDomain();
 
-     //   filtering.getFilteredData().component(idx);
+        //   filtering.getFilteredData().component(idx);
         return new TsData(currentDomain.getStart(), filtering.getFilteredData().component(idx * model.getBlockLength()), true);
     }
 
@@ -661,7 +679,7 @@ public class DfmResults implements IProcResults {
         Matrix B = C.times(R);
         DataBlock ts;
 
-       // Matrix TQT;
+        // Matrix TQT;
         Matrix Bss = new Matrix(r * c_, r * c_); // compatible with SS
 
         for (int i = 0; i < r; i++) {
@@ -713,7 +731,7 @@ public class DfmResults implements IProcResults {
             }
 
     //        Matrix    zvz = new Matrix(ssf.getVarsCount(), ssf.getVarsCount());
-              //--> ssf.ZVZ(0, Sigmax.subMatrix(), zvz.subMatrix());
+            //--> ssf.ZVZ(0, Sigmax.subMatrix(), zvz.subMatrix());
             for (int v = 0; v < N; v++) {
 
                 //--->          irfShock.set(v, h, zvz.get(v, v) * description[v].stdev);
