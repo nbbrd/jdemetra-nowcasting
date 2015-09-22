@@ -26,7 +26,6 @@ import ec.nbdemetra.ui.notification.NotifyUtil;
 import ec.nbdemetra.ui.properties.OpenIdePropertySheetBeanEditor;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.tss.dfm.DfmDocument;
-import ec.tss.dfm.DfmProcessingFactory;
 import ec.tss.dfm.DfmSimulation;
 import ec.tss.dfm.DfmSimulationResults;
 import ec.tss.dfm.SimulationResultsDocument;
@@ -34,7 +33,6 @@ import ec.tss.dfm.VersionedDfmDocument;
 import ec.tstoolkit.dfm.DfmSimulationSpec;
 import ec.tstoolkit.dfm.DfmSpec;
 import ec.tstoolkit.dfm.MeasurementSpec;
-import ec.tstoolkit.information.InformationSet;
 import ec.tstoolkit.modelling.arima.tramo.TramoSpecification;
 import ec.tstoolkit.timeseries.Day;
 import ec.tstoolkit.timeseries.TsException;
@@ -51,6 +49,8 @@ import static ec.ui.view.tsprocessing.DefaultProcessingViewer.Type.NONE;
 import ec.util.various.swing.JCommand;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -162,7 +162,6 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
                 }
                 break;
             case READY:
-                //jEditorPane1.setText("");
                 break;
             case STARTED:
                 swingWorker = new SimulationSwingWorker(getDocument());
@@ -219,7 +218,17 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
             last.move(last.getFrequency().intValue());
             Day horizon = last.lastday();
             simulation = new DfmSimulation(horizon);
-//            last.move(-3 * last.getFrequency().intValue());
+            
+            simulation.addPropertyChangeListener(new PropertyChangeListener() {
+                @Override
+                public void propertyChange(PropertyChangeEvent evt) {
+                    if (evt.getPropertyName().equals(DfmSimulation.CALENDAR_RESULTS)) {
+                        Day value = (Day)evt.getNewValue();
+                        publish("Generating data of publication date : " + value.toString() + "...");
+                    }
+                }
+            });
+            
             publish("Processing simulation of DFM...");
             simulation.process(vdoc.getCurrent(), new ArrayList<>(Arrays.asList(vdoc.getCurrent().getSpecification().getSimulationSpec().getEstimationDays())));
             Map<Day, SimulationResultsDocument> results = simulation.getResults();
@@ -236,11 +245,10 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
                 boolean isWatched = vdoc.getCurrent().getSpecification().getModelSpec().getMeasurements().get(s).isWatched();
 
                 if (isWatched) {
+                    publish("Generating results of series #" + s);
                     TsDataTable tble = new TsDataTable();
                     for (int i = 0; i < cal.length; ++i) {
-                        TsData f = results.get(cal[i]).getSimulationResults().getData(InformationSet.concatenate(DfmProcessingFactory.FINALC, "var" + (s + 1)), TsData.class);
-                        
-                        tble.insert(-1, f);
+                        tble.insert(-1, results.get(cal[i]).getSimulationResults().getData("var" + (s + 1), TsData.class));
                     }
                     tble.insert(-1, info.series(s));
 
@@ -250,11 +258,7 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
                     publish("Processing simulation of Arima for series #" + s + "...");
                     for (int i = 0; i < cal.length; ++i) {
                         af.process(info.generateInformation(delays, cal[i]), s, horizon);
-                        TsData f = af.getForecast();
-
-                    // Fill with true values
-                        //fillValues(f, info.series(s), tble.getDomain(), cal);
-                        tble2.insert(-1, f);
+                        tble2.insert(-1, af.getForecast());
                     }
                     tble2.insert(-1, info.series(s));
 
@@ -618,33 +622,6 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
         }
         Collections.sort(newHorizons);
         return newHorizons;
-
-//        List<Integer> filter = new ArrayList<>(Arrays.asList(-1825, -1460, -1095, -730, -365));
-//        List<Integer> newHorizons = new ArrayList<>();
-//        int i = 0, j = 0;
-//        while (i < h.size() && !filter.isEmpty() && h.get(i) < -90) {
-//            if (filter.get(j) < h.get(i)) {
-//                filter.remove(j);
-//            } else if (filter.get(j).equals(h.get(i))) {
-//                newHorizons.add(h.get(i));
-//                filter.remove(j);
-//            } else {
-//                while (i < h.size() && h.get(i) < filter.get(j)) {
-//                    i++;
-//                }
-//                newHorizons.add(h.get(i - 1));
-//                filter.remove(j);
-//            }
-//            i++;
-//        }
-//
-//        // Between -90 and +60
-//        while (i < h.size() && h.get(i) <= 60) {
-//            if (h.get(i) >= -90) {
-//                newHorizons.add(h.get(i));
-//            }
-//            i++;
-//        }
     }
 
     private void write(StringWriter writer, TsDataTable table, Day[] cal) {
@@ -684,29 +661,6 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
                     }
                 }
             }
-        }
-    }
-
-    private void fillValues(TsData data, TsData trueData, TsDomain dom, Day[] cal) {
-        try {
-            if (!dom.getFrequency().equals(data.getFrequency())) {
-                dom = dom.changeFrequency(data.getFrequency(), true);
-            }
-            int i0 = dom.search(cal[0]);
-            if (i0 < 0) {
-                return;
-            }
-
-            data = data.fittoDomain(dom);
-            int i = i0;
-            while (data.isMissing(i) && i < dom.getLength()) {
-
-                data.set(i, trueData.get(dom.get(i)));
-
-                i++;
-            }
-        } catch (Exception e) {
-            System.out.println("Hello exception : " + e.getMessage());
         }
     }
 
@@ -753,6 +707,22 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
                     if (c.getDocument().getElement() instanceof VersionedDfmDocument) {
                         if (c.controller.getDfmState() != DfmState.DONE) {
                             JOptionPane.showMessageDialog(null, "DFM processing must be done before the simulation !", "Error", JOptionPane.ERROR_MESSAGE);
+                            return;
+                        }
+                        
+                        VersionedDfmDocument vd = c.getDocument().getElement();
+                        List<MeasurementSpec> m = vd.getSpecification().getModelSpec().getMeasurements();
+                        int count = 0;
+                        int i = 0;
+                        while (count == 0 && i < m.size()) {
+                            if (m.get(i).isWatched()) {
+                                count++;
+                            }
+                            i++;
+                        }
+                        
+                        if (count == 0) {
+                            JOptionPane.showMessageDialog(null, "You must select at least one series for data generation !\nRight click on a series to enable/disable data generation.", "Error", JOptionPane.ERROR_MESSAGE);
                             return;
                         }
                         

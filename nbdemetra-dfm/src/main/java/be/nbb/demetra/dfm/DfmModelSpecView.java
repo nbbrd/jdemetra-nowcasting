@@ -28,6 +28,7 @@ import ec.tss.TsFactory;
 import ec.tss.TsInformationType;
 import ec.tss.datatransfer.TssTransferSupport;
 import ec.tss.dfm.DfmDocument;
+import ec.tss.tsproviders.utils.MultiLineNameUtil;
 import ec.tstoolkit.Parameter;
 import ec.tstoolkit.ParameterType;
 import ec.tstoolkit.dfm.DfmSpec;
@@ -457,38 +458,13 @@ public final class DfmModelSpecView extends JComponent {
             ModelSpecModel model = (ModelSpecModel) table.getModel();
             boolean watched = model.getMeasurements().get(row).isWatched();
 
-            l.setText(convertToString(value));
+            l.setText(MultiLineNameUtil.join(String.valueOf(value)));
             l.setIcon(FontAwesome.FA_EYE.getIcon(watched ? isSelected ? Color.WHITE : Color.BLUE : Color.LIGHT_GRAY, l.getFont().getSize()));
             l.setToolTipText(watched ? "Data for this series will be generated" : null);
             l.setHorizontalAlignment(SwingConstants.LEFT);
             l.setHorizontalTextPosition(SwingConstants.RIGHT);
 
             return l;
-        }
-
-        private String convertToString(Object value) {
-            if (value instanceof Integer) {
-                int val = (int) value;
-                if (val == 0) {
-                    return "0 days";
-                } else {
-                    String string = "";
-                    if (val % 30 == 0) {
-                        int months = Math.abs(val / 30);
-                        string = months + " month" + (months > 1 ? "s" : "");
-                    } else if (val % 7 == 0) {
-                        int weeks = Math.abs(val / 7);
-                        string = weeks + " week" + (weeks > 1 ? "s" : "");
-                    } else {
-                        string = Math.abs(val) + " day" + (Math.abs(val) > 1 ? "s" : "");
-                    }
-
-                    string += val > 0 ? " after" : " before";
-                    return string;
-                }
-            } else {
-                return value.toString();
-            }
         }
     }
 

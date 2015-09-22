@@ -110,6 +110,8 @@ public class NewsWeightsView extends JPanel {
     }
 
     public static final String RESULTS_PROPERTY = "results";
+    private static final String NEW_FORECASTS = "New Forecasts";
+    private static final String OLD_FORECASTS = "Old Forecasts";
 
     private DfmNews doc;
     private DfmSeriesDescriptor[] desc;
@@ -558,7 +560,7 @@ public class NewsWeightsView extends JPanel {
         for (int i = 0; i < updates.size(); i++) {
             TsInformationUpdates.Update updt = updates.get(i);
             TsPeriod p = updt.period;
-            if (p.firstPeriod(freq).isNotBefore(newsStart)) {
+            if (p.lastPeriod(freq).isNotBefore(newsStart)) {
                 DfmSeriesDescriptor descriptor = desc[updt.series];
                 String name = descriptor.description;
 
@@ -582,7 +584,7 @@ public class NewsWeightsView extends JPanel {
         List<CustomNode> revNodes = new ArrayList<>();
         for (int i = 0; i < revisions.size(); i++) {
             TsPeriod p = revisions.get(i).period;
-            if (p.firstPeriod(freq).isNotBefore(revsStart)) {
+            if (p.lastPeriod(freq).isNotBefore(revsStart)) {
                 DfmSeriesDescriptor descriptor = desc[revisions.get(i).series];
                 String name = descriptor.description;
 
@@ -604,8 +606,8 @@ public class NewsWeightsView extends JPanel {
             nodes.add(allRevisionsNode);
         }
 
-        nodes.add(new VariableNode("Old Forecasts", null, null, null, old_forecasts2));
-        nodes.add(new VariableNode("New Forecasts", null, null, null, new_forecasts2));
+        nodes.add(new VariableNode(OLD_FORECASTS, null, null, null, old_forecasts2));
+        nodes.add(new VariableNode(NEW_FORECASTS, null, null, null, new_forecasts2));
     }
 
     private void createColumnTitles() {
@@ -641,8 +643,8 @@ public class NewsWeightsView extends JPanel {
         TsData old_serie = serieOld.update(oldF);
         TsData new_serie = serieNew.update(newF);
 
-        result.quietAdd(TsFactory.instance.createTs("Old Forecasts", null, old_serie));
-        result.quietAdd(TsFactory.instance.createTs("New Forecasts", null, new_serie));
+        result.quietAdd(TsFactory.instance.createTs(OLD_FORECASTS, null, old_serie));
+        result.quietAdd(TsFactory.instance.createTs(NEW_FORECASTS, null, new_serie));
 
         chartForecast.setDashPredicate(new ObsPredicate() {
             @Override
@@ -673,9 +675,9 @@ public class NewsWeightsView extends JPanel {
 
     private SeriesType getType(int series) {
         switch (collection.get(series).getName()) {
-            case "Old Forecasts":
+            case OLD_FORECASTS:
                 return SeriesType.OLD_FORECASTS;
-            case "New Forecasts":
+            case NEW_FORECASTS:
                 return SeriesType.NEW_FORECASTS;
             default:
                 throw new RuntimeException();

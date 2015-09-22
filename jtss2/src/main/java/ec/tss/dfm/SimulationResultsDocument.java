@@ -16,7 +16,7 @@
  */
 package ec.tss.dfm;
 
-import ec.tstoolkit.algorithm.CompositeResults;
+import ec.tstoolkit.algorithm.IProcResults;
 import ec.tstoolkit.timeseries.simplets.TsData;
 
 /**
@@ -25,20 +25,14 @@ import ec.tstoolkit.timeseries.simplets.TsData;
  */
 public class SimulationResultsDocument {
 
-    private final CompositeResults simulationResults;
-    private final DfmResults dfmResults;
+    private final IProcResults simulationResults;
     private TsData[] smoothedSeriesStdev;
     
-    public SimulationResultsDocument(CompositeResults simulation, DfmResults dfm) {
-        this.simulationResults = simulation;
-        this.dfmResults = dfm;
+    public SimulationResultsDocument(IProcResults results) {
+        this.simulationResults = results;
     }
 
-    public DfmResults getDfmResults() {
-        return dfmResults;
-    }
-
-    public CompositeResults getSimulationResults() {
+    public IProcResults getSimulationResults() {
         return simulationResults;
     }
 

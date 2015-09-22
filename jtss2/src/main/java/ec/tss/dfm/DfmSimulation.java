@@ -18,12 +18,15 @@ package ec.tss.dfm;
 
 import ec.tss.Ts;
 import ec.tss.TsFactory;
+import ec.tstoolkit.algorithm.CompositeResults.Node;
 import ec.tstoolkit.dfm.DfmSpec;
 import ec.tstoolkit.dfm.MeasurementSpec;
 import ec.tstoolkit.timeseries.Day;
 import ec.tstoolkit.timeseries.information.TsInformationSet;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -35,6 +38,7 @@ import java.util.Map;
 /**
  *
  * @author Jean Palate
+ * @author Mats Maggi
  */
 public class DfmSimulation {
 
@@ -45,12 +49,17 @@ public class DfmSimulation {
     private final List<DfmSeriesDescriptor> descriptions;
     private final List<Boolean> watched;
 
+    private final PropertyChangeSupport changeSupport;
+    public final static String CALENDAR_RESULTS = "CALENDAR_RESULTS";
+
     public DfmSimulation(Day horizon) {
         horizon_ = horizon;
         arimaResults = new ArrayList<>();
         dfmResults = new ArrayList<>();
         descriptions = new ArrayList<>();
         watched = new ArrayList<>();
+
+        changeSupport = new PropertyChangeSupport(this);
     }
 
     public Map<Day, SimulationResultsDocument> getResults() {
@@ -95,18 +104,16 @@ public class DfmSimulation {
 
         DfmDocument doc;
         for (int i = 0; i < ed.length; ++i) {
+            changeSupport.firePropertyChange(CALENDAR_RESULTS, null, ed[i]);
             doc = new DfmDocument();
             // current information
             TsInformationSet cinfo = info.generateInformation(spec.getModelSpec().getPublicationDelays(), ed[i]);
             Ts[] curinput = new Ts[input.length];
             for (int j = 0; j < input.length; ++j) {
-                //if (watched.get(j)) {
                 curinput[j] = TsFactory.instance.createTs(input[j].getRawName(), null, cinfo.series(j));
-                //}
             }
             doc.setInput(curinput);
             // update the specification
-            // 
             DfmSpec curspec;
             if (mustBeEstimated(ed[i], estimationDays)) {
                 curspec = spec.cloneDefinition();
@@ -122,10 +129,23 @@ public class DfmSimulation {
             doc.getResults();
             spec = doc.getSpecification();
 
-            //spec = curspec;
-            SimulationResultsDocument rslts = new SimulationResultsDocument(doc.getResults(), doc.getDfmResults());
-            rslts.setSmoothedSeriesStdev(doc.getDfmResults().getSmoothedSeriesStdev());
-            rslts_.put(ed[i], rslts);
+            if (doc.getResults() != null) {
+                Node n = doc.getResults().getNode(DfmProcessingFactory.FINALC);
+                if (n != null) {
+                    SimulationResultsDocument rslts = new SimulationResultsDocument(n.results);
+                    rslts.setSmoothedSeriesStdev(doc.getDfmResults() == null ? null : doc.getDfmResults().getSmoothedSeriesStdev());
+                    rslts_.put(ed[i], rslts);
+                } else {
+                    rslts_.put(ed[i], null);
+                }
+
+                if (doc.getDfmResults() != null) {
+                    doc.getDfmResults().clear();
+                }
+                doc.clear();
+            } else {
+                rslts_.put(ed[i], null);
+            }
         }
 
         return true;
@@ -183,4 +203,12 @@ public class DfmSimulation {
         return process(refdoc, cal, estimationDays);
     }
 
+    public synchronized void addPropertyChangeListener(PropertyChangeListener listener) {
+        changeSupport.addPropertyChangeListener(listener);
+    }
+
+    public synchronized void removePropertyChangeListener(PropertyChangeListener listener) {
+        changeSupport.removePropertyChangeListener(listener);
+
+    }
 }

@@ -152,7 +152,7 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         chart.setNoDataMessage("No data produced");
         chart.setMouseWheelEnabled(true);
 
-        chart.setPopupMenu(createChartMenu().getPopupMenu());
+        chart.setComponentPopupMenu(createChartMenu().getPopupMenu());
 
         chart.setTransferHandler(new TsCollectionTransferHandler());
 
@@ -292,8 +292,6 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         result.quietAdd(TsFactory.instance.createTs("True data", null, trueTsData.fittoDomain(dom)));
         List<Ts> allTs = new ArrayList<>();
         List<Integer> filteredHorizons = new ArrayList<>();
-        
-        
 
         // Add horizons
         //SortedSet<Integer> filteredHorizons = filterHorizonsPanel.getSelectedElements();
@@ -371,8 +369,9 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        comboBoxPanel = new javax.swing.JPanel();
+        jToolBar1 = new javax.swing.JToolBar();
         jPanel1 = new javax.swing.JPanel();
+        jPanel3 = new javax.swing.JPanel();
         variableLabel = new javax.swing.JLabel();
         comboBox = new javax.swing.JComboBox();
         jPanel2 = new javax.swing.JPanel();
@@ -381,21 +380,27 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         filler1 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 0));
         filterButton = new javax.swing.JButton();
         filterSampleButton = new javax.swing.JButton();
+        comboBoxPanel = new javax.swing.JPanel();
         chart = new ec.util.chart.swing.JTimeSeriesChart();
 
         setLayout(new java.awt.BorderLayout());
 
-        comboBoxPanel.setLayout(new javax.swing.BoxLayout(comboBoxPanel, javax.swing.BoxLayout.PAGE_AXIS));
+        jToolBar1.setFloatable(false);
+        jToolBar1.setMinimumSize(new java.awt.Dimension(363, 45));
 
-        jPanel1.setLayout(new javax.swing.BoxLayout(jPanel1, javax.swing.BoxLayout.LINE_AXIS));
+        jPanel1.setLayout(new javax.swing.BoxLayout(jPanel1, javax.swing.BoxLayout.PAGE_AXIS));
+
+        jPanel3.setLayout(new javax.swing.BoxLayout(jPanel3, javax.swing.BoxLayout.LINE_AXIS));
 
         org.openide.awt.Mnemonics.setLocalizedText(variableLabel, org.openide.util.NbBundle.getMessage(FixedHorizonsGraphView.class, "FixedHorizonsGraphView.variableLabel.text")); // NOI18N
         variableLabel.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 5, 1, 10));
-        jPanel1.add(variableLabel);
+        jPanel3.add(variableLabel);
 
-        jPanel1.add(comboBox);
+        comboBox.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv" }));
+        comboBox.setMinimumSize(new java.awt.Dimension(28, 20));
+        jPanel3.add(comboBox);
 
-        comboBoxPanel.add(jPanel1);
+        jPanel1.add(jPanel3);
 
         jPanel2.setLayout(new javax.swing.BoxLayout(jPanel2, javax.swing.BoxLayout.LINE_AXIS));
 
@@ -423,10 +428,16 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         });
         jPanel2.add(filterSampleButton);
 
-        comboBoxPanel.add(jPanel2);
+        jPanel1.add(jPanel2);
 
+        jToolBar1.add(jPanel1);
+
+        add(jToolBar1, java.awt.BorderLayout.PAGE_START);
+
+        comboBoxPanel.setLayout(new javax.swing.BoxLayout(comboBoxPanel, javax.swing.BoxLayout.PAGE_AXIS));
         add(comboBoxPanel, java.awt.BorderLayout.NORTH);
 
+        chart.setMinimumSize(new java.awt.Dimension(363, 10));
         chart.setNoDataMessage(org.openide.util.NbBundle.getMessage(FixedHorizonsGraphView.class, "FixedHorizonsGraphView.chart.noDataMessage")); // NOI18N
         add(chart, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
@@ -456,6 +467,8 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
     private javax.swing.JButton filterSampleButton;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
+    private javax.swing.JPanel jPanel3;
+    private javax.swing.JToolBar jToolBar1;
     private javax.swing.JComboBox typeComboBox;
     private javax.swing.JLabel variableLabel;
     private javax.swing.JLabel variableLabel1;

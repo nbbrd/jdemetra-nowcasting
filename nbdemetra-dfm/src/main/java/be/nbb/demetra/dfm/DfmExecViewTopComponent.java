@@ -239,8 +239,12 @@ public final class DfmExecViewTopComponent extends AbstractDfmDocumentTopCompone
                     NotifyUtil.show("Done !", "Processing has completed successfuly", MessageType.SUCCESS, null, createChartImage(), null);
                     controller.setDfmState(DfmState.DONE);
                 } catch (InterruptedException | ExecutionException ex) {
-                    if (ex instanceof ExecutionException && ex.getCause() instanceof Exception) {
-                        reportException((Exception) ex.getCause());
+                    if (ex instanceof ExecutionException) {
+                        if (ex.getCause() != null && ex.getCause() instanceof Exception) {
+                            reportException((Exception) ex.getCause());
+                        } else {
+                            reportException(ex);
+                        }
                     } else {
                         reportException(ex);
                     }

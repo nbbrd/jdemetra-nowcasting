@@ -134,7 +134,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
         chartPanel = new JChartPanel(createChart());
         Charts.avoidScaling(chartPanel);
         Charts.enableFocusOnClick(chartPanel);
-        
+
         comboBox.setRenderer(new ComboBoxRenderer());
         comboBox.addItemListener(new ItemListener() {
             @Override
@@ -356,7 +356,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
 
         TsPeriod start = filteredPeriods.get(filterPanel.getStart());
         TsPeriod end = filteredPeriods.get(filterPanel.getEnd());
-        TsDomain dom = new TsDomain(start, end.minus(start)+1);
+        TsDomain dom = new TsDomain(start, end.minus(start) + 1);
 
         int index = 0;
         for (Integer horizon : horizons) {
@@ -381,8 +381,7 @@ public class RMSEGraphView extends javax.swing.JPanel {
         xStdev = new ArrayList<>();
         yStdev = new ArrayList<>();
 
-        index = 0;
-        DfmSeriesDescriptor selected = (DfmSeriesDescriptor)comboBox.getSelectedItem();
+        DfmSeriesDescriptor selected = (DfmSeriesDescriptor) comboBox.getSelectedItem();
         List<DfmSeriesDescriptor> descs = dfmSimulation.getDescriptions();
         int realIndex = 0;
         boolean found = false;
@@ -391,20 +390,22 @@ public class RMSEGraphView extends javax.swing.JPanel {
                 found = true;
             } else {
                 realIndex++;
-            } 
+            }
         }
-        
+
         for (Day d : cal) {
             int horizon = d.difference(lastPeriod.lastday());
             if (dfmTs.containsKey(horizon)) {
-                TsData stdevs = results.get(d).getSmoothedSeriesStdev()[selectedIndex];
-                if (!stdevs.getFrequency().equals(lastPeriod.getFrequency())) {
-                    stdevs = stdevs.changeFrequency(lastPeriod.getFrequency(), TsAggregationType.Last, true);
+                TsData[] smoothStdev = results.get(d).getSmoothedSeriesStdev();
+                if (smoothStdev != null) {
+                    TsData stdevs = results.get(d).getSmoothedSeriesStdev()[selectedIndex];
+                    if (!stdevs.getFrequency().equals(lastPeriod.getFrequency())) {
+                        stdevs = stdevs.changeFrequency(lastPeriod.getFrequency(), TsAggregationType.Last, true);
+                    }
+                    Double stdev = stdevs.get(lastPeriod);
+                    xStdev.add(horizon);
+                    yStdev.add(stdev);
                 }
-                Double stdev = stdevs.get(lastPeriod);
-                xStdev.add(horizon);
-                yStdev.add(stdev);
-                index++;
             }
         }
 

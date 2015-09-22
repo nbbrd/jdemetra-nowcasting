@@ -1,7 +1,7 @@
 /*
  * Copyright 2013 National Bank of Belgium
  *
- * Licensed under the EUPL, Version 1.1 or – as soon they will be approved 
+ * Licensed under the EUPL, Version 1.1 or â€“ as soon they will be approved 
  * by the European Commission - subsequent versions of the EUPL (the "Licence");
  * You may not use this work except in compliance with the Licence.
  * You may obtain a copy of the Licence at:
@@ -112,6 +112,10 @@ import org.netbeans.swing.outline.OutlineModel;
 public class NewsImpactsView extends JPanel {
 
     public static final String RESULTS_PROPERTY = "results";
+    private static final String ALL_REVISIONS = "All Revisions";
+    private static final String ALL_NEWS = "All News";
+    private static final String FORECAST_REVISIONS = "Forecast revisions";
+    private static final String FORECAST_NEWS = "Forecast news";
 
     private DfmNews doc;
     private DfmSeriesDescriptor[] desc;
@@ -170,7 +174,7 @@ public class NewsImpactsView extends JPanel {
             }
         });
 
-        chartImpacts.setPopupMenu(createChartMenu().getPopupMenu());
+        chartImpacts.setComponentPopupMenu(createChartMenu().getPopupMenu());
         chartImpacts.setMouseWheelEnabled(true);
 
         JScrollPane p = ModernUI.withEmptyBorders(new JScrollPane());
@@ -206,10 +210,10 @@ public class NewsImpactsView extends JPanel {
                         VariableNode n = (VariableNode) outline.getOutlineModel().getValueAt(row, 0);
                         if (n != null) {
                             switch (n.getName()) {
-                                case "All News":
+                                case ALL_NEWS:
                                     chartImpacts.getSeriesSelectionModel().addSelectionInterval(0, 0);
                                     break;
-                                case "All Revisions":
+                                case ALL_REVISIONS:
                                     chartImpacts.getSeriesSelectionModel().addSelectionInterval(1, 1);
                                     break;
                             }
@@ -573,7 +577,7 @@ public class NewsImpactsView extends JPanel {
         for (int i = 0; i < updates.size(); i++) {
             TsInformationUpdates.Update updt = updates.get(i);
             TsPeriod p = updt.period;
-            if (p.firstPeriod(freq).isNotBefore(newsStart)) {
+            if (p.lastPeriod(freq).isNotBefore(newsStart)) {
                 DfmSeriesDescriptor descriptor = desc[updt.series];
                 String name = descriptor.description;
 
@@ -588,7 +592,7 @@ public class NewsImpactsView extends JPanel {
             }
         }
 
-        VariableNode allNewsNode = new VariableNode("All News", null, null, null, all_news2);
+        VariableNode allNewsNode = new VariableNode(ALL_NEWS, null, null, null, all_news2);
         allNewsNode.setChildren(newsNodes);
         nodes.add(allNewsNode);
 
@@ -596,7 +600,7 @@ public class NewsImpactsView extends JPanel {
         List<CustomNode> revNodes = new ArrayList<>();
         for (int i = 0; i < revisions.size(); i++) {
             TsPeriod p = revisions.get(i).period;
-            if (p.firstPeriod(freq).isNotBefore(revsStart)) {
+            if (p.lastPeriod(freq).isNotBefore(revsStart)) {
                 DfmSeriesDescriptor descriptor = desc[revisions.get(i).series];
                 String name = descriptor.description;
 
@@ -613,7 +617,7 @@ public class NewsImpactsView extends JPanel {
         }
 
         if (!revNodes.isEmpty()) {
-            VariableNode allRevisionsNode = new VariableNode("All Revisions", null, null, null, all_revisions2);
+            VariableNode allRevisionsNode = new VariableNode(ALL_REVISIONS, null, null, null, all_revisions2);
             allRevisionsNode.setChildren(revNodes);
             nodes.add(allRevisionsNode);
         }
@@ -660,7 +664,7 @@ public class NewsImpactsView extends JPanel {
             coll.addObservation(newPeriods.get(i).middle(), all_news.get(i));
         }
         TsData news = coll.make(freq, TsAggregationType.None);
-        result.quietAdd(TsFactory.instance.createTs("Forecast news", null, news));
+        result.quietAdd(TsFactory.instance.createTs(FORECAST_NEWS, null, news));
 
         // Revisions
         coll.clear();
@@ -668,7 +672,7 @@ public class NewsImpactsView extends JPanel {
             coll.addObservation(newPeriods.get(i).middle(), all_revisions.get(i));
         }
         TsData revisions = coll.make(freq, TsAggregationType.None);
-        result.quietAdd(TsFactory.instance.createTs("Forecast revisions", null, revisions));
+        result.quietAdd(TsFactory.instance.createTs(FORECAST_REVISIONS, null, revisions));
 
         TsInformationUpdates details = doc.newsDetails();
         List<TsInformationUpdates.Update> updates = details.news();
@@ -718,9 +722,9 @@ public class NewsImpactsView extends JPanel {
         TsMoniker key = (TsMoniker) chartImpacts.getDataset().getSeriesKey(series);
         String name = collection.search(key).getName();
         switch (name) {
-            case "Forecast news":
+            case FORECAST_NEWS:
                 return SeriesType.NEWS;
-            case "Forecast revisions":
+            case FORECAST_REVISIONS:
                 return SeriesType.REVISION;
             default:
                 return SeriesType.IMPACTS;
