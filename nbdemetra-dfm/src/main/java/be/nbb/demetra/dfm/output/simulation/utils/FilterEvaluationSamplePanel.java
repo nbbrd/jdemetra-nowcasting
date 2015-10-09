@@ -45,6 +45,8 @@ public class FilterEvaluationSamplePanel extends javax.swing.JPanel {
 
         Collections.sort(p);
         this.periods = p;
+        
+        slider.setPaintTicks(periods.size() < 150);
 
         slider.setMinimum(0);
         slider.setMaximum(periods.size() - 1);
@@ -92,6 +94,7 @@ public class FilterEvaluationSamplePanel extends javax.swing.JPanel {
         slider = new be.nbb.demetra.dfm.output.simulation.utils.rangeslider.RangeSlider();
 
         setMinimumSize(new java.awt.Dimension(376, 81));
+        setPreferredSize(new java.awt.Dimension(350, 68));
         setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.PAGE_AXIS));
 
         upperPanel.setLayout(new java.awt.BorderLayout());
@@ -129,7 +132,6 @@ public class FilterEvaluationSamplePanel extends javax.swing.JPanel {
         slider.setMinorTickSpacing(1);
         slider.setPaintTicks(true);
         slider.setSnapToTicks(true);
-        slider.setRangeVisible(true);
         slider.setThumbShape(be.nbb.demetra.dfm.output.simulation.utils.rangeslider.RangeSlider.ThumbShape.DROP);
         add(slider);
     }// </editor-fold>//GEN-END:initComponents
