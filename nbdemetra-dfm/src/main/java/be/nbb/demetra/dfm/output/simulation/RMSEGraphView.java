@@ -424,8 +424,8 @@ public class RMSEGraphView extends javax.swing.JPanel {
         plot.setDataset(ARIMA_INDEX, arimaDataset);
         plot.setDataset(STDEV_INDEX, stdevDataset);
 
-        chartPanel.getChart().setTitle("Evaluation sample from " + periods.get(filterPanel.getStart()).toString()
-                + " to " + periods.get(filterPanel.getEnd()).toString());
+        chartPanel.getChart().setTitle("Evaluation sample from " + filteredPeriods.get(filterPanel.getStart()).toString()
+                + " to " + filteredPeriods.get(filterPanel.getEnd()).toString());
     }
 
     private void fillMap(Map<Integer, TsData> map, Double[][] fcts, TsFrequency freq) {
