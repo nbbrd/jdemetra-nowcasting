@@ -40,15 +40,17 @@ public class CustomOutlineCellRenderer extends DefaultOutlineCellRenderer {
     private final Color red;
     private final Color blue;
     private final Type type;
+    private final XOutline outline;
 
     private final ColorIcon icon;
     private final List<Integer> colors;
 
-    public CustomOutlineCellRenderer(SwingColorSchemeSupport support, Type type) {
+    public CustomOutlineCellRenderer(SwingColorSchemeSupport support, Type type, XOutline outline) {
         this.defaultColorSchemeSupport = support;
-        red = SwingColorSchemeSupport.withAlpha(defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.RED), 50);
-        blue = SwingColorSchemeSupport.withAlpha(defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.BLUE), 50);
+        red = SwingColorSchemeSupport.withAlpha(defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.RED), 80);
+        blue = SwingColorSchemeSupport.withAlpha(defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.BLUE), 80);
         this.type = type;
+        this.outline = outline;
 
         icon = new ColorIcon();
         colors = support.getColorScheme().getLineColors();
@@ -57,7 +59,6 @@ public class CustomOutlineCellRenderer extends DefaultOutlineCellRenderer {
     @Override
     @SuppressWarnings("unchecked")
     public Component getTableCellRendererComponent(final JTable table, final Object value, final boolean isSelected, final boolean hasFocus, final int row, final int column) {
-        //JLabel l = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
         JLabel l = new JLabel();
         if (value != null) {
             l.setText(String.valueOf(value));
@@ -69,12 +70,19 @@ public class CustomOutlineCellRenderer extends DefaultOutlineCellRenderer {
         l.setIcon(null);
         l.setBorder(new EmptyBorder(0, 2, 0, 2));
 
-        VariableNode n = (VariableNode) table.getValueAt(row, 0);
+        String name = "";
+        VariableNode n = null;
+        if (table.getValueAt(row, 0) instanceof VariableNode) {
+            n = (VariableNode)table.getValueAt(row, 0);
+            name = n.getName();
+        } else {
+            name = String.valueOf(table.getValueAt(row, 0));
+        }
         if (!isSelected) {
             l.setForeground(table.getForeground());
             if (type.equals(Type.WEIGHTS)) {
                 DefaultTableCellRenderer renderer = (DefaultTableCellRenderer) table.getCellRenderer(row, 0);
-                switch (n.getName()) {
+                switch (name) {
                     case "Old Forecasts":
                         l.setBackground(red);
                         renderer.setForeground(Color.BLACK);
@@ -85,7 +93,7 @@ public class CustomOutlineCellRenderer extends DefaultOutlineCellRenderer {
                         break;
                 }
             } else {
-                switch (n.getName()) {
+                switch (name) {
                     case "All News":
                         l.setBackground(red);
                         break;
@@ -103,16 +111,15 @@ public class CustomOutlineCellRenderer extends DefaultOutlineCellRenderer {
         l.setHorizontalAlignment(SwingConstants.RIGHT);
 
         if (type.equals(Type.IMPACTS)) {
-            if (column == 1 && n.getParent() != null) {
-                VariableNode p = (VariableNode) n.getParent();
-                int index = p.getChildren().indexOf(n);
-                if (p.getName().equals("All Revisions")) {
-                    VariableNode pNews = (VariableNode) table.getValueAt(0, 0);
-                    index += pNews.getChildren() == null ? 0 : pNews.getChildren().size();
-                }
+            if (column == 1 && n != null && n.getParent() != null) {
                 l.setHorizontalAlignment(SwingConstants.LEADING);
-                icon.setColor(new Color(colors.get(index % colors.size())));
+                icon.setColor(new Color(colors.get(row % colors.size())));
                 l.setIcon(icon);
+            }
+
+            if (outline.getHoveredCell().equals(row, column)) {
+                l.setForeground(table.getSelectionForeground());
+                l.setBackground(table.getSelectionBackground());
             }
         }
 

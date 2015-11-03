@@ -27,10 +27,12 @@ import ec.ui.view.tsprocessing.IProcDocumentView;
 import ec.ui.view.tsprocessing.ItemUI;
 import ec.ui.view.tsprocessing.ProcDocumentItemFactory;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
  * Factory creating the News impacts view
+ *
  * @author Mats Maggi
  */
 @ServiceProvider(service = ProcDocumentItemFactory.class, position = 300050)
@@ -38,6 +40,7 @@ public class NewsImpactsViewFactory extends DfmNewsItemFactory {
 
     public NewsImpactsViewFactory() {
         super(DfmNewsItemFactory.Updates.NEWS_REVISIONS, newId(), newItemUI());
+        setAsync(true);
     }
 
     private static Id newId() {
@@ -53,7 +56,9 @@ public class NewsImpactsViewFactory extends DfmNewsItemFactory {
                     v.setResults(host.getDocument().getCurrent().getDfmResults(), information.get());
                     return v;
                 } else {
-                    return null;
+                    JLabel label = new JLabel("No results found", JLabel.CENTER);
+                    label.setFont(label.getFont().deriveFont(18f));
+                    return label;
                 }
             }
         };

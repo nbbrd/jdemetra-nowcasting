@@ -19,11 +19,13 @@ package be.nbb.demetra.dfm.output.simulation;
 import be.nbb.demetra.dfm.output.simulation.utils.FilterEvaluationSamplePanel;
 import com.google.common.base.Optional;
 import ec.nbdemetra.ui.DemetraUI;
+import ec.tss.datatransfer.TssTransferSupport;
 import ec.tss.dfm.DfmDocument;
 import ec.tss.dfm.DfmSeriesDescriptor;
 import ec.tss.dfm.DfmSimulation;
 import ec.tss.dfm.DfmSimulationResults;
 import ec.tss.tsproviders.utils.Formatters;
+import ec.tstoolkit.data.Table;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
 import ec.ui.chart.BasicXYDataset;
 import ec.ui.chart.TsCharts;
@@ -37,6 +39,8 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Paint;
 import java.awt.Stroke;
+import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.MouseAdapter;
@@ -50,7 +54,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import javax.swing.AbstractAction;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.NumberAxis;
@@ -87,6 +94,7 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
     private final XYLineAndShapeRenderer arimaRenderer;
 
     private final Map<Bornes, Graphs> graphs_;
+    private Graphs selectedGraph;
 
     private JFreeChart mainChart;
     private JFreeChart detailChart;
@@ -137,6 +145,7 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
         this.dfmSimulation = Optional.absent();
 
         chartPanel = new JChartPanel(null);
+        chartPanel.setPopupMenu(buildMenu().getPopupMenu());
 
         chartPanel.addMouseListener(new MouseAdapter() {
             @Override
@@ -157,9 +166,6 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
                     }
 
                     showDetail(g);
-                } else if (e.getButton() == MouseEvent.BUTTON3) {
-                    showMain();
-                    indexSelected = -1;
                 }
             }
         });
@@ -230,11 +236,31 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
         return result;
     }
 
+    private JMenu buildMenu() {
+        JMenu menu = new JMenu();
+
+        JMenuItem back = new JMenuItem(new AbstractAction("Show complete data...") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                showMain();
+                indexSelected = -1;
+            }
+        });
+        menu.add(back);
+
+        JMenuItem item = new JMenuItem(new CopyDetailAction());
+        item.setText("Copy current data");
+        menu.add(item);
+
+        return menu;
+    }
+
     private void showMain() {
         XYPlot plot = mainChart.getXYPlot();
         rescaleAxis((NumberAxis) plot.getRangeAxis());
         chartPanel.setChart(mainChart);
         onColorSchemeChanged();
+        chartPanel.setPopupMenu(null);
     }
 
     private void rescaleAxis(NumberAxis axis) {
@@ -264,7 +290,10 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
         detailChart.setTitle(g.label_);
         chartPanel.setChart(detailChart);
         chartPanel.setToolTipText("Right click to show complete data");
+        chartPanel.setPopupMenu(buildMenu().getPopupMenu());
         onColorSchemeChanged();
+
+        selectedGraph = g;
     }
 
     private void onDataFormatChanged() {
@@ -378,58 +407,58 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
         TsPeriod end = filteredPeriods.get(filterPanel.getEnd());
         int startIndex = periods.indexOf(start);
         int endIndex = periods.indexOf(end);
-        
+
         for (int i = startIndex; i <= endIndex; i++) {
-                double x = xstart;
-                double[] dfmData = new double[horizons.size()];
-                double[] arimaData = new double[horizons.size()];
-                for (int j = 0; j < horizons.size(); j++) {
-                    dfmData[j] = dfmFcts[j][i] == null ? Double.NaN : dfmFcts[j][i];
-                    arimaData[j] = arimaFcts[j][i] == null ? Double.NaN : arimaFcts[j][i];
-                }
+            double x = xstart;
+            double[] dfmData = new double[horizons.size()];
+            double[] arimaData = new double[horizons.size()];
+            for (int j = 0; j < horizons.size(); j++) {
+                dfmData[j] = dfmFcts[j][i] == null ? Double.NaN : dfmFcts[j][i];
+                arimaData[j] = arimaFcts[j][i] == null ? Double.NaN : arimaFcts[j][i];
+            }
 
-                int n = dfmData.length;
-                double m = trueValues.get(i) == null ? Double.NaN : trueValues.get(i);
-                double[] trueX = {xstart, xend};
-                double[] true2X = {horizons.get(0), horizons.get(np)};
-                double[] trueY = {m, m};
-                double[] dfmX = new double[n], dfm2X = new double[n];
-                double[] dfmY = new double[n], dfm2Y = new double[n];
-                double[] arimaX = new double[n], arima2X = new double[n];
-                double[] arimaY = new double[n], arima2Y = new double[n];
+            int n = dfmData.length;
+            double m = trueValues.get(i) == null ? Double.NaN : trueValues.get(i);
+            double[] trueX = {xstart, xend};
+            double[] true2X = {horizons.get(0), horizons.get(np)};
+            double[] trueY = {m, m};
+            double[] dfmX = new double[n], dfm2X = new double[n];
+            double[] dfmY = new double[n], dfm2Y = new double[n];
+            double[] arimaX = new double[n], arima2X = new double[n];
+            double[] arimaY = new double[n], arima2Y = new double[n];
 
-                for (int j = 0; j < n; j++) {
-                    dfmX[j] = x;
-                    dfmY[j] = dfmData[j];
-                    dfm2X[j] = horizons.get(j).doubleValue();
-                    dfm2Y[j] = dfmData[j];
+            for (int j = 0; j < n; j++) {
+                dfmX[j] = x;
+                dfmY[j] = dfmData[j];
+                dfm2X[j] = horizons.get(j).doubleValue();
+                dfm2Y[j] = dfmData[j];
 
-                    arimaX[j] = x;
-                    arimaY[j] = arimaData[j];
-                    arima2X[j] = horizons.get(j).doubleValue();
-                    arima2Y[j] = arimaData[j];
+                arimaX[j] = x;
+                arimaY[j] = arimaData[j];
+                arima2X[j] = horizons.get(j).doubleValue();
+                arima2Y[j] = arimaData[j];
 
-                    x += xstep;
-                }
+                x += xstep;
+            }
 
-                String itemName = periods.get(i).toString();
-                BasicXYDataset.Series mean = BasicXYDataset.Series.of(itemName, trueX, trueY);
-                BasicXYDataset.Series mean2 = BasicXYDataset.Series.of(itemName, true2X, trueY);
-                BasicXYDataset.Series points = BasicXYDataset.Series.of(itemName, dfmX, dfmY);
-                BasicXYDataset.Series points2 = BasicXYDataset.Series.of(itemName, dfm2X, dfm2Y);
-                BasicXYDataset.Series arimaSeries = BasicXYDataset.Series.of(itemName, arimaX, arimaY);
-                BasicXYDataset.Series arima2Series = BasicXYDataset.Series.of(itemName, arima2X, arima2Y);
+            String itemName = periods.get(i).toString();
+            BasicXYDataset.Series mean = BasicXYDataset.Series.of(itemName, trueX, trueY);
+            BasicXYDataset.Series mean2 = BasicXYDataset.Series.of(itemName, true2X, trueY);
+            BasicXYDataset.Series points = BasicXYDataset.Series.of(itemName, dfmX, dfmY);
+            BasicXYDataset.Series points2 = BasicXYDataset.Series.of(itemName, dfm2X, dfm2Y);
+            BasicXYDataset.Series arimaSeries = BasicXYDataset.Series.of(itemName, arimaX, arimaY);
+            BasicXYDataset.Series arima2Series = BasicXYDataset.Series.of(itemName, arima2X, arima2Y);
 
-                Bornes b = new Bornes(xstart, xend);
-                Graphs g = new Graphs(mean2, points2, arima2Series, itemName);
-                graphs_.put(b, g);
+            Bornes b = new Bornes(xstart, xend);
+            Graphs g = new Graphs(mean2, points2, arima2Series, itemName);
+            graphs_.put(b, g);
 
-                trueDataset.addSeries(mean);
-                fctsDataset.addSeries(points);
-                arimaDataset.addSeries(arimaSeries);
+            trueDataset.addSeries(mean);
+            fctsDataset.addSeries(points);
+            arimaDataset.addSeries(arimaSeries);
 
-                xstart++;
-                xend++;
+            xstart++;
+            xend++;
         }
 
         XYPlot plot = mainChart.getXYPlot();
@@ -583,6 +612,50 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
             }
 
             return names.get((int) value);
+        }
+    }
+
+    private class CopyDetailAction extends AbstractAction {
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if (chartPanel.getChart().equals(detailChart) && detailChart != null && selectedGraph != null) {
+                BasicXYDataset.Series trueData = selectedGraph.S1_;
+                BasicXYDataset.Series fcts = selectedGraph.S2_;
+                BasicXYDataset.Series arima = selectedGraph.S3_;
+
+                int trueCount = trueData == null ? 0 : trueData.getItemCount();
+                int fctsCount = fcts == null ? 0 : fcts.getItemCount();
+                int arimaCount = arima == null ? 0 : arima.getItemCount();
+
+                int maxItems = Math.max(arimaCount, Math.max(trueCount, fctsCount));
+
+                Table t = new Table(maxItems + 2, 6);
+                t.set(0, 2, selectedGraph.label_);
+                t.set(1, 0, "Horizons");
+                t.set(1, 1, "True data");
+                t.set(1, 2, "Horizons");
+                t.set(1, 3, "Forecasts");
+                t.set(1, 4, "Horizons");
+                t.set(1, 5, "Arima");
+
+                for (int i = 0; i < trueCount; i++) {
+                    t.set((i + 2), 0, trueData.getXValue(i));
+                    t.set((i + 2), 1, trueData.getYValue(i));
+                }
+
+                for (int i = 0; i < fctsCount; i++) {
+                    t.set((i + 2), 2, fcts.getXValue(i));
+                    t.set((i + 2), 3, fcts.getYValue(i));
+                }
+
+                for (int i = 0; i < arimaCount; i++) {
+                    t.set((i + 2), 4, arima.getXValue(i));
+                    t.set((i + 2), 5, arima.getYValue(i));
+                }
+
+                Toolkit.getDefaultToolkit().getSystemClipboard().setContents(TssTransferSupport.getDefault().fromTable(t), null);
+            }
         }
     }
 }

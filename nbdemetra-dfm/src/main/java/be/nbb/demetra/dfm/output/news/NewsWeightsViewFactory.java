@@ -27,6 +27,7 @@ import ec.ui.view.tsprocessing.IProcDocumentView;
 import ec.ui.view.tsprocessing.ItemUI;
 import ec.ui.view.tsprocessing.ProcDocumentItemFactory;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
@@ -54,7 +55,9 @@ public class NewsWeightsViewFactory extends DfmNewsItemFactory {
                     v.setResults(host.getDocument().getCurrent().getDfmResults(), information.get());
                     return v;
                 } else {
-                    return null;
+                    JLabel label = new JLabel("No results found", JLabel.CENTER);
+                    label.setFont(label.getFont().deriveFont(18f));
+                    return label;
                 }
             }
         };

@@ -26,6 +26,7 @@ import java.util.List;
 public class CustomNode {
 
     private String name;
+    private String fullName;
     private List<CustomNode> children;
     private CustomNode parent;
 
@@ -48,6 +49,14 @@ public class CustomNode {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
     }
 
     public List<CustomNode> getChildren() {

@@ -40,8 +40,8 @@ public class NewsRenderer implements RenderDataProvider {
     
     public NewsRenderer(SwingColorSchemeSupport support, Type type) {
         this.defaultColorSchemeSupport = support;
-        red = SwingColorSchemeSupport.withAlpha(defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.RED), 50);
-        blue = SwingColorSchemeSupport.withAlpha(defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.BLUE), 50);
+        red = SwingColorSchemeSupport.withAlpha(defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.RED), 80);
+        blue = SwingColorSchemeSupport.withAlpha(defaultColorSchemeSupport.getLineColor(ColorScheme.KnownColor.BLUE), 80);
         this.type = type;
     }
     

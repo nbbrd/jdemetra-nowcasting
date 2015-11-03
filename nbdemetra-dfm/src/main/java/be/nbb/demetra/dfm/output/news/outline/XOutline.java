@@ -16,13 +16,25 @@
  */
 package be.nbb.demetra.dfm.output.news.outline;
 
+import ec.util.grid.CellIndex;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
+import java.awt.event.MouseMotionListener;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.util.EventObject;
 import java.util.List;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.swing.AbstractAction;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
+import javax.swing.ListSelectionModel;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
 import org.netbeans.swing.outline.Outline;
@@ -34,7 +46,16 @@ import org.netbeans.swing.outline.Outline;
  */
 public class XOutline extends Outline {
 
+    public static final String SELECTED_CELL_PROPERTY = "selectedCell";
+    public static final String HOVERED_CELL_PROPERTY = "hoveredCell";
+    
+    private final CellIndex DEFAULT_SELECTED_CELL = CellIndex.NULL;
+    private final CellIndex DEFAULT_HOVERED_CELL = CellIndex.NULL;
+    private final CellSelectionListener cellSelectionListener;
+
     private List<Title> titles;
+    protected CellIndex hoveredCell = DEFAULT_HOVERED_CELL;
+    private CellIndex selectedCell = DEFAULT_SELECTED_CELL;
 
     public XOutline() {
         super();
@@ -45,9 +66,97 @@ public class XOutline extends Outline {
         setRowSorter(null);
         setFillsViewportHeight(true);
         setDragEnabled(false);
-        getTableHeader().setReorderingAllowed(false);
         setComponentPopupMenu(createPopupMenu());
         setColumnSelectionOn(MouseEvent.BUTTON3, ColumnSelection.DIALOG);
+        cellSelectionListener = new CellSelectionListener();
+
+        addPropertyChangeListener(new PropertyChangeListener() {
+
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                switch (evt.getPropertyName()) {
+                    case SELECTED_CELL_PROPERTY:
+                        onSelectedCellChange();
+                    case HOVERED_CELL_PROPERTY:
+                        onHoveredCellChange();
+                }
+            }
+        });
+    }
+
+    public void setSelectedCell(@Nullable CellIndex selectedCell) {
+        CellIndex old = this.selectedCell;
+        this.selectedCell = selectedCell != null ? selectedCell : DEFAULT_SELECTED_CELL;
+        firePropertyChange(SELECTED_CELL_PROPERTY, old, this.selectedCell);
+    }
+
+    public CellIndex getSelectedCell() {
+        return selectedCell;
+    }
+    
+    public void setHoveredCell(@Nullable CellIndex hoveredCell) {
+        CellIndex old = this.hoveredCell;
+        this.hoveredCell = hoveredCell != null ? hoveredCell : DEFAULT_HOVERED_CELL;
+        firePropertyChange(HOVERED_CELL_PROPERTY, old, this.hoveredCell);
+    }
+    
+    @Nonnull
+    public CellIndex getHoveredCell() {
+        return hoveredCell;
+    }
+
+    private void onSelectedCellChange() {
+        if (cellSelectionListener.enabled) {
+            cellSelectionListener.enabled = false;
+            CellIndex index = getSelectedCell();
+            if (CellIndex.NULL.equals(index)) {
+                getSelectionModel().clearSelection();
+            } else {
+                addRowSelectionInterval(index.getRow(), index.getRow());
+                addColumnSelectionInterval(index.getColumn(), index.getColumn());
+            }
+            cellSelectionListener.enabled = true;
+        }
+        repaint();
+    }
+    
+    private void onHoveredCellChange() {
+        repaint();
+    }
+
+    public void enableCellSelection() {
+        getSelectionModel().addListSelectionListener(cellSelectionListener);
+    }
+
+    private CellIndex getIndex(MouseEvent e) {
+        if (e.getSource() instanceof XOutline) {
+            XOutline table = (XOutline) e.getSource();
+            Point point = e.getPoint();
+            return CellIndex.valueOf(table.rowAtPoint(point), table.columnAtPoint(point));
+        }
+        return CellIndex.NULL;
+    }
+
+    public void enableCellHovering() {
+        MouseMotionListener cellFocus = new MouseMotionAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                setHoveredCell(getIndex(e));
+            }
+
+        };
+        addMouseMotionListener(cellFocus);
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                setHoveredCell(getIndex(e));
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                setHoveredCell(getIndex(e));
+            }
+        });
     }
 
     private JPopupMenu createPopupMenu() {
@@ -147,6 +256,29 @@ public class XOutline extends Outline {
 
         public String getHtmlTitle() {
             return htmlTitle;
+        }
+    }
+
+    private final class CellSelectionListener implements ListSelectionListener {
+
+        boolean enabled = true;
+
+        @Override
+        public void valueChanged(ListSelectionEvent e) {
+            if (enabled && !e.getValueIsAdjusting()) {
+                enabled = false;
+                ListSelectionModel model = getSelectionModel();
+                if (model.isSelectionEmpty()) {
+                    setSelectedCell(CellIndex.NULL);
+                } else {
+                    int row = getSelectedRow();
+                    int col = getSelectedColumn();
+                    if (!getSelectedCell().equals(row, col)) {
+                        setSelectedCell(CellIndex.valueOf(row, col));
+                    }
+                }
+                enabled = true;
+            }
         }
     }
 }

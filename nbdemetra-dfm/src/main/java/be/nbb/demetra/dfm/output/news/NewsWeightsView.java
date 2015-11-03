@@ -81,6 +81,7 @@ import javax.swing.DefaultComboBoxModel;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
@@ -88,6 +89,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.TransferHandler;
 import javax.swing.event.ListSelectionEvent;
@@ -261,11 +263,11 @@ public class NewsWeightsView extends JPanel {
             }
         };
         chartForecast.setColorSchemeSupport(defaultColorSchemeSupport);
-        outline.setDefaultRenderer(String.class, new CustomOutlineCellRenderer(defaultColorSchemeSupport, Type.WEIGHTS));
+        outline.setDefaultRenderer(String.class, new CustomOutlineCellRenderer(defaultColorSchemeSupport, Type.WEIGHTS, outline));
     }
 
     private void onOutlineColorSchemeChanged() {
-        outline.setDefaultRenderer(String.class, new CustomOutlineCellRenderer(defaultColorSchemeSupport, Type.WEIGHTS));
+        outline.setDefaultRenderer(String.class, new CustomOutlineCellRenderer(defaultColorSchemeSupport, Type.WEIGHTS, outline));
     }
 
     private void onDataFormatChanged() {
@@ -431,7 +433,7 @@ public class NewsWeightsView extends JPanel {
         TreeModel treeMdl = new NewsTreeModel(nodes);
         OutlineModel mdl = DefaultOutlineModel.createOutlineModel(treeMdl, new NewsRowModel(titles, newPeriods, formatter), true);
         outline.setRenderDataProvider(new NewsRenderer(defaultColorSchemeSupport, Type.WEIGHTS));
-        outline.setDefaultRenderer(String.class, new CustomOutlineCellRenderer(defaultColorSchemeSupport, Type.WEIGHTS));
+        outline.setDefaultRenderer(String.class, new CustomOutlineCellRenderer(defaultColorSchemeSupport, Type.WEIGHTS, outline));
         outline.setModel(mdl);
 
         outline.setTableHeader(new JTableHeader(outline.getColumnModel()) {
@@ -448,6 +450,7 @@ public class NewsWeightsView extends JPanel {
         for (int i = 1; i < outline.getColumnCount(); i++) {
             outline.getColumnModel().getColumn(i).setPreferredWidth(60);
         }
+        ((JLabel) outline.getTableHeader().getDefaultRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
     }
 
     //</editor-fold>
@@ -612,11 +615,11 @@ public class NewsWeightsView extends JPanel {
 
     private void createColumnTitles() {
         titles = new ArrayList<>();
-        titles.add(new Title("Reference Period", "<html>Reference<br>Period"));
-        titles.add(new Title("Expected Value", "<html>Expected<br>Value"));
-        titles.add(new Title("Observed Value", "<html>Observed<br>Value"));
+        titles.add(new Title("Reference Period", "<html><center>Reference<br>Period"));
+        titles.add(new Title("Expected Value", "<html><center>Expected<br>Value"));
+        titles.add(new Title("Observed Value", "<html><center>Observed<br>Value"));
         for (TsPeriod p : newPeriods) {
-            titles.add(new Title("Weight " + p.toString(), "<html>Weight<br>" + p.toString()));
+            titles.add(new Title("Weight " + p.toString(), "<html><center>Weight<br>" + p.toString()));
         }
 
         outline.setTitles(titles);

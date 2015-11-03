@@ -283,7 +283,7 @@ public final class DfmModelSpecView extends JComponent {
                 case 3:
                     return "Factors trans.";
                 default:
-                    return "F" + (columnIndex - 2);
+                    return "F" + (columnIndex - 3);
             }
         }
 
