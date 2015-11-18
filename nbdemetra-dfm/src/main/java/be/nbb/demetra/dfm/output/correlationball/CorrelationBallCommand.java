@@ -33,6 +33,16 @@ public class CorrelationBallCommand {
         return new ColorScaleCommand(scale);
     }
     
+    @Nonnull
+    public static JCommand<CorrelationBall> showAllCommand() {
+        return new ShowImportantOnlyCommand();
+    }
+    
+    @Nonnull
+    public static JCommand<CorrelationBall> spinOnSelectionCommand() {
+        return new SpinOnSelectionCommand();
+    }
+    
     public static final class ColorScaleCommand extends ComponentCommand<CorrelationBall> {
 
         private final double colorScale;
@@ -50,6 +60,40 @@ public class CorrelationBallCommand {
         @Override
         public void execute(CorrelationBall component) throws Exception {
             component.setColorScale(colorScale);
+        }
+    }
+    
+    public static final class ShowImportantOnlyCommand extends ComponentCommand<CorrelationBall> {
+
+        public ShowImportantOnlyCommand() {
+            super(CorrelationBall.SHOW_IMPORTANT_PROPERTY);
+        }
+
+        @Override
+        public boolean isSelected(CorrelationBall component) {
+            return component.isImportantOnlyShown();
+        }
+
+        @Override
+        public void execute(CorrelationBall component) throws Exception {
+            component.setImportantOnlyShown(!component.isImportantOnlyShown());
+        }
+    }
+    
+    public static final class SpinOnSelectionCommand extends ComponentCommand<CorrelationBall> {
+
+        public SpinOnSelectionCommand() {
+            super(CorrelationBall.SPIN_ON_SELECTION_PROPERTY);
+        }
+
+        @Override
+        public boolean isSelected(CorrelationBall component) {
+            return component.isSpinOnSelection();
+        }
+
+        @Override
+        public void execute(CorrelationBall component) throws Exception {
+            component.setSpinOnSelection(!component.isSpinOnSelection());
         }
     }
 }

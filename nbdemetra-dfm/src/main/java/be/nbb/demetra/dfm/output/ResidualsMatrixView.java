@@ -382,7 +382,7 @@ public class ResidualsMatrixView extends JPanel {
                     l.setForeground(table.getSelectionForeground());
                 }
             } else if (value instanceof Double) {
-                DemetraUI demetraUI = DemetraUI.getInstance();
+                DemetraUI demetraUI = DemetraUI.getDefault();
                 Formatter<Number> format = demetraUI.getDataFormat().numberFormatter();
                 Number number = (Double) value;
 

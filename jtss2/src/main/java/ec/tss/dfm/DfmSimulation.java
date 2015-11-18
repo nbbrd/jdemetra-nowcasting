@@ -96,7 +96,6 @@ public class DfmSimulation {
         Ts[] input = refdoc.getInput();
 
         TsInformationSet info = new TsInformationSet(refdoc.getData());
-
         descriptions.addAll(Arrays.asList(refdoc.getDfmResults().getDescriptions()));
         for (MeasurementSpec ms : refdoc.getSpecification().getModelSpec().getMeasurements()) {
             watched.add(ms.isWatched());
@@ -131,7 +130,7 @@ public class DfmSimulation {
 
             if (doc.getResults() != null) {
                 Node n = doc.getResults().getNode(DfmProcessingFactory.FINALC);
-                if (n != null) {
+                if (n != null && n.results != null) {
                     SimulationResultsDocument rslts = new SimulationResultsDocument(n.results);
                     rslts.setSmoothedSeriesStdev(doc.getDfmResults() == null ? null : doc.getDfmResults().getSmoothedSeriesStdev());
                     rslts_.put(ed[i], rslts);
