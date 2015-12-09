@@ -190,7 +190,7 @@ public class CorrelationBall extends JPanel {
         final JCheckBoxMenuItem show = new JCheckBoxMenuItem(CorrelationBallCommand.showAllCommand().toAction(this));
         show.setText("Show important relations only");
         result.add(show);
-        
+
         final JCheckBoxMenuItem spin = new JCheckBoxMenuItem(CorrelationBallCommand.spinOnSelectionCommand().toAction(this));
         spin.setText("Spin on selection");
         result.add(spin);
@@ -269,10 +269,10 @@ public class CorrelationBall extends JPanel {
         this.indexSelected = index;
         repaint();
         firePropertyChange(INDEX_SELECTED_PROPERTY, old, this.indexSelected);
-        
+
         if (spinOnSelection) {
             double step = 360.0 / shapes.size();
-            firePropertyChange(SPIN_ON_SELECTION_PROPERTY, null, 360.0-(step*index));
+            firePropertyChange(SPIN_ON_SELECTION_PROPERTY, null, 360.0 - (step * index));
         }
     }
 
@@ -332,7 +332,7 @@ public class CorrelationBall extends JPanel {
             shapes.get(i).setCoords(newX, newY);
             shapes.get(i).getPaths().clear();
         }
-        
+
         allPaths = new ArrayList<>();
         for (int i = 0; i < length; i++) {
             for (int j = 0; j < i; j++) {
@@ -368,17 +368,19 @@ public class CorrelationBall extends JPanel {
                 }
             }
         }
-        
+
         for (ClickableShape shape : shapes) {
             allPaths.addAll(shape.getPaths());
         }
         Collections.sort(allPaths);
         int size = allPaths.size();
-        allPaths = allPaths.subList((int)(size*0.75), size-1);
+        if (size > 0) {
+            allPaths = allPaths.subList((int) (size * 0.75), size - 1);
+        }
 
         paintLines(g2d, radius, step);
     }
-    
+
     private List<Path> allPaths;
 
     private void paintLines(Graphics2D g2d, int radius, double step) {

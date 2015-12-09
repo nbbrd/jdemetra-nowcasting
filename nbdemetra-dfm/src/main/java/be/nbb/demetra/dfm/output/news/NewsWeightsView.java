@@ -158,7 +158,7 @@ public class NewsWeightsView extends JPanel {
         });
 
         chartForecast.setSeriesRenderer(SeriesFunction.always(TimeSeriesChart.RendererType.LINE));
-        chartForecast.setPopupMenu(createChartMenu().getPopupMenu());
+        chartForecast.setComponentPopupMenu(createChartMenu().getPopupMenu());
         chartForecast.setMouseWheelEnabled(true);
 
         JScrollPane p = ModernUI.withEmptyBorders(new JScrollPane());
@@ -231,6 +231,13 @@ public class NewsWeightsView extends JPanel {
 
         outline.getSelectionModel().addListSelectionListener(outlineListener);
         chartForecast.getSeriesSelectionModel().addListSelectionListener(chartListener);
+        
+        chartForecast.addPropertyChangeListener(JTimeSeriesChart.COLOR_SCHEME_SUPPORT_PROPERTY, new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                changeOutlineColorScheme();
+            }
+        });
 
         updateComboBox();
         updateOutlineModel();
@@ -263,11 +270,15 @@ public class NewsWeightsView extends JPanel {
             }
         };
         chartForecast.setColorSchemeSupport(defaultColorSchemeSupport);
-        outline.setDefaultRenderer(String.class, new CustomOutlineCellRenderer(defaultColorSchemeSupport, Type.WEIGHTS, outline));
+        changeOutlineColorScheme();
     }
 
-    private void onOutlineColorSchemeChanged() {
-        outline.setDefaultRenderer(String.class, new CustomOutlineCellRenderer(defaultColorSchemeSupport, Type.WEIGHTS, outline));
+    private void changeOutlineColorScheme() {
+        if (outline != null) {
+            outline.setDefaultRenderer(String.class, new CustomOutlineCellRenderer((CustomSwingColorSchemeSupport)chartForecast.getColorSchemeSupport(), Type.WEIGHTS, outline));
+            outline.setRenderDataProvider(new NewsRenderer((CustomSwingColorSchemeSupport)chartForecast.getColorSchemeSupport(), Type.WEIGHTS));
+            outline.repaint();
+        }
     }
 
     private void onDataFormatChanged() {
@@ -318,13 +329,6 @@ public class NewsWeightsView extends JPanel {
                 return chartForecast.getSeriesFormatter().apply(series)
                         + "\nPeriod : " + collection.get(series).getTsData().getDomain().get(obs).toString()
                         + "\nValue : " + formatter.format(chartForecast.getDataset().getY(series, obs));
-            }
-        });
-
-        chart.addPropertyChangeListener(JTimeSeriesChart.COLOR_SCHEME_SUPPORT_PROPERTY, new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                onOutlineColorSchemeChanged();
             }
         });
 

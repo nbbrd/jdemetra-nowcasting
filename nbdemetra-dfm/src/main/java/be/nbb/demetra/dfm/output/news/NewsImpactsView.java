@@ -95,7 +95,6 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.TransferHandler;
-import static javax.swing.TransferHandler.COPY;
 import javax.swing.TransferHandler.TransferSupport;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
@@ -128,7 +127,7 @@ public class NewsImpactsView extends JPanel {
     private Formatters.Formatter<Number> formatter;
     private CustomSwingColorSchemeSupport defaultColorSchemeSupport;
     private NewsImpactsDataExtractor extractor;
-    
+
     private Map<String, Integer> indexOfSeries;
 
     public NewsImpactsView() {
@@ -198,6 +197,18 @@ public class NewsImpactsView extends JPanel {
 
         outline.enableCellSelection();
         outline.enableCellHovering();
+
+        chartImpacts.addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                switch (evt.getPropertyName()) {
+                    case JTimeSeriesChart.COLOR_SCHEME_SUPPORT_PROPERTY:
+                        changeOutlineColorScheme();
+                        break;
+                }
+
+            }
+        });
 
         updateComboBox();
         updateOutlineModel();
@@ -287,7 +298,7 @@ public class NewsImpactsView extends JPanel {
 
                 if (!visible) {
                     outline.scrollRectToVisible(
-                        outline.getCellRect(index.getRow(), index.getColumn(), true));
+                            outline.getCellRect(index.getRow(), index.getColumn(), true));
                 }
             }
         };
@@ -336,18 +347,6 @@ public class NewsImpactsView extends JPanel {
         chart.setColorSchemeSupport(defaultColorSchemeSupport);
         chart.setNoDataMessage("No data produced");
 
-        chart.addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case JTimeSeriesChart.COLOR_SCHEME_SUPPORT_PROPERTY:
-                        onOutlineColorSchemeChanged();
-                        break;
-                }
-
-            }
-        });
-
         chart.setLegendVisibilityPredicate(SeriesPredicate.alwaysFalse());
 
         chart.setTransferHandler(new TsCollectionTransferHandler());
@@ -362,11 +361,18 @@ public class NewsImpactsView extends JPanel {
             }
         };
         chartImpacts.setColorSchemeSupport(defaultColorSchemeSupport);
-        outline.setDefaultRenderer(String.class, new CustomOutlineCellRenderer(defaultColorSchemeSupport, Type.IMPACTS, outline));
+        changeOutlineColorScheme();
     }
 
-    private void onOutlineColorSchemeChanged() {
-        outline.setDefaultRenderer(String.class, new CustomOutlineCellRenderer(defaultColorSchemeSupport, Type.IMPACTS, outline));
+    private void changeOutlineColorScheme() {
+        if (outline != null) {
+            CustomSwingColorSchemeSupport newColorScheme = (CustomSwingColorSchemeSupport) chartImpacts.getColorSchemeSupport();
+            outline.setDefaultRenderer(String.class, new CustomOutlineCellRenderer(newColorScheme, Type.IMPACTS, outline));
+            outline.setRenderDataProvider(new NewsRenderer(newColorScheme, Type.IMPACTS));
+            outline.setDefaultRenderer(TsPeriod.class, new TsPeriodTableCellRenderer(newColorScheme.getColorScheme()));
+            outline.repaint();
+        }
+
     }
 
     private void onDataFormatChanged() {
