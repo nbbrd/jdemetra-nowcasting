@@ -1,6 +1,6 @@
 #JDemetra+ Nowcasting plugin
 
-_Current version of the plugin needs the latest development version of JDemetra+ (develop branch, not the 2.0.0 release)_
+_Current version of the plugin needs the version 2.1.0 (or later) of JDemetra+_
 
 ##Features
 - Operationalize the nowcasting process
