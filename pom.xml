@@ -5,15 +5,15 @@
     <groupId>be.nbb.demetra</groupId>
     <artifactId>demetra-seer</artifactId>
     <packaging>pom</packaging>
-    <version>2.0.0</version>
+    <version>2.1.0</version>
 
     <name>nbb-seer</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jdk.version>1.7</jdk.version>
-        <demetra.version>2.0.0</demetra.version>
-        <nbdemetra.version>2.0.0</nbdemetra.version>
+        <demetra.version>2.1.0</demetra.version>
+        <nbdemetra.version>2.1.0</nbdemetra.version>
         <!-- plugins versions > -->
         <maven-compiler-plugin.version>3.1</maven-compiler-plugin.version>
         <maven-jar-plugin.version>2.4</maven-jar-plugin.version>
