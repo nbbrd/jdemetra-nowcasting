@@ -42,12 +42,10 @@ import java.awt.Stroke;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Ellipse2D;
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -171,40 +169,31 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
         });
 
         comboBox.setRenderer(new ComboBoxRenderer());
-        comboBox.addItemListener(new ItemListener() {
-            @Override
-            public void itemStateChanged(ItemEvent e) {
-                filterPanel = null;
-                updateChart();
-            }
+        comboBox.addItemListener((ItemEvent e) -> {
+            filterPanel = null;
+            updateChart();
         });
 
-        addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case DFM_SIMULATION_PROPERTY:
-                        updateComboBox();
-                        updateChart();
-                        break;
-                }
+        addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case DFM_SIMULATION_PROPERTY:
+                    updateComboBox();
+                    updateChart();
+                    break;
             }
         });
 
         updateComboBox();
         updateChart();
 
-        demetraUI.addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case DemetraUI.DATA_FORMAT_PROPERTY:
-                        onDataFormatChanged();
-                        break;
-                    case DemetraUI.COLOR_SCHEME_NAME_PROPERTY:
-                        onColorSchemeChanged();
-                        break;
-                }
+        demetraUI.addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case DemetraUI.DATA_FORMAT_PROPERTY:
+                    onDataFormatChanged();
+                    break;
+                case DemetraUI.COLOR_SCHEME_NAME_PROPERTY:
+                    onColorSchemeChanged();
+                    break;
             }
         });
 

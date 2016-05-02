@@ -50,9 +50,7 @@ import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -104,20 +102,14 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
         this.dfmSimulation = Optional.absent();
 
         comboBox.setRenderer(new ComboBoxRenderer());
-        comboBox.addItemListener(new ItemListener() {
-            @Override
-            public void itemStateChanged(ItemEvent e) {
-                filterHorizonsPanel = null;
-                filterSamplePanel = null;
-                updateChart();
-            }
+        comboBox.addItemListener((ItemEvent e) -> {
+            filterHorizonsPanel = null;
+            filterSamplePanel = null;
+            updateChart();
         });
 
-        typeComboBox.addItemListener(new ItemListener() {
-            @Override
-            public void itemStateChanged(ItemEvent e) {
-                updateChart();
-            }
+        typeComboBox.addItemListener((ItemEvent e) -> {
+            updateChart();
         });
 
         chart.setValueFormat(new DecimalFormat("#.###"));
@@ -156,32 +148,26 @@ public class FixedHorizonsGraphView extends javax.swing.JPanel {
 
         chart.setTransferHandler(new TsCollectionTransferHandler());
 
-        addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case DFM_SIMULATION_PROPERTY:
-                        updateComboBox();
-                        updateChart();
-                        break;
-                }
+        addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case DFM_SIMULATION_PROPERTY:
+                    updateComboBox();
+                    updateChart();
+                    break;
             }
         });
 
         updateComboBox();
         updateChart();
 
-        demetraUI.addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case DemetraUI.DATA_FORMAT_PROPERTY:
-                        onDataFormatChanged();
-                        break;
-                    case DemetraUI.COLOR_SCHEME_NAME_PROPERTY:
-                        onColorSchemeChanged();
-                        break;
-                }
+        demetraUI.addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case DemetraUI.DATA_FORMAT_PROPERTY:
+                    onDataFormatChanged();
+                    break;
+                case DemetraUI.COLOR_SCHEME_NAME_PROPERTY:
+                    onColorSchemeChanged();
+                    break;
             }
         });
     }

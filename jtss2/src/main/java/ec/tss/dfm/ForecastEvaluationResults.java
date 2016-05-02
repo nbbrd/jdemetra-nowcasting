@@ -587,7 +587,7 @@ public class ForecastEvaluationResults {
         for (int i = 0; i < n; ++i) {
             double xcur = x[i];
             double ycur = y[i + t];
-            if (DescriptiveStatistics.isFinite(xcur) && DescriptiveStatistics.isFinite(ycur)) {
+            if (Double.isFinite(xcur) && Double.isFinite(ycur)) {
                 v += xcur * ycur;
             } else {
                 ++nm;

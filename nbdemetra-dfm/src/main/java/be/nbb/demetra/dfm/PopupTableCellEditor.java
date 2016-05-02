@@ -22,7 +22,6 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import javax.swing.AbstractCellEditor;
@@ -54,11 +53,8 @@ class PopupTableCellEditor extends AbstractCellEditor implements TableCellEditor
         this.popup = new XPopup();
         
         button.setMargin(new Insets(0, 0, 0, 0));
-        button.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                popup.show(label, customEditor.getCustomComponent(), XPopup.Anchor.BOTTOM_LEADING, new Dimension());
-            }
+        button.addActionListener((ActionEvent e) -> {
+            popup.show(label, customEditor.getCustomComponent(), XPopup.Anchor.BOTTOM_LEADING, new Dimension());
         });
         main.addFocusListener(new FocusAdapter() {
             @Override

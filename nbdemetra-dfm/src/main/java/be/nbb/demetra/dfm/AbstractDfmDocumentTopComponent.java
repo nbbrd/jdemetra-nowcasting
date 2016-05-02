@@ -20,7 +20,6 @@ import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.ui.WorkspaceTopComponent;
 import ec.tss.dfm.VersionedDfmDocument;
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import javax.swing.JComponent;
 import org.netbeans.core.spi.multiview.CloseOperationState;
 import org.netbeans.core.spi.multiview.MultiViewDescription;
@@ -46,22 +45,16 @@ public abstract class AbstractDfmDocumentTopComponent extends WorkspaceTopCompon
         setName(txt);
         setToolTipText(txt + " view");
         this.controller = controller;
-        controller.addPropertyChangeListener(DfmController.DFM_STATE_PROPERTY, new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                // forward event
-                firePropertyChange(evt.getPropertyName(), evt.getOldValue(), evt.getNewValue());
-                onDfmStateChange();
-            }
+        controller.addPropertyChangeListener(DfmController.DFM_STATE_PROPERTY, (PropertyChangeEvent evt) -> {
+            // forward event
+            firePropertyChange(evt.getPropertyName(), evt.getOldValue(), evt.getNewValue());
+            onDfmStateChange();
         });
         
-        controller.addPropertyChangeListener(DfmController.SIMULATION_STATE_PROPERTY, new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                // forward event
-                firePropertyChange(evt.getPropertyName(), evt.getOldValue(), evt.getNewValue());
-                onSimulationStateChange();
-            }
+        controller.addPropertyChangeListener(DfmController.SIMULATION_STATE_PROPERTY, (PropertyChangeEvent evt) -> {
+            // forward event
+            firePropertyChange(evt.getPropertyName(), evt.getOldValue(), evt.getNewValue());
+            onSimulationStateChange();
         });
     }
 

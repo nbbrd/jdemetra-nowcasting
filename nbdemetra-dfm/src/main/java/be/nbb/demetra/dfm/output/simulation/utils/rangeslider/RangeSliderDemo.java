@@ -11,8 +11,8 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 /**
  * Demo application panel to display a range slider.
@@ -40,12 +40,10 @@ public class RangeSliderDemo extends JPanel {
         rangeSlider.setPaintLabels(true);
         
         // Add listener to update display.
-        rangeSlider.addChangeListener(new ChangeListener() {
-            public void stateChanged(ChangeEvent e) {
-                RangeSlider slider = (RangeSlider) e.getSource();
-                rangeSliderValue1.setText(String.valueOf(slider.getValue()));
-                rangeSliderValue2.setText(String.valueOf(slider.getUpperValue()));
-            }
+        rangeSlider.addChangeListener((ChangeEvent e) -> {
+            RangeSlider slider = (RangeSlider) e.getSource();
+            rangeSliderValue1.setText(String.valueOf(slider.getValue()));
+            rangeSliderValue2.setText(String.valueOf(slider.getUpperValue()));
         });
 
         add(rangeSliderLabel1, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
@@ -92,14 +90,12 @@ public class RangeSliderDemo extends JPanel {
     public static void main(String[] args) {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception ex) {
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException ex) {
             ex.printStackTrace();
         }
 
-        SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                new RangeSliderDemo().display();
-            }
+        SwingUtilities.invokeLater(() -> {
+            new RangeSliderDemo().display();
         });
     }
 }

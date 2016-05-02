@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 /**
  *
@@ -37,7 +36,7 @@ public class FilterEvaluationSamplePanel extends javax.swing.JPanel {
      * Creates new form FilterEvaluationSamplePanel
      */
     public FilterEvaluationSamplePanel() {
-        this(new ArrayList<TsPeriod>());
+        this(new ArrayList<>());
     }
 
     public FilterEvaluationSamplePanel(List<TsPeriod> p) {
@@ -56,14 +55,10 @@ public class FilterEvaluationSamplePanel extends javax.swing.JPanel {
         period1.setText(periods.get(0).toString());
         period2.setText(periods.get(periods.size() - 1).toString());
 
-        slider.addChangeListener(new ChangeListener() {
-
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                RangeSlider s = (RangeSlider) e.getSource();
-                period1.setText(periods.get(s.getValue()).toString());
-                period2.setText(periods.get(s.getUpperValue()).toString());
-            }
+        slider.addChangeListener((ChangeEvent e) -> {
+            RangeSlider s = (RangeSlider) e.getSource();
+            period1.setText(periods.get(s.getValue()).toString());
+            period2.setText(periods.get(s.getUpperValue()).toString());
         });
     }
 

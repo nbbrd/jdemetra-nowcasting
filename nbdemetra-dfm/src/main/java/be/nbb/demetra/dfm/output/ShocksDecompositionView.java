@@ -46,9 +46,7 @@ import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.Objects;
@@ -105,11 +103,8 @@ final class ShocksDecompositionView extends javax.swing.JPanel {
             }
         };
 
-        comboBox.addItemListener(new ItemListener() {
-            @Override
-            public void itemStateChanged(ItemEvent e) {
-                updateChart();
-            }
+        comboBox.addItemListener((ItemEvent e) -> {
+            updateChart();
         });
 
         chart.setValueFormat(new DecimalFormat("#.###"));
@@ -146,38 +141,32 @@ final class ShocksDecompositionView extends javax.swing.JPanel {
         
         chart.setTransferHandler(new TsCollectionTransferHandler());
 
-        addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case ACTUAL_VISIBLE_PROPERTY:
-                    case SIGNAL_VISIBLE_PROPERTY:
-                    case INITIAL_FACTOR_VISIBLE_PROPERTY:
-                    case NOISE_VISIBLE_PROPERTY:
-                        updateChart();
-                        break;
-                    case DFM_RESULTS_PROPERTY:
-                        updateComboBox();
-                        updateChart();
-                        break;
-                }
+        addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case ACTUAL_VISIBLE_PROPERTY:
+                case SIGNAL_VISIBLE_PROPERTY:
+                case INITIAL_FACTOR_VISIBLE_PROPERTY:
+                case NOISE_VISIBLE_PROPERTY:
+                    updateChart();
+                    break;
+                case DFM_RESULTS_PROPERTY:
+                    updateComboBox();
+                    updateChart();
+                    break;
             }
         });
 
         updateComboBox();
         updateChart();
         
-        demetraUI.addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case DemetraUI.DATA_FORMAT_PROPERTY:
-                        onDataFormatChanged();
-                        break;
-                    case DemetraUI.COLOR_SCHEME_NAME_PROPERTY:
-                        onColorSchemeChanged();
-                        break;
-                }
+        demetraUI.addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case DemetraUI.DATA_FORMAT_PROPERTY:
+                    onDataFormatChanged();
+                    break;
+                case DemetraUI.COLOR_SCHEME_NAME_PROPERTY:
+                    onColorSchemeChanged();
+                    break;
             }
         });
     }
@@ -367,7 +356,7 @@ final class ShocksDecompositionView extends javax.swing.JPanel {
         JMenu item = new JMenu("Color scheme");
         item.add(new JCheckBoxMenuItem(applyColorSchemeSupport(defaultColorSchemeSupport).toAction(chart))).setText("Default");
         item.addSeparator();
-        for (final ColorScheme o : DemetraUI.getInstance().getColorSchemes()) {
+        for (final ColorScheme o : DemetraUI.getDefault().getColorSchemes()) {
             final CustomSwingColorSchemeSupport colorSchemeSupport = new CustomSwingColorSchemeSupport() {
                 @Override
                 public ColorScheme getColorScheme() {

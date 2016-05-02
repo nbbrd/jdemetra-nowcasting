@@ -43,7 +43,6 @@ import javax.swing.JSlider;
 import javax.swing.JSplitPane;
 import javax.swing.JViewport;
 import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 /**
  *
@@ -65,14 +64,11 @@ public class CorrelationBallView extends JPanel {
         this.results = r;
         createBall();
 
-        addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case DFM_RESULTS_PROPERTY:
-                        updateBall();
-                        break;
-                }
+        addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case DFM_RESULTS_PROPERTY:
+                    updateBall();
+                    break;
             }
         });
 
@@ -88,25 +84,19 @@ public class CorrelationBallView extends JPanel {
         slider.setMajorTickSpacing(30);
         slider.setMinorTickSpacing(5);
         slider.setFocusable(false);
-        slider.addChangeListener(new ChangeListener() {
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                JSlider source = (JSlider) e.getSource();
-                ball.spin(source.getValue());
-            }
+        slider.addChangeListener((ChangeEvent e) -> {
+            JSlider source = (JSlider) e.getSource();
+            ball.spin(source.getValue());
         });
 
-        ball.addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case COLOR_SCALE_PROPERTY:
-                        updateBall();
-                        break;
-                    case CorrelationBall.SPIN_ON_SELECTION_PROPERTY:
-                        slider.setValue((int) ((double) evt.getNewValue()));
-                        break;
-                }
+        ball.addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case COLOR_SCALE_PROPERTY:
+                    updateBall();
+                    break;
+                case CorrelationBall.SPIN_ON_SELECTION_PROPERTY:
+                    slider.setValue((int) ((double) evt.getNewValue()));
+                    break;
             }
         });
 

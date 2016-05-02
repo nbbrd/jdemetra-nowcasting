@@ -30,11 +30,9 @@ import ec.nbdemetra.ui.properties.l2fprod.PropertiesPanelFactory;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -49,7 +47,6 @@ import javax.swing.JPanel;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import org.openide.util.Exceptions;
 
 /**
@@ -87,17 +84,13 @@ public class DaysPropertyEditor<T> extends JPanel {
         psp.setPreferredSize(new Dimension(250, 200));
         psp.setBorder(BorderFactory.createEtchedBorder());
 
-        list.addListSelectionListener(new ListSelectionListener() {
-
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                if (list.getSelectedValue() != null) {
-                    model.setProperties(PropertiesPanelFactory.INSTANCE.createProperties(list.getSelectedValue()));
-                    current_ = (T) list.getSelectedValue();
-                } else {
-                    current_ = null;
-                    model.setProperties(new Property[]{});
-                }
+        list.addListSelectionListener((ListSelectionEvent e) -> {
+            if (list.getSelectedValue() != null) {
+                model.setProperties(PropertiesPanelFactory.INSTANCE.createProperties(list.getSelectedValue()));
+                current_ = (T) list.getSelectedValue();
+            } else {
+                current_ = null;
+                model.setProperties(new Property[]{});
             }
         });
 
@@ -117,13 +110,9 @@ public class DaysPropertyEditor<T> extends JPanel {
             }
         });
 
-        model.addPropertyChangeListener(new PropertyChangeListener() {
-
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                setDirty(true);
-                firePropertyChange(ELEMENTS_PROPERTY, null, elements);
-            }
+        model.addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            setDirty(true);
+            firePropertyChange(ELEMENTS_PROPERTY, null, elements);
         });
 
         final JPanel buttonPane = new JPanel();
@@ -132,60 +121,44 @@ public class DaysPropertyEditor<T> extends JPanel {
         final JButton addButton = new JButton(DemetraUiIcon.LIST_ADD_16);
         addButton.setPreferredSize(new Dimension(30, 30));
         addButton.setFocusPainted(false);
-        addButton.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                setDirty(true);
-                try {
-                    Constructor<T> constructor = c_.getConstructor(new Class[]{});
-                    final T o = constructor.newInstance(new Object[]{});
-                    elements.add(o);
-                    firePropertyChange(ELEMENTS_PROPERTY, null, elements);
-                    SwingUtilities.invokeLater(new Runnable() {
-
-                        @Override
-                        public void run() {
-                            list.setModel(new ArrayEditorListModel(elements));
-                            list.setSelectedValue(o, true);
-                            list.invalidate();
-                        }
-                    });
-
-                } catch (SecurityException | IllegalArgumentException ex) {
-                    System.err.println(ex.getMessage());
-                } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException ex) {
-                    Exceptions.printStackTrace(ex);
-                }
+        addButton.addActionListener((ActionEvent e) -> {
+            setDirty(true);
+            try {
+                Constructor<T> constructor = c_.getConstructor(new Class[]{});
+                final T o = constructor.newInstance(new Object[]{});
+                elements.add(o);
+                firePropertyChange(ELEMENTS_PROPERTY, null, elements);
+                SwingUtilities.invokeLater(() -> {
+                    list.setModel(new ArrayEditorListModel(elements));
+                    list.setSelectedValue(o, true);
+                    list.invalidate();
+                });
+                
+            } catch (SecurityException | IllegalArgumentException ex) {
+                System.err.println(ex.getMessage());
+            } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException ex) {
+                Exceptions.printStackTrace(ex);
             }
         });
         buttonPane.add(addButton);
         final JButton deleteButton = new JButton(DemetraUiIcon.LIST_REMOVE_16);
         deleteButton.setPreferredSize(new Dimension(30, 30));
         deleteButton.setFocusPainted(false);
-        deleteButton.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    if (current_ == null) {
-                        return;
-                    }
-                    setDirty(true);
-                    elements.remove(current_);
-                    firePropertyChange(ELEMENTS_PROPERTY, null, elements);
-                    SwingUtilities.invokeLater(new Runnable() {
-
-                        @Override
-                        public void run() {
-                            list.setModel(new ArrayEditorListModel(elements));
-                            list.invalidate();
-                        }
-                    });
-
-                } catch (Exception ex) {
-                    System.err.println(ex.getMessage());
+        deleteButton.addActionListener((ActionEvent e) -> {
+            try {
+                if (current_ == null) {
+                    return;
                 }
+                setDirty(true);
+                elements.remove(current_);
+                firePropertyChange(ELEMENTS_PROPERTY, null, elements);
+                SwingUtilities.invokeLater(() -> {
+                    list.setModel(new ArrayEditorListModel(elements));
+                    list.invalidate();
+                });
+                
+            } catch (Exception ex) {
+                System.err.println(ex.getMessage());
             }
         });
         buttonPane.add(deleteButton);

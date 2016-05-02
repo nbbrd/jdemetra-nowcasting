@@ -27,9 +27,7 @@ import ec.tstoolkit.timeseries.simplets.TsFrequency;
 import ec.util.various.swing.JCommand;
 import java.awt.BorderLayout;
 import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComboBox;
@@ -58,22 +56,16 @@ public class ConfidenceSignalGraphView extends JPanel {
         this.dfmResults = Optional.absent();
         this.comboBox = new JComboBox();
 
-        comboBox.addItemListener(new ItemListener() {
-            @Override
-            public void itemStateChanged(ItemEvent e) {
-                updateChart();
-            }
+        comboBox.addItemListener((ItemEvent e) -> {
+            updateChart();
         });
 
-        addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case DFM_RESULTS_PROPERTY:
-                        updateComboBox();
-                        updateChart();
-                        break;
-                }
+        addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case DFM_RESULTS_PROPERTY:
+                    updateComboBox();
+                    updateChart();
+                    break;
             }
         });
 

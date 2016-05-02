@@ -24,7 +24,6 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import java.awt.event.MouseMotionListener;
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.util.EventObject;
 import java.util.List;
 import javax.annotation.Nonnull;
@@ -70,16 +69,12 @@ public class XOutline extends Outline {
         setColumnSelectionOn(MouseEvent.BUTTON3, ColumnSelection.DIALOG);
         cellSelectionListener = new CellSelectionListener();
 
-        addPropertyChangeListener(new PropertyChangeListener() {
-
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case SELECTED_CELL_PROPERTY:
-                        onSelectedCellChange();
-                    case HOVERED_CELL_PROPERTY:
-                        onHoveredCellChange();
-                }
+        addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case SELECTED_CELL_PROPERTY:
+                    onSelectedCellChange();
+                case HOVERED_CELL_PROPERTY:
+                    onHoveredCellChange();
             }
         });
     }
@@ -196,10 +191,9 @@ public class XOutline extends Outline {
     private void expandAll(TreePath p) {
         CustomNode node = (CustomNode) p.getLastPathComponent();
         if (node.getChildren() != null && node.getChildren().size() >= 0) {
-            for (Object n : node.getChildren()) {
-                TreePath path = p.pathByAddingChild(n);
+            node.getChildren().stream().map((n) -> p.pathByAddingChild(n)).forEach((path) -> {
                 expandAll(path);
-            }
+            });
         }
         expandPath(p);
     }
@@ -207,10 +201,7 @@ public class XOutline extends Outline {
     private void collapseAll(TreePath p) {
         CustomNode node = (CustomNode) p.getLastPathComponent();
         if (node.getChildren() != null && node.getChildren().size() >= 0) {
-            for (Object n : node.getChildren()) {
-                TreePath path = p.pathByAddingChild(n);
-                collapseAll(path);
-            }
+            node.getChildren().stream().map(p::pathByAddingChild).forEach((p1) -> this.collapseAll(p1));
         }
 
         if (p.getParentPath() != null) {

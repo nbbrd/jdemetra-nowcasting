@@ -22,12 +22,9 @@ import ec.nbdemetra.ws.WorkspaceFactory;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.nodes.ItemWsNode;
 import ec.tstoolkit.utilities.Id;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import javax.swing.InputVerifier;
 import javax.swing.JComponent;
 import javax.swing.JTextField;
@@ -40,13 +37,9 @@ import org.openide.awt.ActionRegistration;
 import org.openide.util.HelpCtx;
 import org.openide.util.NbBundle.Messages;
 
-@ActionID(
-        category = "Edit",
-        id = "be.nbb.demetra.dfm.actions.RenameAction"
-)
+@ActionID(category = "Edit", id = "be.nbb.demetra.dfm.actions.RenameAction")
 @ActionRegistration(displayName = "#CTL_RenameAction", lazy = false)
 @ActionReferences({
-    //    @ActionReference(path = "Menu/Edit"),
     @ActionReference(path = DfmDocumentManager.ITEMPATH, position = 1200)
 })
 @Messages("CTL_RenameAction=Rename...")
@@ -66,12 +59,8 @@ public final class RenameAction extends SingleNodeAction<ItemWsNode> {
             // create the input dialog
             String oldName = cur.getDisplayName(), newName = null;
             WsName nd = new WsName(cur.getFamily(), NAME_MESSAGE, RENAME_TITLE, oldName);
-            nd.addPropertyChangeListener(new PropertyChangeListener() {
-
-                @Override
-                public void propertyChange(PropertyChangeEvent evt) {
-                    if (evt.getPropertyName().equals(NotifyDescriptor.PROP_DETAIL)) {
-                    }
+            nd.addPropertyChangeListener((PropertyChangeEvent evt) -> {
+                if (evt.getPropertyName().equals(NotifyDescriptor.PROP_DETAIL)) {
                 }
             });
             if (DialogDisplayer.getDefault().notify(nd) != NotifyDescriptor.OK_OPTION) {

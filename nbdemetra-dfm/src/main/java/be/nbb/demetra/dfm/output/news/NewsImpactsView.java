@@ -72,7 +72,6 @@ import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.text.DecimalFormat;
@@ -152,12 +151,9 @@ public class NewsImpactsView extends JPanel {
 
         combobox = new JComboBox();
 
-        combobox.addItemListener(new ItemListener() {
-            @Override
-            public void itemStateChanged(ItemEvent e) {
-                updateOutlineModel();
-                updateChart();
-            }
+        combobox.addItemListener((ItemEvent e) -> {
+            updateOutlineModel();
+            updateChart();
         });
 
         chartImpacts.setSeriesRenderer(new SeriesFunction<TimeSeriesChart.RendererType>() {
@@ -183,30 +179,23 @@ public class NewsImpactsView extends JPanel {
         splitPane = NbComponents.newJSplitPane(JSplitPane.VERTICAL_SPLIT, p, chartImpacts);
         splitPane.setResizeWeight(0.5);
 
-        addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case RESULTS_PROPERTY:
-                        updateComboBox();
-                        updateOutlineModel();
-                        updateChart();
-                }
+        addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case RESULTS_PROPERTY:
+                    updateComboBox();
+                    updateOutlineModel();
+                    updateChart();
             }
         });
 
         outline.enableCellSelection();
         outline.enableCellHovering();
 
-        chartImpacts.addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case JTimeSeriesChart.COLOR_SCHEME_SUPPORT_PROPERTY:
-                        changeOutlineColorScheme();
-                        break;
-                }
-
+        chartImpacts.addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case JTimeSeriesChart.COLOR_SCHEME_SUPPORT_PROPERTY:
+                    changeOutlineColorScheme();
+                    break;
             }
         });
 
@@ -214,17 +203,14 @@ public class NewsImpactsView extends JPanel {
         updateOutlineModel();
         updateChart();
 
-        demetraUI.addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case DemetraUI.DATA_FORMAT_PROPERTY:
-                        onDataFormatChanged();
-                        break;
-                    case DemetraUI.COLOR_SCHEME_NAME_PROPERTY:
-                        onColorSchemeChanged();
-                        break;
-                }
+        demetraUI.addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case DemetraUI.DATA_FORMAT_PROPERTY:
+                    onDataFormatChanged();
+                    break;
+                case DemetraUI.COLOR_SCHEME_NAME_PROPERTY:
+                    onColorSchemeChanged();
+                    break;
             }
         });
 
@@ -385,12 +371,8 @@ public class NewsImpactsView extends JPanel {
         try {
             chartImpacts.setValueFormat(demetraUI.getDataFormat().newNumberFormat());
 
-            SwingUtilities.invokeLater(new Runnable() {
-
-                @Override
-                public void run() {
-                    refreshModel();
-                }
+            SwingUtilities.invokeLater(() -> {
+                refreshModel();
             });
         } catch (IllegalArgumentException ex) {
             // do nothing?

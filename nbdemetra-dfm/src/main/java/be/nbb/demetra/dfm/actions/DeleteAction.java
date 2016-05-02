@@ -29,18 +29,15 @@ import org.openide.awt.ActionRegistration;
 import org.openide.util.HelpCtx;
 import org.openide.util.NbBundle.Messages;
 
-@ActionID(category = "Edit",
-id = "be.nbb.demetra.dfm.actions.DeleteAction")
-@ActionRegistration(
-        displayName = "#CTL_DeleteAction", lazy=false)
+@ActionID(category = "Edit", id = "be.nbb.demetra.dfm.actions.DeleteAction")
+@ActionRegistration(displayName = "#CTL_DeleteAction", lazy = false)
 @ActionReferences({
-    //    @ActionReference(path = "Menu/Edit"),
     @ActionReference(path = DfmDocumentManager.ITEMPATH, position = 1100)
 })
 @Messages("CTL_DeleteAction=Delete")
 public final class DeleteAction extends SingleNodeAction<ItemWsNode> {
-    
-    public static final String DELETE_MESSAGE ="Are you sure you want to delete this item?";
+
+    public static final String DELETE_MESSAGE = "Are you sure you want to delete this item?";
 
     public DeleteAction() {
         super(ItemWsNode.class);

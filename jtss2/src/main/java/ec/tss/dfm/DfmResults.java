@@ -603,16 +603,16 @@ public class DfmResults implements IProcResults {
 
                 // bugg found 09/05/2014    Sigmax = new Matrix(r * c_, r * c_);
                 TQT = Q_.times(Q_.transpose());
-                Sigmax = new Matrix(TQT.subMatrix());
+                Sigmax = new Matrix(TQT.all());
                 for (int i = 0; i < horizon[h]; i++) {           // ????    
-                    ssf.TVT(0, TQT.subMatrix());
+                    ssf.TVT(0, TQT.all());
                     Sigmax.add(TQT);
 
                 }
 
             }
             Matrix zvz = new Matrix(ssf.getVarsCount(), ssf.getVarsCount());
-            ssf.ZVZ(0, Sigmax.subMatrix(), zvz.subMatrix());
+            ssf.ZVZ(0, Sigmax.all(), zvz.all());
 
             for (int v = 0; v < N; v++) {
 
@@ -1018,7 +1018,7 @@ public class DfmResults implements IProcResults {
                 //Matrix zvz = new Matrix(r * c_, r * c_);
                 Matrix zvz = new Matrix(N, N);
 
-                ssf.ZVZ(0, temp.subMatrix(), zvz.subMatrix());
+                ssf.ZVZ(0, temp.all(), zvz.all());
 
                 signalUncertainty[v][t] = zvz.get(v, v) * description[v].stdev * description[v].stdev;
                 // System.out.println(signalUncertainty[v][t]);
@@ -1049,7 +1049,7 @@ public class DfmResults implements IProcResults {
         TsData s = input.series(pos);
         for (int i = 0; i < s.getLength(); ++i) {
             double v = s.get(i);
-            if (DescriptiveStatistics.isFinite(v)) {
+            if (Double.isFinite(v)) {
                 Day ld = s.getDomain().get(i).lastday();
                 int j = cur.search(ld);
                 if (j >= 0) {
@@ -1059,8 +1059,8 @@ public class DfmResults implements IProcResults {
         }
 
         DfmSeriesDescriptor sdesc = getDescription(pos);
-        sdata.getValues().mul(sdesc.stdev);
-        sdata.getValues().add(sdesc.mean);
+        sdata = TsData.multiply(sdesc.stdev, sdata);
+        sdata = TsData.add(sdesc.mean, sdata);
         return sdata;
     }
 
@@ -1077,12 +1077,12 @@ public class DfmResults implements IProcResults {
         ssf.Z(0, pos, tmp);
         double[] zvar = smoothing.zvariance(tmp);
         TsData sdata = new TsData(cur.getStart(), zvar, false);
-        sdata.getValues().add(mdesc.var);
+        sdata = sdata.plus(mdesc.var);
 
         TsData s = input.series(pos);
         for (int i = 0; i < s.getLength(); ++i) {
             double v = s.get(i);
-            if (DescriptiveStatistics.isFinite(v)) {
+            if (Double.isFinite(v)) {
                 Day ld = s.getDomain().get(i).lastday();
                 int j = cur.search(ld);
                 if (j >= 0) {
@@ -1092,8 +1092,8 @@ public class DfmResults implements IProcResults {
         }
 
         DfmSeriesDescriptor sdesc = getDescription(pos);
-        sdata.getValues().sqrt();
-        sdata.getValues().mul(sdesc.stdev);
+        sdata.sqrt();
+        sdata = TsData.multiply(sdesc.stdev, sdata);
         return sdata;
     }
 

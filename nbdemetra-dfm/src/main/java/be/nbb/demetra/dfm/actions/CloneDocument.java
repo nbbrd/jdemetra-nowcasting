@@ -9,7 +9,6 @@ import ec.nbdemetra.ws.IWorkspaceItemManager;
 import ec.nbdemetra.ws.WorkspaceFactory;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.nbdemetra.ws.nodes.ItemWsNode;
-import ec.tss.dfm.DfmDocument;
 import ec.tss.dfm.VersionedDfmDocument;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -39,7 +38,7 @@ public final class CloneDocument implements ActionListener {
         WorkspaceItem<?> cur = context.getItem();
         if (cur != null && !cur.isReadOnly()) {
             if (cur.getElement() instanceof VersionedDfmDocument) {
-                VersionedDfmDocument doc=(VersionedDfmDocument) cur.getElement();
+                VersionedDfmDocument doc = (VersionedDfmDocument) cur.getElement();
                 IWorkspaceItemManager mgr = WorkspaceFactory.getInstance().getManager(cur.getFamily());
                 WorkspaceItem<?> ndoc = WorkspaceItem.newItem(cur.getFamily(), mgr.getNextItemName(null), doc.clone());
                 context.getWorkspace().add(ndoc);

@@ -65,9 +65,9 @@ public class CustomNode {
 
     public void setChildren(List<CustomNode> children) {
         this.children = children;
-        for (CustomNode child : children) {
+        children.stream().forEach((child) -> {
             child.parent = this;
-        }
+        });
     }
     
     public void addChild(CustomNode node) {

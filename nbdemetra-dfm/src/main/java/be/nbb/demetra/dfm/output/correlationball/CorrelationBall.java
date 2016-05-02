@@ -33,7 +33,6 @@ import java.awt.geom.NoninvertibleTransformException;
 import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -45,7 +44,6 @@ import javax.swing.JMenu;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
 import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 /**
  *
@@ -169,17 +167,11 @@ public class CorrelationBall extends JPanel {
         JMenu scale = new JMenu("Color Scale");
         final JSlider slider = new JSlider(1, 100, 1);
         slider.setPreferredSize(new Dimension(50, slider.getPreferredSize().height));
-        slider.addChangeListener(new ChangeListener() {
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                setColorScale((double) slider.getValue() / 10.0);
-            }
+        slider.addChangeListener((ChangeEvent e) -> {
+            setColorScale((double) slider.getValue() / 10.0);
         });
-        addPropertyChangeListener(COLOR_SCALE_PROPERTY, new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                slider.setValue((int) (getColorScale() * 10.0));
-            }
+        addPropertyChangeListener(COLOR_SCALE_PROPERTY, (PropertyChangeEvent evt) -> {
+            slider.setValue((int) (getColorScale() * 10.0));
         });
         scale.add(slider);
         for (final double o : new double[]{0.1, 0.5, 1.0, 5.0, 10.0}) {
@@ -369,9 +361,9 @@ public class CorrelationBall extends JPanel {
             }
         }
 
-        for (ClickableShape shape : shapes) {
+        shapes.stream().forEach((shape) -> {
             allPaths.addAll(shape.getPaths());
-        }
+        });
         Collections.sort(allPaths);
         int size = allPaths.size();
         if (size > 0) {

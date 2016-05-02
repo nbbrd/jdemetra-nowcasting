@@ -229,9 +229,9 @@ public final class NewsImpactsDataExtractor {
             allRevisionsNode.setChildren(revNodes);
             nodes.add(allRevisionsNode);
 
-            for (CustomNode revNode : revNodes) {
+            revNodes.stream().forEach((revNode) -> {
                 indexOfSeries.put(revNode.getFullName(), idx++);
-            }
+            });
         }
 
         nodes.add(new VariableNode("Old Forecasts", null, null, null, old_forecasts2));

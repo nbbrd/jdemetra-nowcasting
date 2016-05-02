@@ -186,10 +186,12 @@ public class FilterHorizonsPanel extends JPanel {
 
     private void addButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addButtonActionPerformed
         if (model.getSize() != 0) {
-            for (Object o : availableList.getSelectedValuesList()) {
+            availableList.getSelectedValuesList().stream().map((o) -> {
                 model.removeElement((Integer) o);
+                return o;
+            }).forEach((o) -> {
                 model2.addElement((Integer) o);
-            }
+            });
         }
         selectedList.clearSelection();
         availableList.clearSelection();
@@ -201,10 +203,12 @@ public class FilterHorizonsPanel extends JPanel {
 
     private void removeButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_removeButtonActionPerformed
         if (model2.getSize() != 0) {
-            for (Object o : selectedList.getSelectedValuesList()) {
+            selectedList.getSelectedValuesList().stream().map((o) -> {
                 model2.removeElement((Integer) o);
+                return o;
+            }).forEach((o) -> {
                 model.addElement((Integer) o);
-            }
+            });
         }
         selectedList.clearSelection();
         availableList.clearSelection();
@@ -308,9 +312,9 @@ public class FilterHorizonsPanel extends JPanel {
         }
 
         public void addElements(SortedSet<Integer> elements) {
-            for (Integer i : elements) {
+            elements.stream().forEach((i) -> {
                 model.add(i);
-            }
+            });
             fireContentsChanged(this, 0, getSize());
         }
 

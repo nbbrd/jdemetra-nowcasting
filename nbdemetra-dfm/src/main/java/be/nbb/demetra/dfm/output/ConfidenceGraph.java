@@ -37,7 +37,6 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.geom.Ellipse2D;
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.util.Date;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
@@ -114,20 +113,16 @@ public class ConfidenceGraph extends ATsControl implements IColorSchemeAble {
         setLayout(new BorderLayout());
         add(chartPanel, BorderLayout.CENTER);
 
-        addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case DATA_PROPERTY:
-                    case CONFIDENCE_PROPERTY:
-                        onDataChange();
-                        break;
-                    case ORIGINAL_VISIBLE_PROPERTY:
-                        onVisibilityChange();
-                        break;
-                }
+        addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case DATA_PROPERTY:
+                case CONFIDENCE_PROPERTY:
+                    onDataChange();
+                    break;
+                case ORIGINAL_VISIBLE_PROPERTY:
+                    onVisibilityChange();
+                    break;
             }
-
         });
 
         chartPanel.addChartMouseListener(new HighlightChartMouseListener2());

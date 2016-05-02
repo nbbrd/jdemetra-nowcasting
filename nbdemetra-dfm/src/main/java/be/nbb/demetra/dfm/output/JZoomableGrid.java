@@ -23,12 +23,10 @@ import ec.util.grid.swing.ext.TableGridCommand;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenu;
 import javax.swing.JSlider;
 import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 /**
  *
@@ -47,14 +45,11 @@ public class JZoomableGrid implements IZoomableGrid {
         
         grid = new JGrid();
         
-        grid.addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case ZOOM_PROPERTY :
-                        onZoomChange();
-                        break;
-                }
+        grid.addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case ZOOM_PROPERTY :
+                    onZoomChange();
+                    break;
             }
         });
     }
@@ -68,17 +63,11 @@ public class JZoomableGrid implements IZoomableGrid {
         final JSlider slider = new JSlider(10, 200, 100);
         {
             slider.setPreferredSize(new Dimension(50, slider.getPreferredSize().height));
-            slider.addChangeListener(new ChangeListener() {
-                @Override
-                public void stateChanged(ChangeEvent e) {
-                    setZoomRatio(slider.getValue());
-                }
+            slider.addChangeListener((ChangeEvent e) -> {
+                setZoomRatio(slider.getValue());
             });
-            grid.addPropertyChangeListener(ZOOM_PROPERTY, new PropertyChangeListener() {
-                @Override
-                public void propertyChange(PropertyChangeEvent evt) {
-                    slider.setValue(getZoomRatio());
-                }
+            grid.addPropertyChangeListener(ZOOM_PROPERTY, (PropertyChangeEvent evt) -> {
+                slider.setValue(getZoomRatio());
             });
         }
         zoom.add(slider);
@@ -93,17 +82,11 @@ public class JZoomableGrid implements IZoomableGrid {
         final JSlider slider2 = new JSlider(1, 100, 1);
         {
             slider2.setPreferredSize(new Dimension(50, slider.getPreferredSize().height));
-            slider2.addChangeListener(new ChangeListener() {
-                @Override
-                public void stateChanged(ChangeEvent e) {
-                    setColorScale((double)slider2.getValue()/10.0);
-                }
+            slider2.addChangeListener((ChangeEvent e) -> {
+                setColorScale((double)slider2.getValue()/10.0);
             });
-            grid.addPropertyChangeListener(COLOR_SCALE_PROPERTY, new PropertyChangeListener() {
-                @Override
-                public void propertyChange(PropertyChangeEvent evt) {
-                    slider2.setValue((int)(getColorScale()*10.0));
-                }
+            grid.addPropertyChangeListener(COLOR_SCALE_PROPERTY, (PropertyChangeEvent evt) -> {
+                slider2.setValue((int)(getColorScale()*10.0));
             });
         }
         scale.add(slider2);

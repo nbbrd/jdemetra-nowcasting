@@ -17,7 +17,6 @@
 package be.nbb.demetra.dfm.output.correlationball;
 
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import javax.swing.JList;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
@@ -40,14 +39,11 @@ public class CorrelationJList extends JList<String> {
         selectionListener = new CellSelectionListener();
         getSelectionModel().addListSelectionListener(selectionListener);
         
-        addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case SELECTED_ITEM_PROPERTY :
-                        onSelectedItemChange();
-                        break;
-                }
+        addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case SELECTED_ITEM_PROPERTY :
+                    onSelectedItemChange();
+                    break;
             }
         });
     }

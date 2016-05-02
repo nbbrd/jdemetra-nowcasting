@@ -67,9 +67,7 @@ import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -149,12 +147,9 @@ public class NewsWeightsView extends JPanel {
 
         combobox = new JComboBox();
 
-        combobox.addItemListener(new ItemListener() {
-            @Override
-            public void itemStateChanged(ItemEvent e) {
-                updateOutlineModel();
-                updateChart();
-            }
+        combobox.addItemListener((ItemEvent e) -> {
+            updateOutlineModel();
+            updateChart();
         });
 
         chartForecast.setSeriesRenderer(SeriesFunction.always(TimeSeriesChart.RendererType.LINE));
@@ -167,15 +162,12 @@ public class NewsWeightsView extends JPanel {
         splitPane = NbComponents.newJSplitPane(JSplitPane.VERTICAL_SPLIT, p, chartForecast);
         splitPane.setResizeWeight(0.5);
 
-        addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case RESULTS_PROPERTY:
-                        updateComboBox();
-                        updateOutlineModel();
-                        updateChart();
-                }
+        addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case RESULTS_PROPERTY:
+                    updateComboBox();
+                    updateOutlineModel();
+                    updateChart();
             }
         });
 
@@ -202,59 +194,48 @@ public class NewsWeightsView extends JPanel {
             }
         };
 
-        chartListener = new ListSelectionListener() {
-
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                if (e.getValueIsAdjusting()) {
-                    return;
-                }
-
-                outline.getSelectionModel().removeListSelectionListener(outlineListener);
-                outline.getSelectionModel().clearSelection();
-                ListSelectionModel model = (ListSelectionModel) e.getSource();
-                if (!model.isSelectionEmpty()) {
-                    for (int i = model.getMinSelectionIndex(); i <= model.getMaxSelectionIndex(); i++) {
-                        if (model.isSelectedIndex(i)) {
-                            int rowCount = outline.getRowCount();
-                            if (i == 0) {
-                                outline.getSelectionModel().addSelectionInterval(rowCount - 2, rowCount - 2);
-                            } else if (i == 1) {
-                                outline.getSelectionModel().addSelectionInterval(rowCount - 1, rowCount - 1);
-                            }
+        chartListener = (ListSelectionEvent e) -> {
+            if (e.getValueIsAdjusting()) {
+                return;
+            }
+            
+            outline.getSelectionModel().removeListSelectionListener(outlineListener);
+            outline.getSelectionModel().clearSelection();
+            ListSelectionModel model = (ListSelectionModel) e.getSource();
+            if (!model.isSelectionEmpty()) {
+                for (int i = model.getMinSelectionIndex(); i <= model.getMaxSelectionIndex(); i++) {
+                    if (model.isSelectedIndex(i)) {
+                        int rowCount = outline.getRowCount();
+                        if (i == 0) {
+                            outline.getSelectionModel().addSelectionInterval(rowCount - 2, rowCount - 2);
+                        } else if (i == 1) {
+                            outline.getSelectionModel().addSelectionInterval(rowCount - 1, rowCount - 1);
                         }
                     }
                 }
-                outline.getSelectionModel().addListSelectionListener(outlineListener);
             }
+            outline.getSelectionModel().addListSelectionListener(outlineListener);
         };
 
         outline.getSelectionModel().addListSelectionListener(outlineListener);
         chartForecast.getSeriesSelectionModel().addListSelectionListener(chartListener);
         
-        chartForecast.addPropertyChangeListener(JTimeSeriesChart.COLOR_SCHEME_SUPPORT_PROPERTY, new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                changeOutlineColorScheme();
-            }
+        chartForecast.addPropertyChangeListener(JTimeSeriesChart.COLOR_SCHEME_SUPPORT_PROPERTY, (PropertyChangeEvent evt) -> {
+            changeOutlineColorScheme();
         });
 
         updateComboBox();
         updateOutlineModel();
         updateChart();
 
-        demetraUI.addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case DemetraUI.DATA_FORMAT_PROPERTY:
-                        onDataFormatChanged();
-                        break;
-                    case DemetraUI.COLOR_SCHEME_NAME_PROPERTY:
-                        onColorSchemeChanged();
-                        break;
-                }
-
+        demetraUI.addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case DemetraUI.DATA_FORMAT_PROPERTY:
+                    onDataFormatChanged();
+                    break;
+                case DemetraUI.COLOR_SCHEME_NAME_PROPERTY:
+                    onColorSchemeChanged();
+                    break;
             }
         });
 
@@ -291,12 +272,8 @@ public class NewsWeightsView extends JPanel {
         try {
             chartForecast.setValueFormat(demetraUI.getDataFormat().newNumberFormat());
 
-            SwingUtilities.invokeLater(new Runnable() {
-
-                @Override
-                public void run() {
-                    refreshModel();
-                }
+            SwingUtilities.invokeLater(() -> {
+                refreshModel();
             });
         } catch (IllegalArgumentException ex) {
             // do nothing?
@@ -622,9 +599,9 @@ public class NewsWeightsView extends JPanel {
         titles.add(new Title("Reference Period", "<html><center>Reference<br>Period"));
         titles.add(new Title("Expected Value", "<html><center>Expected<br>Value"));
         titles.add(new Title("Observed Value", "<html><center>Observed<br>Value"));
-        for (TsPeriod p : newPeriods) {
+        newPeriods.stream().forEach((p) -> {
             titles.add(new Title("Weight " + p.toString(), "<html><center>Weight<br>" + p.toString()));
-        }
+        });
 
         outline.setTitles(titles);
     }

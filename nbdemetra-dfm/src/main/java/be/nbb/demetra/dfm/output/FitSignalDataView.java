@@ -44,9 +44,7 @@ import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.Objects;
@@ -57,7 +55,6 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.ListSelectionModel;
 import javax.swing.TransferHandler;
-import static javax.swing.TransferHandler.COPY;
 import javax.swing.TransferHandler.TransferSupport;
 
 /**
@@ -83,7 +80,7 @@ final class FitSignalDataView extends javax.swing.JPanel {
 
         this.dfmResults = Optional.absent();
         
-        demetraUI = DemetraUI.getInstance();
+        demetraUI = DemetraUI.getDefault();
         formatter = demetraUI.getDataFormat().numberFormatter();
         defaultColorSchemeSupport = new CustomSwingColorSchemeSupport() {
             @Override
@@ -92,11 +89,8 @@ final class FitSignalDataView extends javax.swing.JPanel {
             }
         };
 
-        comboBox.addItemListener(new ItemListener() {
-            @Override
-            public void itemStateChanged(ItemEvent e) {
-                updateChart();
-            }
+        comboBox.addItemListener((ItemEvent e) -> {
+            updateChart();
         });
 
         chart.setValueFormat(new DecimalFormat("#.###"));
@@ -126,39 +120,33 @@ final class FitSignalDataView extends javax.swing.JPanel {
                         + "\n" + formatter.format(chart.getDataset().getY(series, obs));
             }
         });
-        chart.setPopupMenu(createChartMenu().getPopupMenu());
+        chart.setComponentPopupMenu(createChartMenu().getPopupMenu());
         chart.setColorSchemeSupport(defaultColorSchemeSupport);
         chart.setNoDataMessage("No data produced");
         chart.setMouseWheelEnabled(true);
         
         chart.setTransferHandler(new TsCollectionTransferHandler());
 
-        addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case DFM_RESULTS_PROPERTY:
-                        updateComboBox();
-                        updateChart();
-                        break;
-                }
+        addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case DFM_RESULTS_PROPERTY:
+                    updateComboBox();
+                    updateChart();
+                    break;
             }
         });
 
         updateComboBox();
         updateChart();
         
-        demetraUI.addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case DemetraUI.DATA_FORMAT_PROPERTY:
-                        onDataFormatChanged();
-                        break;
-                    case DemetraUI.COLOR_SCHEME_NAME_PROPERTY:
-                        onColorSchemeChanged();
-                        break;
-                }
+        demetraUI.addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case DemetraUI.DATA_FORMAT_PROPERTY:
+                    onDataFormatChanged();
+                    break;
+                case DemetraUI.COLOR_SCHEME_NAME_PROPERTY:
+                    onColorSchemeChanged();
+                    break;
             }
         });
     }
@@ -287,7 +275,7 @@ final class FitSignalDataView extends javax.swing.JPanel {
         JMenu item = new JMenu("Color scheme");
         item.add(new JCheckBoxMenuItem(applyColorSchemeSupport(defaultColorSchemeSupport).toAction(chart))).setText("Default");
         item.addSeparator();
-        for (final ColorScheme o : DemetraUI.getInstance().getColorSchemes()) {
+        for (final ColorScheme o : DemetraUI.getDefault().getColorSchemes()) {
             final CustomSwingColorSchemeSupport colorSchemeSupport = new CustomSwingColorSchemeSupport() {
                 @Override
                 public ColorScheme getColorScheme() {

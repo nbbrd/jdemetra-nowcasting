@@ -18,7 +18,6 @@ package be.nbb.demetra.dfm.output;
 
 import com.google.common.base.Optional;
 import ec.nbdemetra.ui.DemetraUI;
-import ec.nbdemetra.ui.awt.PopupListener;
 import ec.tss.dfm.DfmResults;
 import ec.tss.tsproviders.utils.Formatters.Formatter;
 import ec.tstoolkit.dfm.DynamicFactorModel;
@@ -34,7 +33,6 @@ import java.awt.Component;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.AbstractAction;
@@ -79,33 +77,27 @@ public class ResidualsMatrixView extends JPanel {
         this.matrix = createMatrix();
         this.results = r;
 
-        addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case ZOOM_PROPERTY:
-                        onZoomChange();
-                        break;
-                    case HEAT_MAP_PROPERTY:
-                    case DFM_RESULTS_PROPERTY:
-                        updateMatrix();
-                        break;
-                }
+        addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case ZOOM_PROPERTY:
+                    onZoomChange();
+                    break;
+                case HEAT_MAP_PROPERTY:
+                case DFM_RESULTS_PROPERTY:
+                    updateMatrix();
+                    break;
             }
         });
 
-        matrix.getGrid().addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case IZoomableGrid.COLOR_SCALE_PROPERTY:
-                        updateMatrix();
-                        break;
-                }
+        matrix.getGrid().addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case IZoomableGrid.COLOR_SCALE_PROPERTY:
+                    updateMatrix();
+                    break;
             }
         });
 
-        matrix.getGrid().addMouseListener(new PopupListener.PopupAdapter(buildGridMenu().getPopupMenu()));
+        matrix.getGrid().setComponentPopupMenu(buildGridMenu().getPopupMenu());
         add(matrix.getGrid(), BorderLayout.CENTER);
 
         updateMatrix();
@@ -180,7 +172,6 @@ public class ResidualsMatrixView extends JPanel {
 
     private JZoomableGrid createMatrix() {
         final JZoomableGrid result = new JZoomableGrid();
-        result.getGrid().setOddBackground(null);
         result.getGrid().setRowRenderer(new GridRowHeaderRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
@@ -353,7 +344,7 @@ public class ResidualsMatrixView extends JPanel {
     // <editor-fold defaultstate="collapsed" desc="Cell Renderer">
     private class HeatMapCellRenderer extends DefaultTableCellRenderer {
 
-        private JToolTip tooltip;
+        private final JToolTip tooltip;
 
         public HeatMapCellRenderer() {
             setHorizontalAlignment(TRAILING);

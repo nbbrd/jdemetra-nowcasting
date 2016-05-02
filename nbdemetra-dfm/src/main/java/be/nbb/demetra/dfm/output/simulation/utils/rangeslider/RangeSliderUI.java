@@ -544,10 +544,6 @@ class RangeSliderUI extends BasicSliderUI {
                 upperThumbHover = false;
                 slider.repaint(upperThumbRect);
             }
-
-//            if (((RangeSlider) slider).isRangeSelectionEnabled() && RANGE.contains(EVENT.getPoint())) {
-//                slider.setToolTipText("Range: " + Integer.toString(slider.getExtent()));
-//            }
         }
 
         @Override
@@ -608,9 +604,6 @@ class RangeSliderUI extends BasicSliderUI {
                     thumbMiddle = thumbTop + halfThumbHeight;
                     slider.setValue(valueForYPosition(thumbMiddle));
                     break;
-
-                default:
-                    return;
             }
         }
 
@@ -658,9 +651,6 @@ class RangeSliderUI extends BasicSliderUI {
                     thumbMiddle = thumbTop + halfThumbHeight;
                     slider.setExtent(valueForYPosition(thumbMiddle) - slider.getValue());
                     break;
-
-                default:
-                    return;
             }
         }
     }

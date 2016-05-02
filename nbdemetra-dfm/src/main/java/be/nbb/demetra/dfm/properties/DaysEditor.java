@@ -19,7 +19,6 @@ package be.nbb.demetra.dfm.properties;
 import ec.tstoolkit.timeseries.Day;
 import java.awt.Component;
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.beans.PropertyEditorSupport;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -42,12 +41,8 @@ public class DaysEditor extends PropertyEditorSupport {
     public Component getCustomEditor() {
         editor = new DaysPropertyEditor<>(getDescriptors(), EstimationDayDescriptor.class);
 
-        editor.addPropertyChangeListener(DaysPropertyEditor.ELEMENTS_PROPERTY, new PropertyChangeListener() {
-
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                setDescriptors(editor.getElements());
-            }
+        editor.addPropertyChangeListener(DaysPropertyEditor.ELEMENTS_PROPERTY, (PropertyChangeEvent evt) -> {
+            setDescriptors(editor.getElements());
         });
         return editor;
     }

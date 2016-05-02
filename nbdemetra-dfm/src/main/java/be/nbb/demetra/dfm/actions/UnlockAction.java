@@ -22,7 +22,7 @@ import org.openide.util.NbBundle.Messages;
         id = "be.nbb.demetra.dfm.actions.UnlockAction")
 @ActionRegistration(displayName = "#CTL_Unlock", lazy = false)
 @ActionReferences({
-    @ActionReference(path = DfmDocumentManager.CONTEXTPATH, position = 3000, separatorBefore=2999)
+    @ActionReference(path = DfmDocumentManager.CONTEXTPATH, position = 3000, separatorBefore = 2999)
 })
 @Messages("CTL_Unlock=Unlock")
 public final class UnlockAction extends AbstractViewAction<AbstractDfmDocumentTopComponent> {
@@ -60,7 +60,7 @@ public final class UnlockAction extends AbstractViewAction<AbstractDfmDocumentTo
             }
             doc.unlockModel();
             doc.clearVersions(0);
-            
+
         }
 
     }

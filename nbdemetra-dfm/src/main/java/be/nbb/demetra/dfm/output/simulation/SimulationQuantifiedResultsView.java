@@ -45,9 +45,7 @@ import ec.util.various.swing.ModernUI;
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -120,11 +118,8 @@ public class SimulationQuantifiedResultsView extends JPanel {
 
         filterButton = new JButton("Filter sample");
         typeLabel.setBorder(BorderFactory.createEmptyBorder(1, 5, 0, 0));
-        filterButton.addActionListener(new java.awt.event.ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent evt) {
-                filterButtonActionPerformed(evt);
-            }
+        filterButton.addActionListener((ActionEvent evt) -> {
+            filterButtonActionPerformed(evt);
         });
         comboBoxPanel.add(filterButton);
 
@@ -142,51 +137,38 @@ public class SimulationQuantifiedResultsView extends JPanel {
         outline = new XOutline();
         outline.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
-        typeComboBox.addItemListener(new ItemListener() {
-            @Override
-            public void itemStateChanged(ItemEvent e) {
-                filterPanel = null;
-                updateOutlineModel();
-            }
+        typeComboBox.addItemListener((ItemEvent e) -> {
+            filterPanel = null;
+            updateOutlineModel();
         });
 
-        comboBox.addItemListener(new ItemListener() {
-            @Override
-            public void itemStateChanged(ItemEvent e) {
-                filterPanel = null;
-                updateOutlineModel();
-            }
+        comboBox.addItemListener((ItemEvent e) -> {
+            filterPanel = null;
+            updateOutlineModel();
         });
 
         JScrollPane p = ModernUI.withEmptyBorders(new JScrollPane());
         p.setViewportView(outline);
 
-        addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case DFM_SIMULATION_PROPERTY:
-                        updateComboBox();
-                        updateOutlineModel();
-                }
+        addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case DFM_SIMULATION_PROPERTY:
+                    updateComboBox();
+                    updateOutlineModel();
             }
         });
 
         updateComboBox();
         updateOutlineModel();
 
-        demetraUI.addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case DemetraUI.DATA_FORMAT_PROPERTY:
-                        onDataFormatChanged();
-                        break;
-                    case DemetraUI.COLOR_SCHEME_NAME_PROPERTY:
-                        onColorSchemeChanged();
-                        break;
-                }
-
+        demetraUI.addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case DemetraUI.DATA_FORMAT_PROPERTY:
+                    onDataFormatChanged();
+                    break;
+                case DemetraUI.COLOR_SCHEME_NAME_PROPERTY:
+                    onColorSchemeChanged();
+                    break;
             }
         });
 
@@ -279,9 +261,9 @@ public class SimulationQuantifiedResultsView extends JPanel {
 
     private void createTitles(List<Integer> data) {
         titles = new ArrayList<>();
-        for (Integer i : data) {
+        data.stream().forEach((i) -> {
             titles.add(new Title(String.valueOf(i)));
-        }
+        });
         outline.setTitles(titles);
     }
 
@@ -463,14 +445,12 @@ public class SimulationQuantifiedResultsView extends JPanel {
         relative.addChild(errors);
 
         List<Double> pbValues = new ArrayList<>();
-        for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(
-                    dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom), 
-                    arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom), 
-                    trueTsData.fittoDomain(dom));
-            
-            pbValues.add(rslt.calcPB());
-        }
+        filteredHorizons.stream().map((horizon) -> new ForecastEvaluationResults(
+                dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom),
+                arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom),
+                trueTsData.fittoDomain(dom))).forEach((rslt) -> {
+                    pbValues.add(rslt.calcPB());
+        });
         relative.addChild(new SimulationNode("Percentage better", pbValues));
 
         nodes.add(relative);
@@ -480,31 +460,27 @@ public class SimulationQuantifiedResultsView extends JPanel {
 
         List<Double> dmSqValues = new ArrayList<>();
         List<Double> dmAbsValues = new ArrayList<>();
-        for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(
-                    dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom), 
-                    arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom), 
-                    trueTsData.fittoDomain(dom));
-            
-            AccuracyTests test = rslt.new AccuracyTests();
-            dmSqValues.add(test.getDM());
+        filteredHorizons.stream().map((horizon) -> new ForecastEvaluationResults(
+                dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom),
+                arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom),
+                trueTsData.fittoDomain(dom))).map((rslt) -> rslt.new AccuracyTests()).map((test) -> {
+                    dmSqValues.add(test.getDM());
+            return test;
+        }).forEach((test) -> {
             dmAbsValues.add(test.getDMabs());
-        }
+        });
         dm.addChild(new SimulationNode(D_M_TEST, dmSqValues));
         dm.addChild(new SimulationNode(D_M_ABS_TEST, dmAbsValues));
 
         nodes.add(dm);
 
         List<Double> encValues = new ArrayList<>();
-        for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(
-                    dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom), 
-                    arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom), 
-                    trueTsData.fittoDomain(dom));
-            
-            AccuracyTests test = rslt.new AccuracyTests();
-            encValues.add(test.getDM_e());
-        }
+        filteredHorizons.stream().map((horizon) -> new ForecastEvaluationResults(
+                dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom),
+                arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom),
+                trueTsData.fittoDomain(dom))).map((rslt) -> rslt.new AccuracyTests()).forEach((test) -> {
+                    encValues.add(test.getDM_e());
+        });
         SimulationNode enc = new SimulationNode(ENCOMPASING_TEST, encValues);
 
         nodes.add(enc);

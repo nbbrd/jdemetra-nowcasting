@@ -45,7 +45,6 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.geom.Ellipse2D;
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.util.Date;
 import javax.swing.AbstractAction;
 import javax.swing.JMenu;
@@ -97,14 +96,11 @@ public class FactorChart extends ATsControl implements IColorSchemeAble {
         setLayout(new BorderLayout());
         add(chartPanel, BorderLayout.CENTER);
         
-        addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case DATA_PROPERTY:
-                        onDataChange();
-                        break;
-                }
+        addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case DATA_PROPERTY:
+                    onDataChange();
+                    break;
             }
         });
         

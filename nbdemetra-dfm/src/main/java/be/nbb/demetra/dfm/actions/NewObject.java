@@ -29,8 +29,7 @@ import org.openide.awt.ActionReferences;
 import org.openide.awt.ActionRegistration;
 import org.openide.util.NbBundle.Messages;
 
-@ActionID(category = "Tools",
-id = "be.nbb.demetra.dfm.actions.NewObject")
+@ActionID(category = "Tools", id = "be.nbb.demetra.dfm.actions.NewObject")
 @ActionRegistration(displayName = "#CTL_NewObject")
 @ActionReferences({
     @ActionReference(path = DfmDocumentManager.PATH, position = 1000)

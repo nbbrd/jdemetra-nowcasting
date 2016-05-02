@@ -50,7 +50,6 @@ import ec.util.various.swing.JCommand;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -81,7 +80,6 @@ import org.netbeans.api.progress.ProgressHandleFactory;
 import org.netbeans.api.settings.ConvertAsProperties;
 import org.openide.DialogDisplayer;
 import org.openide.NotifyDescriptor;
-import org.openide.util.Cancellable;
 import static org.openide.util.ImageUtilities.createDisabledIcon;
 import org.openide.util.NbBundle;
 import org.openide.windows.TopComponent;
@@ -165,12 +163,9 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
                 break;
             case STARTED:
                 swingWorker = new SimulationSwingWorker(getDocument());
-                progressHandle = ProgressHandleFactory.createHandle(getName(), new Cancellable() {
-                    @Override
-                    public boolean cancel() {
-                        swingWorker.cancel(false);
-                        return true;
-                    }
+                progressHandle = ProgressHandleFactory.createHandle(getName(), () -> {
+                    swingWorker.cancel(false);
+                    return true;
                 }, new AbstractAction() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
@@ -219,13 +214,10 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
             Day horizon = last.lastday();
             simulation = new DfmSimulation(horizon);
 
-            simulation.addPropertyChangeListener(new PropertyChangeListener() {
-                @Override
-                public void propertyChange(PropertyChangeEvent evt) {
-                    if (evt.getPropertyName().equals(DfmSimulation.CALENDAR_RESULTS)) {
-                        Day value = (Day) evt.getNewValue();
-                        publish("Generating data of publication date : " + value.toString() + "...");
-                    }
+            simulation.addPropertyChangeListener((PropertyChangeEvent evt) -> {
+                if (evt.getPropertyName().equals(DfmSimulation.CALENDAR_RESULTS)) {
+                    Day value = (Day) evt.getNewValue();
+                    publish("Generating data of publication date : " + value.toString() + "...");
                 }
             });
 
@@ -237,9 +229,9 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
             Arrays.sort(cal);
 
             List<Integer> delays = new ArrayList<>();
-            for (MeasurementSpec m : vdoc.getCurrent().getSpecification().getModelSpec().getMeasurements()) {
+            vdoc.getCurrent().getSpecification().getModelSpec().getMeasurements().stream().forEach((m) -> {
                 delays.add(m.getDelay());
-            }
+            });
 
             for (int s = 0; s < info.getSeriesCount(); ++s) {
                 boolean isWatched = vdoc.getCurrent().getSpecification().getModelSpec().getMeasurements().get(s).isWatched();
@@ -390,13 +382,6 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
                     mapQoQ.put(diff, new Double[nbHeaders]);
                 }
 
-//                TsDataTableInfo dataInfo;
-//                try {
-//                    dataInfo = table.getDataInfo(i, j);
-//                } catch (TsException ex) {
-//                    dataInfo = null;
-//                }
-//                if (dataInfo != null && dataInfo == TsDataTableInfo.Valid) {
                 TsDataTableInfo dataInfo = table.getDataInfo(i, j);
                 if (dataInfo == TsDataTableInfo.Valid) {
                     Double current = table.getData(i, j);
@@ -667,17 +652,15 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
                 TsDataTableInfo dataInfo = table.getDataInfo(j, i);
                 if (dataInfo == TsDataTableInfo.Valid) {
                     writer.append('\t').append(fmt.format(table.getData(j, i)));
-                } else {
-                    if (i != table.getSeriesCount() - 1) {
-                        TsDataTableInfo dataInfoReal = table.getDataInfo(j, table.getSeriesCount() - 1);
-                        if (dataInfoReal == TsDataTableInfo.Valid) {
-                            writer.append('\t').append(fmt.format(table.getData(j, table.getSeriesCount() - 1)));
-                        } else {
-                            writer.append('\t');
-                        }
+                } else if (i != table.getSeriesCount() - 1) {
+                    TsDataTableInfo dataInfoReal = table.getDataInfo(j, table.getSeriesCount() - 1);
+                    if (dataInfoReal == TsDataTableInfo.Valid) {
+                        writer.append('\t').append(fmt.format(table.getData(j, table.getSeriesCount() - 1)));
                     } else {
                         writer.append('\t');
                     }
+                } else {
+                    writer.append('\t');
                 }
             }
         }
@@ -721,40 +704,38 @@ public class DfmSimulationTopComponent extends AbstractDfmDocumentTopComponent {
         public void execute(DfmSimulationTopComponent c) throws Exception {
             if (c.controller.getSimulationState() == DfmState.STARTED) {
                 c.controller.setSimulationState(DfmState.CANCELLING);
-            } else {
-                if (c.getDocument() != null && !c.getDocument().isReadOnly()) {
-                    if (c.getDocument().getElement() instanceof VersionedDfmDocument) {
-                        if (c.controller.getDfmState() != DfmState.DONE) {
-                            JOptionPane.showMessageDialog(null, "DFM processing must be done before the simulation !", "Error", JOptionPane.ERROR_MESSAGE);
-                            return;
-                        }
-
-                        VersionedDfmDocument vd = c.getDocument().getElement();
-                        List<MeasurementSpec> m = vd.getSpecification().getModelSpec().getMeasurements();
-                        int count = 0;
-                        int i = 0;
-                        while (count == 0 && i < m.size()) {
-                            if (m.get(i).isWatched()) {
-                                count++;
-                            }
-                            i++;
-                        }
-
-                        if (count == 0) {
-                            JOptionPane.showMessageDialog(null, "You must select at least one series for data generation !\nRight click on a series to enable/disable data generation.", "Error", JOptionPane.ERROR_MESSAGE);
-                            return;
-                        }
-
-                        chooser.setDialogTitle("Select the output folder");
-                        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-                        chooser.setAcceptAllFileFilterUsed(false);
-
-                        if (chooser.showOpenDialog(null) != JFileChooser.APPROVE_OPTION) {
-                            return;
-                        }
-
-                        c.controller.setSimulationState(DfmState.STARTED);
+            } else if (c.getDocument() != null && !c.getDocument().isReadOnly()) {
+                if (c.getDocument().getElement() instanceof VersionedDfmDocument) {
+                    if (c.controller.getDfmState() != DfmState.DONE) {
+                        JOptionPane.showMessageDialog(null, "DFM processing must be done before the simulation !", "Error", JOptionPane.ERROR_MESSAGE);
+                        return;
                     }
+
+                    VersionedDfmDocument vd = c.getDocument().getElement();
+                    List<MeasurementSpec> m = vd.getSpecification().getModelSpec().getMeasurements();
+                    int count = 0;
+                    int i = 0;
+                    while (count == 0 && i < m.size()) {
+                        if (m.get(i).isWatched()) {
+                            count++;
+                        }
+                        i++;
+                    }
+
+                    if (count == 0) {
+                        JOptionPane.showMessageDialog(null, "You must select at least one series for data generation !\nRight click on a series to enable/disable data generation.", "Error", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
+                    chooser.setDialogTitle("Select the output folder");
+                    chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                    chooser.setAcceptAllFileFilterUsed(false);
+
+                    if (chooser.showOpenDialog(null) != JFileChooser.APPROVE_OPTION) {
+                        return;
+                    }
+
+                    c.controller.setSimulationState(DfmState.STARTED);
                 }
             }
         }

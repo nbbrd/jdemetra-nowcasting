@@ -21,9 +21,7 @@ import ec.tss.dfm.DfmResults;
 import ec.tstoolkit.timeseries.simplets.TsData;
 import java.awt.BorderLayout;
 import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.util.Date;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
@@ -52,22 +50,16 @@ public class FactorView extends JPanel {
 
         comboBox = new JComboBox();
 
-        comboBox.addItemListener(new ItemListener() {
-            @Override
-            public void itemStateChanged(ItemEvent e) {
-                updateChart();
-            }
+        comboBox.addItemListener((ItemEvent e) -> {
+            updateChart();
         });
 
-        addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case DFM_RESULTS_PROPERTY:
-                        updateComboBox();
-                        updateChart();
-                        break;
-                }
+        addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case DFM_RESULTS_PROPERTY:
+                    updateComboBox();
+                    updateChart();
+                    break;
             }
         });
 

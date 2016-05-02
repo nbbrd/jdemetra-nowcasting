@@ -52,7 +52,6 @@ import java.awt.Stroke;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.geom.Ellipse2D;
@@ -136,12 +135,9 @@ public class RMSEGraphView extends javax.swing.JPanel {
         Charts.enableFocusOnClick(chartPanel);
 
         comboBox.setRenderer(new ComboBoxRenderer());
-        comboBox.addItemListener(new ItemListener() {
-            @Override
-            public void itemStateChanged(ItemEvent e) {
-                filterPanel = null;
-                updateChart();
-            }
+        comboBox.addItemListener((ItemEvent e) -> {
+            filterPanel = null;
+            updateChart();
         });
 
         addPropertyChangeListener(new PropertyChangeListener() {
@@ -160,17 +156,14 @@ public class RMSEGraphView extends javax.swing.JPanel {
         updateChart();
         onColorSchemeChanged();
 
-        demetraUI.addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                switch (evt.getPropertyName()) {
-                    case DemetraUI.DATA_FORMAT_PROPERTY:
-                        onDataFormatChanged();
-                        break;
-                    case DemetraUI.COLOR_SCHEME_NAME_PROPERTY:
-                        onColorSchemeChanged();
-                        break;
-                }
+        demetraUI.addPropertyChangeListener((PropertyChangeEvent evt) -> {
+            switch (evt.getPropertyName()) {
+                case DemetraUI.DATA_FORMAT_PROPERTY:
+                    onDataFormatChanged();
+                    break;
+                case DemetraUI.COLOR_SCHEME_NAME_PROPERTY:
+                    onColorSchemeChanged();
+                    break;
             }
         });
 
