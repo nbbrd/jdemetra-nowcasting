@@ -28,6 +28,10 @@ public class SimulationNode extends CustomNode{
     private final List<Double> values;
     private List<SimulationNode> children;
     private SimulationNode parent;
+    
+    public SimulationNode(String name) {
+        this(name, null);
+    }
 
     public SimulationNode(String name, List<Double> values) {
         super(name);

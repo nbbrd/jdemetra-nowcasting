@@ -70,11 +70,13 @@ public class CustomNode {
         });
     }
     
-    public void addChild(CustomNode node) {
+    public CustomNode addChild(CustomNode node) {
         if (children == null) {
             children = new ArrayList<>();
         }
         children.add(node);
+        
+        return this;
     }
 
     public boolean isLeaf() {

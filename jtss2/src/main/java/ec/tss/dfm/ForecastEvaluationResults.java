@@ -530,7 +530,6 @@ public class ForecastEvaluationResults {
             //int[] w = null;
             //double[] gamma = null;
             double gammaw = 0;
-            double TwoPIf = 0;
 
             int count = 0;
             int T = 0;
@@ -542,7 +541,7 @@ public class ForecastEvaluationResults {
                 }
 
                 // gamma
-                gamma[count] = ForecastEvaluationResults.cov(lossDiff.getValues().internalStorage(), lossDiff.getValues().internalStorage(), tau);
+                gamma[count] = ForecastEvaluationResults.cov(lossDiff.internalStorage(), lossDiff.internalStorage(), tau);
 
                 // T
                 if (gamma[count] != 0 && !Double.isNaN(gamma[count])) {
@@ -554,8 +553,7 @@ public class ForecastEvaluationResults {
             }
 
             // DM = dBar/(sqrt(2pif/T)), where 2pif = gammaw/T
-            double DM_denom = Math.sqrt((gammaw / T) / T);
-            return DM_denom;
+            return Math.sqrt((gammaw / T) / T);
         }
     }
 
@@ -580,8 +578,6 @@ public class ForecastEvaluationResults {
         }
         double v = 0;
 
-        //     DescriptiveStatistics MdAE = new DescriptiveStatistics(eAbs_double); 
-        //     return MdAE.getMedian();  
         int n = x.length - t;
         int nm = 0;
         for (int i = 0; i < n; ++i) {
@@ -597,9 +593,7 @@ public class ForecastEvaluationResults {
         if (m == 0) {
             return 0;
         }
-        //return v / m;
         return v;
-        //return v / x.length;
     }
 
 }

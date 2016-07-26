@@ -31,7 +31,7 @@ import ec.tss.dfm.DfmSeriesDescriptor;
 import ec.tss.dfm.DfmSimulation;
 import ec.tss.dfm.DfmSimulationResults;
 import ec.tss.dfm.ForecastEvaluationResults;
-import ec.tss.dfm.ForecastEvaluationResults.AccuracyTests;
+import ec.tss.timeseries.diagnostics.GlobalForecastingEvaluation;
 import ec.tss.tsproviders.utils.Formatters;
 import ec.tstoolkit.timeseries.TsAggregationType;
 import ec.tstoolkit.timeseries.simplets.TsData;
@@ -313,177 +313,111 @@ public class SimulationQuantifiedResultsView extends JPanel {
 
         TsPeriod start = filteredPeriods.get(filterPanel.getStart());
         TsPeriod end = filteredPeriods.get(filterPanel.getEnd());
-        TsDomain dom = new TsDomain(start, end.minus(start)+1);
+        TsDomain dom = new TsDomain(start, end.minus(start) + 1);
 
         // Base
-        SimulationNode scale = new SimulationNode("Scale dependent", null);
+        List<Double> valuesRMSE = new ArrayList<>(), relValuesRMSE = new ArrayList<>();
+        List<Double> valuesMAE = new ArrayList<>(), relValuesMAE = new ArrayList<>();
+        List<Double> valuesMdAE = new ArrayList<>(), relValuesMdAE = new ArrayList<>();
 
-        List<Double> valuesRMSE = new ArrayList<>();
-        List<Double> valuesMAE = new ArrayList<>();
-        List<Double> valuesMdAE = new ArrayList<>();
+        List<Double> valuesRMSPE = new ArrayList<>(), relValuesRMSPE = new ArrayList<>();
+        List<Double> values_sMAPE = new ArrayList<>(), relValues_sMAPE = new ArrayList<>();
+        List<Double> values_sMdAPE = new ArrayList<>(), relValues_sMdAPE = new ArrayList<>();
+
+        List<Double> valuesRMSSE = new ArrayList<>(), relValuesRMSSE = new ArrayList<>();
+        List<Double> valuesMASE = new ArrayList<>(), relValuesMASE = new ArrayList<>();
+        List<Double> values_MdASE = new ArrayList<>(), relValues_MdASE = new ArrayList<>();
+
+        List<Double> pbValues = new ArrayList<>();
+        List<Double> dmSqValues = new ArrayList<>();
+        List<Double> dmAbsValues = new ArrayList<>();
+        List<Double> encValues = new ArrayList<>();
+        List<Double> biasValues = new ArrayList<>();
+        List<Double> efficiencyValues = new ArrayList<>();
+
         for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(
-                    dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom), 
-                    arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom), 
-                    trueTsData.fittoDomain(dom));
-            
+            TsData fcts = dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom);
+            TsData fctsBench = arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom);
+            TsData trueData = trueTsData.fittoDomain(dom);
+            ForecastEvaluationResults rslt = new ForecastEvaluationResults(fcts, fctsBench, trueData);
             valuesRMSE.add(rslt.calcRMSE());
             valuesMAE.add(rslt.calcMAE());
             valuesMdAE.add(rslt.calcMdAE());
-        }
-        scale.addChild(new SimulationNode("RMSE", valuesRMSE));
-        scale.addChild(new SimulationNode("MAE", valuesMAE));
-        scale.addChild(new SimulationNode("MdAE", valuesMdAE));
-
-        nodes.add(scale);
-
-        SimulationNode percentage = new SimulationNode("Percentage errors", null);
-
-        List<Double> valuesRMSPE = new ArrayList<>();
-        List<Double> values_sMAPE = new ArrayList<>();
-        List<Double> values_sMdAPE = new ArrayList<>();
-        for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(
-                    dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom), 
-                    arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom), 
-                    trueTsData.fittoDomain(dom));
-            
             valuesRMSPE.add(rslt.calcRMSPE());
             values_sMAPE.add(rslt.calc_sMAPE());
             values_sMdAPE.add(rslt.calc_sMdAPE());
-        }
-        percentage.addChild(new SimulationNode("RMSPE", valuesRMSPE));
-        percentage.addChild(new SimulationNode("sMAPE", values_sMAPE));
-        percentage.addChild(new SimulationNode("sMdAPE", values_sMdAPE));
-
-        nodes.add(percentage);
-
-        SimulationNode errors = new SimulationNode("Scaled errors", null);
-
-        List<Double> valuesRMSSE = new ArrayList<>();
-        List<Double> valuesMASE = new ArrayList<>();
-        List<Double> values_MdASE = new ArrayList<>();
-        for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(
-                    dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom), 
-                    arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom), 
-                    trueTsData.fittoDomain(dom));
-            
             valuesRMSSE.add(rslt.calcRMSSE());
             valuesMASE.add(rslt.calcMASE());
             values_MdASE.add(rslt.calcMdASE());
-        }
-        errors.addChild(new SimulationNode("RMSSE", valuesRMSSE));
-        errors.addChild(new SimulationNode("MASE", valuesMASE));
-        errors.addChild(new SimulationNode("MdASE", values_MdASE));
+            relValuesRMSE.add(rslt.calcRelRMSE());
+            relValuesMAE.add(rslt.calcRelMAE());
+            relValuesMdAE.add(rslt.calcRelMdAE());
+            relValuesRMSPE.add(rslt.calcRelRMSPE());
+            relValues_sMAPE.add(rslt.calcRel_sMAPE());
+            relValues_sMdAPE.add(rslt.calcRel_sMdAPE());
+            relValuesRMSSE.add(rslt.calcRelRMSSE());
+            relValuesMASE.add(rslt.calcRelMASE());
+            relValues_MdASE.add(rslt.calcRelMdASE());
 
-        nodes.add(errors);
+            pbValues.add(rslt.calcPB());
+
+            GlobalForecastingEvaluation test = new GlobalForecastingEvaluation(
+                    fcts, fctsBench, trueTsData, ec.tss.timeseries.diagnostics.AccuracyTests.AsymptoticsType.STANDARD);
+            test.setDelay(horizon);
+            dmSqValues.add(test.getDieboldMarianoTest().getPValue());
+            dmAbsValues.add(test.getDieboldMarianoAbsoluteTest().getPValue());
+            encValues.add(test.getModelEncompassesBenchmarkTest().getPValue());
+            biasValues.add(test.getBiasTest().getPValue());
+            efficiencyValues.add(test.getEfficiencyTest().getPValue());
+        }
+
+        nodes.add(new SimulationNode("Scale dependent")
+                .addChild(new SimulationNode("RMSE", valuesRMSE))
+                .addChild(new SimulationNode("MAE", valuesMAE))
+                .addChild(new SimulationNode("MdAE", valuesMdAE)));
+
+        nodes.add(new SimulationNode("Percentage errors")
+                .addChild(new SimulationNode("RMSPE", valuesRMSPE))
+                .addChild(new SimulationNode("sMAPE", values_sMAPE))
+                .addChild(new SimulationNode("sMdAPE", values_sMdAPE)));
+
+        nodes.add(new SimulationNode("Scaled errors")
+                .addChild(new SimulationNode("RMSSE", valuesRMSSE))
+                .addChild(new SimulationNode("MASE", valuesMASE))
+                .addChild(new SimulationNode("MdASE", values_MdASE)));
 
         // Relative
-        SimulationNode relative = new SimulationNode("Relative", null);
-        scale = new SimulationNode("Scale dependent", null);
+        nodes.add(new SimulationNode("Relative")
+                .addChild(new SimulationNode("Scale dependent")
+                        .addChild(new SimulationNode("RMSE", relValuesRMSE))
+                        .addChild(new SimulationNode("MAE", relValuesMAE))
+                        .addChild(new SimulationNode("MdAE", relValuesMdAE)))
+                .addChild(new SimulationNode("Percentage error")
+                        .addChild(new SimulationNode("RMSPE", relValuesRMSPE))
+                        .addChild(new SimulationNode("sMAPE", relValues_sMAPE))
+                        .addChild(new SimulationNode("sMdAPE", relValues_sMdAPE)))
+                .addChild(new SimulationNode("Scaled errors")
+                        .addChild(new SimulationNode("RMSSE", relValuesRMSSE))
+                        .addChild(new SimulationNode("MASE", relValuesMASE))
+                        .addChild(new SimulationNode("MdASE", relValues_MdASE)))
+                .addChild(new SimulationNode("Percentage better", pbValues))
+        );
 
-        valuesRMSE = new ArrayList<>();
-        valuesMAE = new ArrayList<>();
-        valuesMdAE = new ArrayList<>();
-        for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(
-                    dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom), 
-                    arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom), 
-                    trueTsData.fittoDomain(dom));
-            
-            valuesRMSE.add(rslt.calcRelRMSE());
-            valuesMAE.add(rslt.calcRelMAE());
-            valuesMdAE.add(rslt.calcRelMdAE());
-        }
-        scale.addChild(new SimulationNode("RMSE", valuesRMSE));
-        scale.addChild(new SimulationNode("MAE", valuesMAE));
-        scale.addChild(new SimulationNode("MdAE", valuesMdAE));
+        // Tests
+        nodes.add(new SimulationNode("Diebold Mariano")
+                .addChild(new SimulationNode("Standard")
+                        .addChild(new SimulationNode(D_M_TEST, dmSqValues))
+                        .addChild(new SimulationNode(D_M_ABS_TEST, dmAbsValues)))
+        );
 
-        relative.addChild(scale);
+        nodes.add(new SimulationNode(ENCOMPASING_TEST)
+                .addChild(new SimulationNode("Standard", encValues)));
 
-        percentage = new SimulationNode("Percentage errors", null);
+        nodes.add(new SimulationNode("Bias")
+                .addChild(new SimulationNode("Standard", biasValues)));
 
-        valuesRMSPE = new ArrayList<>();
-        values_sMAPE = new ArrayList<>();
-        values_sMdAPE = new ArrayList<>();
-        for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(
-                    dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom), 
-                    arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom), 
-                    trueTsData.fittoDomain(dom));
-            
-            valuesRMSPE.add(rslt.calcRelRMSPE());
-            values_sMAPE.add(rslt.calcRel_sMAPE());
-            values_sMdAPE.add(rslt.calcRel_sMdAPE());
-        }
-        percentage.addChild(new SimulationNode("RMSPE", valuesRMSPE));
-        percentage.addChild(new SimulationNode("sMAPE", values_sMAPE));
-        percentage.addChild(new SimulationNode("sMdAPE", values_sMdAPE));
-
-        relative.addChild(percentage);
-
-        errors = new SimulationNode("Scaled errors", null);
-
-        valuesRMSSE = new ArrayList<>();
-        valuesMASE = new ArrayList<>();
-        values_MdASE = new ArrayList<>();
-        for (Integer horizon : filteredHorizons) {
-            ForecastEvaluationResults rslt = new ForecastEvaluationResults(
-                    dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom), 
-                    arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom), 
-                    trueTsData.fittoDomain(dom));
-            
-            valuesRMSSE.add(rslt.calcRelRMSSE());
-            valuesMASE.add(rslt.calcRelMASE());
-            values_MdASE.add(rslt.calcRelMdASE());
-        }
-        errors.addChild(new SimulationNode("RMSSE", valuesRMSSE));
-        errors.addChild(new SimulationNode("MASE", valuesMASE));
-        errors.addChild(new SimulationNode("MdASE", values_MdASE));
-
-        relative.addChild(errors);
-
-        List<Double> pbValues = new ArrayList<>();
-        filteredHorizons.stream().map((horizon) -> new ForecastEvaluationResults(
-                dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom),
-                arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom),
-                trueTsData.fittoDomain(dom))).forEach((rslt) -> {
-                    pbValues.add(rslt.calcPB());
-        });
-        relative.addChild(new SimulationNode("Percentage better", pbValues));
-
-        nodes.add(relative);
-
-        // Diebold Mariano + Encompassing Test
-        SimulationNode dm = new SimulationNode("Diebold Mariano", null);
-
-        List<Double> dmSqValues = new ArrayList<>();
-        List<Double> dmAbsValues = new ArrayList<>();
-        filteredHorizons.stream().map((horizon) -> new ForecastEvaluationResults(
-                dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom),
-                arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom),
-                trueTsData.fittoDomain(dom))).map((rslt) -> rslt.new AccuracyTests()).map((test) -> {
-                    dmSqValues.add(test.getDM());
-            return test;
-        }).forEach((test) -> {
-            dmAbsValues.add(test.getDMabs());
-        });
-        dm.addChild(new SimulationNode(D_M_TEST, dmSqValues));
-        dm.addChild(new SimulationNode(D_M_ABS_TEST, dmAbsValues));
-
-        nodes.add(dm);
-
-        List<Double> encValues = new ArrayList<>();
-        filteredHorizons.stream().map((horizon) -> new ForecastEvaluationResults(
-                dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom),
-                arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom),
-                trueTsData.fittoDomain(dom))).map((rslt) -> rslt.new AccuracyTests()).forEach((test) -> {
-                    encValues.add(test.getDM_e());
-        });
-        SimulationNode enc = new SimulationNode(ENCOMPASING_TEST, encValues);
-
-        nodes.add(enc);
+        nodes.add(new SimulationNode("Efficiency Test")
+                .addChild(new SimulationNode("Standard", efficiencyValues)));
     }
 
     private List<TsPeriod> filterEvaluationSample(List<Double> trueValues) {
