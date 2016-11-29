@@ -31,6 +31,7 @@ import ec.tss.dfm.DfmSeriesDescriptor;
 import ec.tss.dfm.DfmSimulation;
 import ec.tss.dfm.DfmSimulationResults;
 import ec.tss.dfm.ForecastEvaluationResults;
+import ec.tss.timeseries.diagnostics.AccuracyTests;
 import ec.tss.timeseries.diagnostics.GlobalForecastingEvaluation;
 import ec.tss.tsproviders.utils.Formatters;
 import ec.tstoolkit.timeseries.TsAggregationType;
@@ -267,6 +268,8 @@ public class SimulationQuantifiedResultsView extends JPanel {
         outline.setTitles(titles);
     }
 
+    Map<String, List<Double>> map = new HashMap<>();
+
     private void calculateData() {
         nodes = new ArrayList<>();
         int selectedIndex = comboBox.getSelectedIndex();
@@ -316,108 +319,104 @@ public class SimulationQuantifiedResultsView extends JPanel {
         TsDomain dom = new TsDomain(start, end.minus(start) + 1);
 
         // Base
-        List<Double> valuesRMSE = new ArrayList<>(), relValuesRMSE = new ArrayList<>();
-        List<Double> valuesMAE = new ArrayList<>(), relValuesMAE = new ArrayList<>();
-        List<Double> valuesMdAE = new ArrayList<>(), relValuesMdAE = new ArrayList<>();
-
-        List<Double> valuesRMSPE = new ArrayList<>(), relValuesRMSPE = new ArrayList<>();
-        List<Double> values_sMAPE = new ArrayList<>(), relValues_sMAPE = new ArrayList<>();
-        List<Double> values_sMdAPE = new ArrayList<>(), relValues_sMdAPE = new ArrayList<>();
-
-        List<Double> valuesRMSSE = new ArrayList<>(), relValuesRMSSE = new ArrayList<>();
-        List<Double> valuesMASE = new ArrayList<>(), relValuesMASE = new ArrayList<>();
-        List<Double> values_MdASE = new ArrayList<>(), relValues_MdASE = new ArrayList<>();
-
-        List<Double> pbValues = new ArrayList<>();
-        List<Double> dmSqValues = new ArrayList<>();
-        List<Double> dmAbsValues = new ArrayList<>();
-        List<Double> encValues = new ArrayList<>();
-        List<Double> biasValues = new ArrayList<>();
-        List<Double> efficiencyValues = new ArrayList<>();
-
         for (Integer horizon : filteredHorizons) {
             TsData fcts = dfmTs.get(horizon) == null ? null : dfmTs.get(horizon).fittoDomain(dom);
             TsData fctsBench = arimaTs.get(horizon) == null ? null : arimaTs.get(horizon).fittoDomain(dom);
             TsData trueData = trueTsData.fittoDomain(dom);
             ForecastEvaluationResults rslt = new ForecastEvaluationResults(fcts, fctsBench, trueData);
-            valuesRMSE.add(rslt.calcRMSE());
-            valuesMAE.add(rslt.calcMAE());
-            valuesMdAE.add(rslt.calcMdAE());
-            valuesRMSPE.add(rslt.calcRMSPE());
-            values_sMAPE.add(rslt.calc_sMAPE());
-            values_sMdAPE.add(rslt.calc_sMdAPE());
-            valuesRMSSE.add(rslt.calcRMSSE());
-            valuesMASE.add(rslt.calcMASE());
-            values_MdASE.add(rslt.calcMdASE());
-            relValuesRMSE.add(rslt.calcRelRMSE());
-            relValuesMAE.add(rslt.calcRelMAE());
-            relValuesMdAE.add(rslt.calcRelMdAE());
-            relValuesRMSPE.add(rslt.calcRelRMSPE());
-            relValues_sMAPE.add(rslt.calcRel_sMAPE());
-            relValues_sMdAPE.add(rslt.calcRel_sMdAPE());
-            relValuesRMSSE.add(rslt.calcRelRMSSE());
-            relValuesMASE.add(rslt.calcRelMASE());
-            relValues_MdASE.add(rslt.calcRelMdASE());
+            addToMap("RMSE", rslt.calcRMSE());
+            addToMap("MAE", rslt.calcMAE());
+            addToMap("MDAE", rslt.calcMdAE());
+            addToMap("RMSPE", rslt.calcRMSPE());
+            addToMap("SMAPE", rslt.calc_sMAPE());
+            addToMap("MDAPE", rslt.calc_sMdAPE());
+            addToMap("RMSSE", rslt.calcRMSSE());
+            addToMap("MASE", rslt.calcMASE());
+            addToMap("MDASE", rslt.calcMdASE());
+            addToMap("REL_RMSE", rslt.calcRelRMSE());
+            addToMap("REL_MAE", rslt.calcRelMAE());
+            addToMap("REL_MDAE", rslt.calcRelMdAE());
+            addToMap("REL_RMSPE", rslt.calcRelRMSPE());
+            addToMap("REL_SMAPE", rslt.calcRel_sMAPE());
+            addToMap("REL_SMDAPE", rslt.calcRel_sMdAPE());
+            addToMap("REL_RMSSE", rslt.calcRelRMSSE());
+            addToMap("REL_MASE", rslt.calcRelMASE());
+            addToMap("REL_MDASE", rslt.calcRelMdASE());
 
-            pbValues.add(rslt.calcPB());
+            addToMap("PB", rslt.calcPB());
 
             GlobalForecastingEvaluation test = new GlobalForecastingEvaluation(
                     fcts, fctsBench, trueTsData, ec.tss.timeseries.diagnostics.AccuracyTests.AsymptoticsType.STANDARD);
             test.setDelay(horizon);
-            dmSqValues.add(test.getDieboldMarianoTest().getPValue());
-            dmAbsValues.add(test.getDieboldMarianoAbsoluteTest().getPValue());
-            encValues.add(test.getModelEncompassesBenchmarkTest().getPValue());
-            biasValues.add(test.getBiasTest().getPValue());
-            efficiencyValues.add(test.getEfficiencyTest().getPValue());
+            boolean twoSided = true;
+            addToMap("DM", test.getDieboldMarianoTest().getPValue(twoSided));
+            addToMap("DM_ABS", test.getDieboldMarianoAbsoluteTest().getPValue(twoSided));
+            addToMap("MDL_ENC_BENCH", test.getModelEncompassesBenchmarkTest().getPValue(twoSided));
+            addToMap("BIAS", test.getBiasTest().getPValue(twoSided));
+            addToMap("EFFICIENCY", test.getEfficiencyTest().getPValue(twoSided));
+
+            test.setAsymptoticsType(AccuracyTests.AsymptoticsType.HYBRID);
+            addToMap("H_DM", test.getDieboldMarianoTest().getPValue(twoSided));
+            addToMap("H_DM_ABS", test.getDieboldMarianoAbsoluteTest().getPValue(twoSided));
+            addToMap("H_MDL_ENC_BENCH", test.getModelEncompassesBenchmarkTest().getPValue(twoSided));
+            addToMap("H_BIAS", test.getBiasTest().getPValue(twoSided));
+            addToMap("H_EFFICIENCY", test.getEfficiencyTest().getPValue(twoSided));
         }
 
         nodes.add(new SimulationNode("Scale dependent")
-                .addChild(new SimulationNode("RMSE", valuesRMSE))
-                .addChild(new SimulationNode("MAE", valuesMAE))
-                .addChild(new SimulationNode("MdAE", valuesMdAE)));
+                .addChild(new SimulationNode("RMSE", map.get("RMSE")))
+                .addChild(new SimulationNode("MAE", map.get("MAE")))
+                .addChild(new SimulationNode("MdAE", map.get("MDAE"))));
 
         nodes.add(new SimulationNode("Percentage errors")
-                .addChild(new SimulationNode("RMSPE", valuesRMSPE))
-                .addChild(new SimulationNode("sMAPE", values_sMAPE))
-                .addChild(new SimulationNode("sMdAPE", values_sMdAPE)));
+                .addChild(new SimulationNode("RMSPE", map.get("RMSPE")))
+                .addChild(new SimulationNode("sMAPE", map.get("SMAPE")))
+                .addChild(new SimulationNode("sMdAPE", map.get("SMDAPE"))));
 
         nodes.add(new SimulationNode("Scaled errors")
-                .addChild(new SimulationNode("RMSSE", valuesRMSSE))
-                .addChild(new SimulationNode("MASE", valuesMASE))
-                .addChild(new SimulationNode("MdASE", values_MdASE)));
+                .addChild(new SimulationNode("RMSSE", map.get("RMSSE")))
+                .addChild(new SimulationNode("MASE", map.get("MASE")))
+                .addChild(new SimulationNode("MdASE", map.get("MDASE"))));
 
         // Relative
         nodes.add(new SimulationNode("Relative")
                 .addChild(new SimulationNode("Scale dependent")
-                        .addChild(new SimulationNode("RMSE", relValuesRMSE))
-                        .addChild(new SimulationNode("MAE", relValuesMAE))
-                        .addChild(new SimulationNode("MdAE", relValuesMdAE)))
+                        .addChild(new SimulationNode("RMSE", map.get("REL_RMSE")))
+                        .addChild(new SimulationNode("MAE", map.get("REL_MAE")))
+                        .addChild(new SimulationNode("MdAE", map.get("REL_MDAE"))))
                 .addChild(new SimulationNode("Percentage error")
-                        .addChild(new SimulationNode("RMSPE", relValuesRMSPE))
-                        .addChild(new SimulationNode("sMAPE", relValues_sMAPE))
-                        .addChild(new SimulationNode("sMdAPE", relValues_sMdAPE)))
+                        .addChild(new SimulationNode("RMSPE", map.get("REL_RMSPE")))
+                        .addChild(new SimulationNode("sMAPE", map.get("REL_SMAPE")))
+                        .addChild(new SimulationNode("sMdAPE", map.get("REL_SMDAPE"))))
                 .addChild(new SimulationNode("Scaled errors")
-                        .addChild(new SimulationNode("RMSSE", relValuesRMSSE))
-                        .addChild(new SimulationNode("MASE", relValuesMASE))
-                        .addChild(new SimulationNode("MdASE", relValues_MdASE)))
-                .addChild(new SimulationNode("Percentage better", pbValues))
+                        .addChild(new SimulationNode("RMSSE", map.get("RMSSE")))
+                        .addChild(new SimulationNode("MASE", map.get("MASE")))
+                        .addChild(new SimulationNode("MdASE", map.get("MDASE"))))
+                .addChild(new SimulationNode("Percentage better", map.get("PB")))
         );
 
         // Tests
         nodes.add(new SimulationNode("Diebold Mariano")
                 .addChild(new SimulationNode("Standard")
-                        .addChild(new SimulationNode(D_M_TEST, dmSqValues))
-                        .addChild(new SimulationNode(D_M_ABS_TEST, dmAbsValues)))
+                        .addChild(new SimulationNode(D_M_TEST, map.get("DM")))
+                        .addChild(new SimulationNode(D_M_ABS_TEST, map.get("DM_ABS"))))
         );
 
         nodes.add(new SimulationNode(ENCOMPASING_TEST)
-                .addChild(new SimulationNode("Standard", encValues)));
+                .addChild(new SimulationNode("Standard", map.get("MDL_ENC_BENCH"))));
 
         nodes.add(new SimulationNode("Bias")
-                .addChild(new SimulationNode("Standard", biasValues)));
+                .addChild(new SimulationNode("Standard", map.get("BIAS"))));
 
         nodes.add(new SimulationNode("Efficiency Test")
-                .addChild(new SimulationNode("Standard", efficiencyValues)));
+                .addChild(new SimulationNode("Standard", map.get("EFFICIENCY"))));
+    }
+
+    private void addToMap(String key, Double value) {
+        if (!map.containsKey(key)) {
+            map.put(key, new ArrayList<>());
+        }
+        map.get(key).add(value);
     }
 
     private List<TsPeriod> filterEvaluationSample(List<Double> trueValues) {

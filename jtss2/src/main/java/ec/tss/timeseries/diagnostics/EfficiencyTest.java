@@ -16,6 +16,7 @@
  */
 package ec.tss.timeseries.diagnostics;
 
+import ec.tstoolkit.data.DescriptiveStatistics;
 import ec.tstoolkit.timeseries.simplets.TsData;
 
 /**
@@ -24,6 +25,8 @@ import ec.tstoolkit.timeseries.simplets.TsData;
  */
 public class EfficiencyTest extends AccuracyTests {
 
+    private boolean yearly = false;
+
     public EfficiencyTest(TsData fcts, TsData y, AsymptoticsType asympType) {
         super(fcts, y, asympType);
     }
@@ -31,13 +34,48 @@ public class EfficiencyTest extends AccuracyTests {
     public EfficiencyTest(TsData error, AsymptoticsType asympType) {
         super(error, null, asympType);
     }
-    
+
     public EfficiencyTest(TsData fcts, TsData y, AsymptoticsType asympType, Integer delay, Integer horizon) {
         super(fcts, y, asympType, delay, horizon);
     }
 
+    public boolean isYearly() {
+        return yearly;
+    }
+
+    public void setYearly(boolean yearly) {
+        this.yearly = yearly;
+    }
+
     @Override
     public TsData calcLoss() {
-        return e.drop(1, 0).times(e.drop(0, 1));
+        double e0_bar = (e.drop(1, 0)).average();
+        double e1_bar = (e.drop(0, 1)).average();
+
+        TsData e0 = (e.drop(1, 0));
+        TsData e1 = (e.drop(0, 1)).lag(-1);
+
+        TsData e0e1 = e0.minus(e0_bar).times(e1.minus(e1_bar));
+
+        return e0e1;
     }
+
+    public double calcCorrelation() {
+        double e0_bar = (e.drop(1, 0)).average();
+        double e1_bar = (e.drop(0, 1)).average();
+
+        TsData e0 = (e.drop(1, 0));
+        TsData e1 = (e.drop(0, 1)).lag(-1);
+
+        TsData e0e1 = e0.minus(e0_bar).times(e1.minus(e1_bar));
+        double e0e1Cov = e0e1.average();
+
+        DescriptiveStatistics desc0 = new DescriptiveStatistics(e0);
+        DescriptiveStatistics desc1 = new DescriptiveStatistics(e1);
+        double std0 = desc0.getStdev();
+        double std1 = desc1.getStdev();
+
+        return e0e1Cov / (std0 * std1);
+    }
+
 }

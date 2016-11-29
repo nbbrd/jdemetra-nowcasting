@@ -24,39 +24,63 @@ import ec.tstoolkit.timeseries.simplets.TsData;
  */
 public class GlobalForecastingEvaluation {
 
-    private DieboldMarianoTest dmTest, dmAbsTest;    
+    private DieboldMarianoTest dmTest, dmAbsTest;
     private EncompassingTest modelEncompassesBenchmarkTest, benchmarkEncompassesModelTest;
     private BiasTest biasTest, biasBenchmarkTest;
-    private EfficiencyTest efficiencyTest, efficiencyBenchmarkTest;
-    
+    private EfficiencyTest efficiencyTest, efficiencyBenchmarkTest, efficiencyYearlyTest, efficiencyYearlyBenchmarkTest;
+
     private final TsData fcts, fctsBench, y;
-    private final AccuracyTests.AsymptoticsType asymptoticsType;
-    
+    private AccuracyTests.AsymptoticsType asymptoticsType;
+
     private Integer delay = null;
     private Integer fctHorizon = null;
-    
+
     public GlobalForecastingEvaluation(TsData fcts, TsData fctsBench, TsData y, AccuracyTests.AsymptoticsType asympType) {
         this.fcts = fcts;
         this.fctsBench = fctsBench;
         this.y = y;
         this.asymptoticsType = asympType;
     }
-    
+
+    public void clearTests() {
+        dmTest = null;
+        dmAbsTest = null;
+        modelEncompassesBenchmarkTest = null;
+        benchmarkEncompassesModelTest = null;
+        biasTest = null;
+        biasBenchmarkTest = null;
+        efficiencyTest = null;
+        efficiencyBenchmarkTest = null;
+    }
+
+    public void setAsymptoticsType(AccuracyTests.AsymptoticsType asymptoticsType) {
+        if (this.asymptoticsType != asymptoticsType) {
+            clearTests();
+            this.asymptoticsType = asymptoticsType;
+        }
+    }
+
     public void setForecastHorizon(Integer fctHorizon) {
-        this.fctHorizon = fctHorizon;
+        if (!this.fctHorizon.equals(fctHorizon)) {
+            clearTests();
+            this.fctHorizon = fctHorizon;
+        }
     }
 
     public void setDelay(Integer delay) {
-        this.delay = delay;
+        if (this.delay == null || !this.delay.equals(delay)) {
+            clearTests();
+            this.delay = delay;
+        }
     }
-    
+
     public DieboldMarianoTest getDieboldMarianoTest() {
         if (dmTest == null) {
             dmTest = new DieboldMarianoTest(fcts, fctsBench, y, asymptoticsType, delay, fctHorizon);
         }
         return dmTest;
     }
-    
+
     public DieboldMarianoTest getDieboldMarianoAbsoluteTest() {
         if (dmAbsTest == null) {
             dmAbsTest = new DieboldMarianoTest(fcts, fctsBench, y, asymptoticsType, delay, fctHorizon);
@@ -71,14 +95,14 @@ public class GlobalForecastingEvaluation {
         }
         return biasTest;
     }
-    
+
     public BiasTest getBiasBenchmarkTest() {
         if (biasBenchmarkTest == null) {
             biasBenchmarkTest = new BiasTest(fctsBench, y, asymptoticsType, delay, fctHorizon);
         }
         return biasBenchmarkTest;
     }
-    
+
     public EfficiencyTest getEfficiencyTest() {
         if (efficiencyTest == null) {
             efficiencyTest = new EfficiencyTest(fcts, y, asymptoticsType, delay, fctHorizon);
@@ -86,6 +110,14 @@ public class GlobalForecastingEvaluation {
         return efficiencyTest;
     }
     
+    public EfficiencyTest getEfficiencyYearlyTest() {
+        if (efficiencyYearlyTest == null) {
+            efficiencyYearlyTest = new EfficiencyTest(fcts, y, asymptoticsType, delay, fctHorizon);
+            efficiencyYearlyTest.setYearly(true);
+        }
+        return efficiencyYearlyTest;
+    }
+
     public EfficiencyTest getEfficiencyBenchmarkTest() {
         if (efficiencyBenchmarkTest == null) {
             efficiencyBenchmarkTest = new EfficiencyTest(fctsBench, y, asymptoticsType, delay, fctHorizon);
@@ -93,6 +125,14 @@ public class GlobalForecastingEvaluation {
         return efficiencyBenchmarkTest;
     }
 
+    public EfficiencyTest getEfficiencyYearlyBenchmarkTest() {
+        if (efficiencyYearlyBenchmarkTest == null) {
+            efficiencyYearlyBenchmarkTest = new EfficiencyTest(fctsBench, y, asymptoticsType, delay, fctHorizon);
+            efficiencyYearlyBenchmarkTest.setYearly(true);
+        }
+        return efficiencyYearlyBenchmarkTest;
+    }
+    
     public EncompassingTest getModelEncompassesBenchmarkTest() {
         if (modelEncompassesBenchmarkTest == null) {
             modelEncompassesBenchmarkTest = new EncompassingTest(fcts, fctsBench, y, asymptoticsType, delay, fctHorizon);
@@ -108,5 +148,5 @@ public class GlobalForecastingEvaluation {
         }
         return benchmarkEncompassesModelTest;
     }
-    
+
 }

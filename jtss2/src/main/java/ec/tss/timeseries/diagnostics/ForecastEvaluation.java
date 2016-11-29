@@ -3,8 +3,9 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package ec.tss.dfm;
+package ec.tss.timeseries.diagnostics;
 
+import ec.tss.dfm.AccuracyTests;
 import ec.tstoolkit.data.DescriptiveStatistics;
 import ec.tstoolkit.timeseries.simplets.TsData;
 
@@ -106,6 +107,14 @@ public class ForecastEvaluation {
         } catch (ArithmeticException ex) {
             return Double.NaN;
         }
+    }
+    
+    public TsData getForecastError() {
+        return e;
+    }
+    
+    public TsData getForecastErrorBenchmark() {
+        return eB;
     }
 
     /**

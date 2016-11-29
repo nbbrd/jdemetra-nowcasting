@@ -1,17 +1,17 @@
 /*
- * Copyright 2016 National Bank of Belgium
- *
- * Licensed under the EUPL, Version 1.1 or – as soon they will be approved 
+* Copyright 2016 National Bank of Belgium
+*
+* Licensed under the EUPL, Version 1.1 or – as soon they will be approved 
  * by the European Commission - subsequent versions of the EUPL (the "Licence");
- * You may not use this work except in compliance with the Licence.
- * You may obtain a copy of the Licence at:
- * 
+* You may not use this work except in compliance with the Licence.
+* You may obtain a copy of the Licence at:
+* 
  * http://ec.europa.eu/idabc/eupl
- * 
+* 
  * Unless required by applicable law or agreed to in writing, software 
  * distributed under the Licence is distributed on an "AS IS" basis,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the Licence for the specific language governing permissions and 
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
 package ec.tss.timeseries.diagnostics;
@@ -21,7 +21,6 @@ import ec.tstoolkit.data.DescriptiveStatistics;
 import ec.tstoolkit.data.IReadDataBlock;
 import ec.tstoolkit.dstats.Normal;
 import ec.tstoolkit.dstats.ProbabilityType;
-import ec.tstoolkit.dstats.T;
 import ec.tstoolkit.stats.LjungBoxTest;
 import ec.tstoolkit.timeseries.simplets.TsData;
 
@@ -45,6 +44,13 @@ public abstract class AccuracyTests {
     private AsymptoticsType asympType;
     private int nTotal = -1;
     private int bandwith = -1;
+    private boolean denomPositive = false;
+
+    private double denomIdeal;
+
+    void setDenomIdeal(double value) {
+        this.denomIdeal = value;
+    }
 
     protected AccuracyTests(TsData fcts, TsData y, AsymptoticsType asympType) {
         this(TsData.subtract(y, fcts), asympType);
@@ -76,6 +82,12 @@ public abstract class AccuracyTests {
         this.delay = delay;
     }
 
+    public boolean getDenomPositive() {
+        return denomPositive;
+    }
+
+    private boolean twoSided = false;
+
     private int calcForecastHorizon() {
         if (delay == null) {
             return 0;
@@ -99,9 +111,21 @@ public abstract class AccuracyTests {
         fctHorizon = null;
     }
 
-    public double getPValue() {
+    public boolean isTwoSided() {
+        return twoSided;
+    }
+
+    public void setTwoSided(boolean twoSided) {
+        this.twoSided = twoSided;
+    }
+
+    public double getPValue(boolean twoSided) {
+
+        if (twoSided != this.twoSided) {
+            val = Double.NaN;
+        }
         if (Double.isNaN(val)) {
-            val = calcPValue();
+            val = calcPValue(twoSided);
         }
         return val;
     }
@@ -129,6 +153,7 @@ public abstract class AccuracyTests {
     }
 
     public int getOrder() {
+
         return order;
     }
 
@@ -160,10 +185,17 @@ public abstract class AccuracyTests {
 
         double denom;
         if (bandwith < 0) {
-            bandwith = (int) Math.pow(nTotal, (1.0) / 3);
+            bandwith = (int) Math.pow(nTotal, (1.0) / 2);
             denom = calcDenom(lossCentered, order, KernelType.RECTANGULAR);
+            if (denom > 0) {
+                denomPositive = true;
+            }
         } else {
             denom = calcDenom(lossCentered, bandwith, KernelType.RECTANGULAR);
+            if (denom > 0) {
+                denomPositive = true;
+            }
+
         }
 
         int h = order + 1;
@@ -183,6 +215,10 @@ public abstract class AccuracyTests {
 
                 } else {
                     denom = calcDenom(lossCentered, bandwith, KernelType.TRIANGULAR);
+                    if (denom > 0) {
+                        denomPositive = true;
+                    }
+
                     if (denom > 0) {
                         dType = DistributionType.KIEFERVOGELSANG;
                         return Math.sqrt(denom);
@@ -204,23 +240,72 @@ public abstract class AccuracyTests {
                     if (denom > 0) {
                         return Math.sqrt(denom);
                     } else {
+
                         denom = calcDenom(lossCentered, 0, KernelType.RECTANGULAR);
                         return Math.sqrt(denom);
                     }
                 }
-            case HAR_FIXED_B:
-                denom = calcDenom(lossCentered, bandwith, KernelType.TRIANGULAR);
-                if (denom > 0) {
-                    dType = DistributionType.KIEFERVOGELSANG;
-                    return Math.sqrt(denom);
-                } else {
-                    h = 1;
-                    denom = calcDenom(lossCentered, 0, KernelType.RECTANGULAR);
-                    dType = DistributionType.T_STUDENT;
 
-                    double hln = nTotal / Math.sqrt(nTotal + 1 - 2 * h + (1 / nTotal) * (h) * (h - 1));
+            case HLN: // Correct buggs using test method 4 (probably mixing doubles and integers creates the problem)
+                dType = DistributionType.T_STUDENT;
+
+                // denom has been calculated with "order" unless bandwidth is set
+                if (denom > 0) {
+                    denomPositive = true;
+                    double hln = nTotal / Math.sqrt((double) nTotal + 1 - 2 * h + (1 / nTotal) * (h) * (h - 1));
+                    return hln * Math.sqrt(denom);
+
+                } else {
+
+                    denom = calcDenom(lossCentered, 0, KernelType.RECTANGULAR);
+                    // fixed  = Math.sqrt(nTotal)/
+                    double hln = Math.sqrt(nTotal) / Math.sqrt((double) nTotal + 1 - 2 * 1 + (1 / nTotal) * (1) * (1 - 1));
                     return hln * Math.sqrt(denom);
                 }
+
+            case STANDARD_FIXED_B: // In the case we want to use standard asymptotics
+                dType = DistributionType.NORMAL;
+
+                denom = calcDenom(lossCentered, bandwith, KernelType.TRIANGULAR);
+                if (denom > 0) {
+                    denomPositive = true;
+                    return Math.sqrt(denom);
+                } else {
+
+                    //denom = calcDenom(lossCentered, 0, KernelType.RECTANGULAR);
+                    denom = 0.000000000001;
+                    return Math.sqrt(denom);
+                }
+
+            case HAR_FIXED_B:
+                if (bandwith < 0) {
+                    bandwith = (int) Math.pow(nTotal, 0.5);
+                }
+                denom = calcDenom(lossCentered, bandwith, KernelType.TRIANGULAR);
+                dType = DistributionType.KIEFERVOGELSANG;
+                if (denom > 0) {
+                    denomPositive = true;
+                    return Math.sqrt(denom);
+                } else {
+                    // h = 1;
+                    // denom = calcDenom(lossCentered, 0, KernelType.RECTANGULAR);
+                    //  dType = DistributionType.T_STUDENT;
+
+                    //    double hln = nTotal / Math.sqrt(nTotal + 1 - 2 * h + (1 / nTotal) * (h) * (h - 1));
+                    //    return hln * Math.sqrt(denom);
+                    denom = 0.000000000001;
+                    return Math.sqrt(denom);
+                }
+
+            case UNFEASIBLE:
+                // bandwith not needed!
+                //if (bandwith<0){
+                //bandwith = (int)Math.pow(nTotal, 0.5);
+                // }
+
+                dType = DistributionType.NORMAL;
+                return Math.sqrt(denomIdeal);
+
             default:
                 throw new UnsupportedOperationException("Type not yet supported : "
                         + asympType.toString());
@@ -228,19 +313,19 @@ public abstract class AccuracyTests {
     }
 
     private double calcDenom(TsData lossCentered, int r, KernelType type) {
-        int w = 0;
+        double w = 0;
         double gammaw = 0;
 
         for (int tau = 0; tau <= r; tau++) {
             if (tau == 0) {
-                w = 1;
-            } else if ((Math.abs(tau / r) <= 1)) {
+                w = 1.0;
+            } else if ((Math.abs((double) tau / (double) r) <= 1)) {
                 switch (type) {
                     case RECTANGULAR:
-                        w = 2;
+                        w = 2.0;
                         break;
                     case TRIANGULAR:
-                        w = 2 * (1 - Math.abs(tau / (r + 1)));
+                        w = 2.0 * (1.0 - Math.abs((double) tau / ((double) r + 1.0)));
                         break;
                     default:
                         throw new IllegalArgumentException("Wrong kernel type : "
@@ -260,7 +345,7 @@ public abstract class AccuracyTests {
             }
         }
 
-        return ((gammaw / nTotal) / nTotal);
+        return (((double) gammaw / (double) nTotal) / (double) nTotal);
     }
 
     private int calcOrderAutoCorr(TsData lossCentered, int maxAR, double significanceLevel) {
@@ -292,53 +377,90 @@ public abstract class AccuracyTests {
         return getAverageLoss() / calcHAC_SE(asympType);
     }
 
-    private double calcPValue() {
+    private double calcPValue(boolean twoSided) {
         getTestStat(); // Computes TestStat if not done yet
 
         switch (asympType) {
-            case STANDARD:
+
+            case UNFEASIBLE:
                 try {
                     Normal x = new Normal();
-                    return 2 * x.getProbability(Math.abs(testStat), ProbabilityType.Upper);
-                } catch (ArithmeticException ex) {
-                    return Double.NaN;
-                }
-            case HYBRID:
-            case HAR_FIXED_B:
-                try {
-                    switch (dType) {
-                        case NORMAL: // it will never be the case in principle
-                            Normal x = new Normal();
-                            return 2 * x.getProbability(Math.abs(testStat), ProbabilityType.Upper);
-                        case T_STUDENT:
-                            T y = new T();
-                            y.setDegreesofFreedom(nTotal - 1);
-                            return 2 * y.getProbability(Math.abs(testStat), ProbabilityType.Upper); // double tail
-                        case KIEFERVOGELSANG:
-                            double b = Math.pow(nTotal, 0.5) / nTotal;
-                            double cval2 = 1.2816 + 1.3040 * b + 0.5135 * Math.pow(b, 2) - 0.3386 * Math.pow(b, 3);
-                            double cval5 = 1.6449 + 2.1859 * b + 0.3142 * Math.pow(b, 2) - 0.3427 * Math.pow(b, 3);
-                            double cval10 = 1.9600 + 2.9694 * b + 0.4160 * Math.pow(b, 2) - 0.5324 * Math.pow(b, 3);
-                            double cval20 = 2.3263 + 4.1618 * b + 0.5368 * Math.pow(b, 2) - 0.9060 * Math.pow(b, 3);
-
-                            if (testStat < cval20) {
-                                return 1.00;
-                            } else if (testStat < cval10) {
-                                return 0.20;
-                            } else if (testStat < cval5) {
-                                return 0.10;
-                            } else if (testStat < cval2) {
-                                return 0.05;
-                            } else {
-                                return 0.02;
-                            }
-                        default:
-                            throw new IllegalArgumentException("Invalid DistributionType: the distribution "
-                                    + "assumed for the test is undefined");
+                    if (twoSided) {
+                        return 2 * x.getProbability(Math.abs(testStat), ProbabilityType.Upper);
+                    } else {
+                        return x.getProbability((testStat), ProbabilityType.Upper);
                     }
                 } catch (ArithmeticException ex) {
                     return Double.NaN;
                 }
+            case STANDARD:
+                try {
+                    Normal x = new Normal();
+
+                    if (twoSided) {
+                        return 2 * x.getProbability(Math.abs(testStat), ProbabilityType.Upper);
+                    } else {
+                        return x.getProbability((testStat), ProbabilityType.Upper);
+                    }
+
+                } catch (ArithmeticException ex) {
+                    return Double.NaN;
+                }
+            case STANDARD_FIXED_B:
+                try {
+                    Normal x = new Normal();
+                    //                return 2.0 * x.getProbability(Math.abs(testStat), ProbabilityType.Upper);
+                    if (twoSided) {
+                        return 2 * x.getProbability(Math.abs(testStat), ProbabilityType.Upper);
+                    } else {
+                        return x.getProbability((testStat), ProbabilityType.Upper);
+                    }
+
+                    //    return  x.getProbability(Math.abs(testStat), ProbabilityType.Upper);
+                } catch (ArithmeticException ex) {
+                    return Double.NaN;
+                }
+
+            case HAR_FIXED_B:
+                // David: kiefer and vogelsang tabulation for Bartlett window
+
+                double b = (double) bandwith / (double) nTotal; // bandwith is either fixed or made dependent on nTotal
+                double cval_90 = 1.2816 + 1.3040 * b + 0.5135 * Math.pow(b, 2.0) - 0.3386 * Math.pow(b, 3.0);
+                double cval_95 = 1.6449 + 2.1859 * b + 0.3142 * Math.pow(b, 2.0) - 0.3427 * Math.pow(b, 3.0);
+                double cval_97_5 = 1.9600 + 2.9694 * b + 0.4160 * Math.pow(b, 2.0) - 0.5324 * Math.pow(b, 3.0);
+                double cval_99 = 2.3263 + 4.1618 * b + 0.5368 * Math.pow(b, 2.0) - 0.9060 * Math.pow(b, 3.0);
+
+                double threshold = 0;
+                if (twoSided) {
+                    if ((Math.abs(testStat)) < cval_90) {
+                        threshold = Double.NaN; // rejection the null at significance level within interval [1, 0.1])
+                    } else if ((Math.abs(testStat)) < cval_95) {
+                        threshold = 0.10; // rejection the null at significance level within interval [0.1, 0.05))
+                    } else if ((Math.abs(testStat)) < cval_97_5) {
+                        threshold = 0.05; // [0.05, 0.025))
+                    } else if ((Math.abs(testStat)) < cval_99) {
+                        threshold = 0.025; // [0.025, 0.01))
+                    } else {
+                        threshold = 0.01; // rejection the null at significance level p=0.01 (also p<0.01)
+                    }
+                    return 2 * threshold;
+
+                } else {
+
+                    if ((testStat) < cval_90) {
+                        threshold = Double.NaN; // rejection the null at significance level within interval [1, 0.1])
+                    } else if ((testStat) < cval_95) {
+                        threshold = 0.10; // rejection the null at significance level within interval [0.1, 0.05))
+                    } else if ((testStat) < cval_97_5) {
+                        threshold = 0.05; // [0.05, 0.025))
+                    } else if ((testStat) < cval_99) {
+                        threshold = 0.025; // [0.025, 0.01))
+                    } else {
+                        threshold = 0.01; // rejection the null at significance level p=0.01 (also p<0.01)
+                    }
+                    return threshold;
+                }
+
             default:
                 throw new IllegalArgumentException("Invalid AsymptoticsType: choose "
                         + "asymptotic theory for inference");
@@ -367,10 +489,12 @@ public abstract class AccuracyTests {
     }
 
     public enum AsymptoticsType {
+        UNFEASIBLE,
         HLN,
         HAR_FIXED_B,
         HAR_FIXED_M,
         STANDARD,
+        STANDARD_FIXED_B,
         HYBRID
     }
 }
