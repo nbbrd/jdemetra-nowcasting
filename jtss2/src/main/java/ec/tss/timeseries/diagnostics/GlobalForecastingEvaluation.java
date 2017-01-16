@@ -51,6 +51,8 @@ public class GlobalForecastingEvaluation {
         biasBenchmarkTest = null;
         efficiencyTest = null;
         efficiencyBenchmarkTest = null;
+        efficiencyYearlyTest = null;
+        efficiencyYearlyBenchmarkTest = null;
     }
 
     public void setAsymptoticsType(AccuracyTests.AsymptoticsType asymptoticsType) {

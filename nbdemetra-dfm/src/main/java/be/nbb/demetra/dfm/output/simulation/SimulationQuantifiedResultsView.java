@@ -73,9 +73,9 @@ import org.netbeans.swing.outline.OutlineModel;
 public class SimulationQuantifiedResultsView extends JPanel {
 
     public static final String DFM_SIMULATION_PROPERTY = "dfmSimulation";
-    public static final String D_M_TEST = "Squared loss";
-    public static final String D_M_ABS_TEST = "Absolute loss";
-    public static final String ENCOMPASING_TEST = "Encompasing Test";
+    public static final String STD_ASYMP = "Standard asymptotics";
+    public static final String FIXED_SMOOTH_ASYMP = "Fixed smoothing asymptotics",
+            MODEL_ENC = "Model encompasses Benchmark", BENCH_ENC = "Benchmark encompasses Model";
 
     // Top bar
     private final JComboBox comboBox;
@@ -245,7 +245,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
     private void refreshModel() {
         TreeModel treeMdl = new NewsTreeModel(nodes);
         OutlineModel mdl = DefaultOutlineModel.createOutlineModel(treeMdl, new SimulationRowModel(titles), true);
-        outline.setDefaultRenderer(String.class, new SimulationOutlineCellRenderer(formatter));
+        outline.setDefaultRenderer(SimulationNode.class, new SimulationOutlineCellRenderer(formatter));
         outline.setModel(mdl);
 
         outline.getColumnModel().getColumn(0).setHeaderValue(" ");
@@ -269,6 +269,7 @@ public class SimulationQuantifiedResultsView extends JPanel {
     }
 
     Map<String, List<Double>> map = new HashMap<>();
+    Map<String, List<Double>> pValues = new HashMap<>();
 
     private void calculateData() {
         nodes = new ArrayList<>();
@@ -349,18 +350,22 @@ public class SimulationQuantifiedResultsView extends JPanel {
                     fcts, fctsBench, trueTsData, ec.tss.timeseries.diagnostics.AccuracyTests.AsymptoticsType.STANDARD);
             test.setDelay(horizon);
             boolean twoSided = true;
-            addToMap("DM", test.getDieboldMarianoTest().getPValue(twoSided));
-            addToMap("DM_ABS", test.getDieboldMarianoAbsoluteTest().getPValue(twoSided));
-            addToMap("MDL_ENC_BENCH", test.getModelEncompassesBenchmarkTest().getPValue(twoSided));
-            addToMap("BIAS", test.getBiasTest().getPValue(twoSided));
-            addToMap("EFFICIENCY", test.getEfficiencyTest().getPValue(twoSided));
+            test.setAsymptoticsType(AccuracyTests.AsymptoticsType.STANDARD_FIXED_B);
+            double v = test.getDieboldMarianoTest().getPValue(twoSided);
+            addToMap("DM", v, v);
 
-            test.setAsymptoticsType(AccuracyTests.AsymptoticsType.HYBRID);
-            addToMap("H_DM", test.getDieboldMarianoTest().getPValue(twoSided));
-            addToMap("H_DM_ABS", test.getDieboldMarianoAbsoluteTest().getPValue(twoSided));
-            addToMap("H_MDL_ENC_BENCH", test.getModelEncompassesBenchmarkTest().getPValue(twoSided));
-            addToMap("H_BIAS", test.getBiasTest().getPValue(twoSided));
-            addToMap("H_EFFICIENCY", test.getEfficiencyTest().getPValue(twoSided));
+            test.setAsymptoticsType(AccuracyTests.AsymptoticsType.HAR_FIXED_B);
+            v = test.getDieboldMarianoTest().getPValue(twoSided);
+            addToMap("H_DM", v, v);
+            v = test.getDieboldMarianoAbsoluteTest().getPValue(twoSided);
+            addToMap("H_DM_ABS", v, v);
+            addToMap("H_MDL_ENC_BENCH", test.getModelEncompassesBenchmarkTest().calcWeights(),
+                    test.getModelEncompassesBenchmarkTest().getPValue(twoSided));
+            addToMap("H_BENCH_ENC_MDL", test.getBenchmarkEncompassesModelTest().calcWeights(),
+                    test.getBenchmarkEncompassesModelTest().getPValue(twoSided));
+            addToMap("H_BIAS", test.getBiasTest().getAverageLoss(), test.getBiasTest().getPValue(twoSided));
+            addToMap("H_EFFICIENCY", test.getEfficiencyTest().calcCorrelation(),
+                    test.getEfficiencyTest().getPValue(twoSided));
         }
 
         nodes.add(new SimulationNode("Scale dependent")
@@ -395,28 +400,40 @@ public class SimulationQuantifiedResultsView extends JPanel {
                 .addChild(new SimulationNode("Percentage better", map.get("PB")))
         );
 
-        // Tests
-        nodes.add(new SimulationNode("Diebold Mariano")
-                .addChild(new SimulationNode("Standard")
-                        .addChild(new SimulationNode(D_M_TEST, map.get("DM")))
-                        .addChild(new SimulationNode(D_M_ABS_TEST, map.get("DM_ABS"))))
+        // Accuracy Tests
+        nodes.add(new SimulationNode("Diebold Mariano (Squared loss)")
+                .addChild(new SimulationNode(STD_ASYMP, map.get("DM"), pValues.get("DM")))
+                .addChild(new SimulationNode(FIXED_SMOOTH_ASYMP, map.get("H_DM"), pValues.get("H_DM")))
         );
 
-        nodes.add(new SimulationNode(ENCOMPASING_TEST)
-                .addChild(new SimulationNode("Standard", map.get("MDL_ENC_BENCH"))));
+        nodes.add(new SimulationNode("Encompassing Test (F.S.A.)")
+                .addChild(new SimulationNode(MODEL_ENC, map.get("H_MDL_ENC_BENCH"), pValues.get("H_MDL_ENC_BENCH")))
+                .addChild(new SimulationNode(BENCH_ENC, map.get("H_BENCH_ENC_MDL"), pValues.get("H_BENCH_ENC_MDL")))
+        );
 
         nodes.add(new SimulationNode("Bias")
-                .addChild(new SimulationNode("Standard", map.get("BIAS"))));
+                .addChild(new SimulationNode(FIXED_SMOOTH_ASYMP, map.get("H_BIAS"), pValues.get("H_BIAS"))));
 
         nodes.add(new SimulationNode("Efficiency Test")
-                .addChild(new SimulationNode("Standard", map.get("EFFICIENCY"))));
+                .addChild(new SimulationNode(FIXED_SMOOTH_ASYMP, map.get("H_EFFICIENCY"), pValues.get("H_EFFICIENCY"))));
     }
 
     private void addToMap(String key, Double value) {
+        addToMap(key, value, null);
+    }
+
+    private void addToMap(String key, Double value, Double pValue) {
         if (!map.containsKey(key)) {
             map.put(key, new ArrayList<>());
         }
         map.get(key).add(value);
+
+        if (pValue != null) {
+            if (!pValues.containsKey(key)) {
+                pValues.put(key, new ArrayList<>());
+            }
+            pValues.get(key).add(pValue);
+        }
     }
 
     private List<TsPeriod> filterEvaluationSample(List<Double> trueValues) {

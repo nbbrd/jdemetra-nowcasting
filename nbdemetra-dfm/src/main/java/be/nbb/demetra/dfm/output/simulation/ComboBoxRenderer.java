@@ -17,20 +17,19 @@
 package be.nbb.demetra.dfm.output.simulation;
 
 import java.awt.Component;
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.JList;
-import javax.swing.plaf.basic.BasicComboBoxRenderer;
 
 /**
  *
  * @author Mats Maggi
  */
-public class ComboBoxRenderer extends BasicComboBoxRenderer {
+public class ComboBoxRenderer extends DefaultListCellRenderer {
 
     @Override
     public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
         super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
         String s = getText();
-        setOpaque(cellHasFocus || isSelected);
         setToolTipText(s);
         if (s.length() > 60) {
             s = s.substring(0, 60) + "...";

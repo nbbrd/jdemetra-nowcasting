@@ -35,10 +35,7 @@ public class SimulationRowModel implements RowModel {
     @Override
     public Object getValueFor(Object o, int i) {
         if (o instanceof SimulationNode) {
-            SimulationNode n = (SimulationNode) o;
-            if (n.getValues() != null) {
-                return n.getValues().get(i);
-            }
+            return (SimulationNode) o;
         }
         return null;
     }
@@ -50,7 +47,7 @@ public class SimulationRowModel implements RowModel {
     
     @Override
     public Class getColumnClass(int i) {
-        return String.class;
+        return SimulationNode.class;
     }
 
     @Override

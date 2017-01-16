@@ -25,20 +25,28 @@ import java.util.List;
  */
 public class SimulationNode extends CustomNode{
 
-    private final List<Double> values;
-    private List<SimulationNode> children;
-    private SimulationNode parent;
+    private final List<Double> values;    
+    private final List<Double> pValues;
     
     public SimulationNode(String name) {
         this(name, null);
     }
 
     public SimulationNode(String name, List<Double> values) {
+        this(name, values, null);
+    }
+    
+    public SimulationNode(String name, List<Double> values, List<Double> pValues) {
         super(name);
         this.values = values;
+        this.pValues = pValues;
     }
 
     public List<Double> getValues() {
         return values;
     }
+
+    public List<Double> getPValues() {
+        return pValues;
+    }    
 }

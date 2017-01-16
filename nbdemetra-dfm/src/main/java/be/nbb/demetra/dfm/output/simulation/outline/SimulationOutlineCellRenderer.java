@@ -16,9 +16,11 @@
  */
 package be.nbb.demetra.dfm.output.simulation.outline;
 
-import static be.nbb.demetra.dfm.output.simulation.SimulationQuantifiedResultsView.D_M_ABS_TEST;
-import static be.nbb.demetra.dfm.output.simulation.SimulationQuantifiedResultsView.D_M_TEST;
-import static be.nbb.demetra.dfm.output.simulation.SimulationQuantifiedResultsView.ENCOMPASING_TEST;
+import be.nbb.demetra.dfm.output.simulation.SimulationQuantifiedResultsView;
+import static be.nbb.demetra.dfm.output.simulation.SimulationQuantifiedResultsView.BENCH_ENC;
+import static be.nbb.demetra.dfm.output.simulation.SimulationQuantifiedResultsView.FIXED_SMOOTH_ASYMP;
+import static be.nbb.demetra.dfm.output.simulation.SimulationQuantifiedResultsView.MODEL_ENC;
+import static be.nbb.demetra.dfm.output.simulation.SimulationQuantifiedResultsView.STD_ASYMP;
 import ec.tss.tsproviders.utils.Formatters;
 import ec.util.chart.swing.SwingColorSchemeSupport;
 import java.awt.Color;
@@ -33,93 +35,84 @@ import org.netbeans.swing.outline.DefaultOutlineCellRenderer;
  * @author Mats Maggi
  */
 public class SimulationOutlineCellRenderer extends DefaultOutlineCellRenderer {
-    
-    private final double CONF_80 = 0.845;
-    private final double CONF_90 = 1.29;
-    private final double CONF_95 = 1.65;
-    
-    private final Color RED_1 = new Color(254,129,129);
-    private final Color RED_2 = new Color(254,46,46);
-    private final Color RED_3 = new Color(182,32,32);
-    private final Color GREEN_1 = new Color(178,210,153);
-    private final Color GREEN_2 = new Color(89,191,86);
-    private final Color GREEN_3 = new Color(2,131,10);
-    
+
+    private final Color RED_1 = new Color(254, 129, 129);
+    private final Color RED_2 = new Color(254, 46, 46);
+    private final Color RED_3 = new Color(182, 32, 32);
+    private final Color GREEN_1 = new Color(178, 210, 153);
+    private final Color GREEN_2 = new Color(89, 191, 86);
+    private final Color GREEN_3 = new Color(2, 131, 10);
+
     private final Formatters.Formatter<Number> numberFormatter;
-    
+
     public SimulationOutlineCellRenderer(Formatters.Formatter<Number> formatter) {
         this.numberFormatter = formatter;
     }
-    
+
     @Override
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
         JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-        
-        if (value == null 
-                || Double.isNaN((double) value)) {
+
+        if (value == null
+                || ((SimulationNode) value).getValues() == null
+                || (Double.isNaN(((SimulationNode) value).getValues().get(column - 1)))) {
             label.setText("");
             label.setToolTipText(null);
             return label;
         }
-        
-        double d = (double) value;
-        
+        SimulationNode node = (SimulationNode) value;
+        double d = node.getValues().get(column - 1);
+
         label.setToolTipText(null);
         label.setText(numberFormatter.formatAsString(d));
-        
-        SimulationNode n = (SimulationNode) table.getValueAt(row, 0);
-        if (!n.getName().equals(D_M_TEST)
-                && !n.getName().equals(D_M_ABS_TEST)
-                && !n.getName().equals(ENCOMPASING_TEST)) {
+
+        if (!node.getName().equals(STD_ASYMP)
+                && !node.getName().equals(FIXED_SMOOTH_ASYMP)
+                && !node.getName().equals(MODEL_ENC)
+                && !node.getName().equals(BENCH_ENC)
+                && !node.getName().equals(FIXED_SMOOTH_ASYMP)) {
             return label;
         }
-        
-        Font f = label.getFont();
-        
-        if (d < -CONF_80) {
-            label.setFont(f.deriveFont(Font.BOLD));
-            if (d < -CONF_95) {
-                setColor(label, GREEN_3);
-                label.setToolTipText("Hypothesis of \"equal forecast accuracy\" is rejected at"
-                        + " 95% significance level.");
-            } else if (d < -CONF_90) {
-                setColor(label, GREEN_2);
-                label.setToolTipText("Hypothesis of \"equal forecast accuracy\" is rejected at"
-                        + " 90% significance level.");
+
+        if (node.getPValues() != null) {
+            Font f = label.getFont();
+            if (Double.isNaN(node.getPValues().get(column - 1))) {
+                label.setFont(f.deriveFont(Font.PLAIN));
+                label.setToolTipText("P-Value : NaN");
+                setColor(label, Color.WHITE);
             } else {
-                setColor(label, GREEN_1);
-                label.setToolTipText("Hypothesis of \"equal forecast accuracy\" is rejected at"
-                        + " 80% significance level.");
+                double pVal = node.getPValues().get(column - 1);
+                label.setToolTipText("P-Value : " + numberFormatter.formatAsString(pVal));
+                if (node.getName().equals(SimulationQuantifiedResultsView.MODEL_ENC)) {
+                    // Green shades
+                    if (pVal <= 0.05) {
+                        setColor(label, GREEN_3);
+                    } else if (pVal <= 0.1) {
+                        setColor(label, GREEN_2);
+                    } else if (pVal <= 0.2) {
+                        setColor(label, GREEN_1);
+                    }
+                } else // Red shades
+                {
+                    if (pVal <= 0.05) {
+                        setColor(label, RED_3);
+                    } else if (pVal <= 0.1) {
+                        setColor(label, RED_2);
+                    } else if (pVal <= 0.2) {
+                        setColor(label, RED_1);
+                    }
+                }
             }
-        } else if (d > CONF_80) {
-            label.setFont(f.deriveFont(Font.BOLD));
-            if (d > CONF_95) {
-                setColor(label, RED_3);
-                label.setToolTipText("Hypothesis of \"equal forecast accuracy\" is rejected at"
-                        + " 95% significance level.");
-            } else if (d > CONF_90) {
-                setColor(label, RED_2);
-                label.setToolTipText("Hypothesis of \"equal forecast accuracy\" is rejected at"
-                        + " 90% significance level.");
-            } else {
-                setColor(label, RED_1);
-                label.setToolTipText("Hypothesis of \"equal forecast accuracy\" is rejected at"
-                        + " 80% significance level.");
-            }
-        } else {
-            label.setFont(f.deriveFont(Font.PLAIN));
-            setColor(label, Color.WHITE);
-            label.setToolTipText("Hypothesis of \"equal forecast accuracy\" is not rejected.");
         }
-        
+
         return label;
     }
-    
+
     private void setColor(JLabel l, Color c) {
         l.setBackground(c);
         l.setForeground(getForegroundColor(c));
     }
-    
+
     private static Color getForegroundColor(Color color) {
         return SwingColorSchemeSupport.isDark(color) ? Color.WHITE : Color.BLACK;
     }

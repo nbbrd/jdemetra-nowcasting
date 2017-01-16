@@ -29,6 +29,7 @@ import ec.tstoolkit.data.Table;
 import ec.tstoolkit.timeseries.simplets.TsPeriod;
 import ec.ui.chart.BasicXYDataset;
 import ec.ui.chart.TsCharts;
+import ec.ui.interfaces.ITsChart.LinesThickness;
 import ec.ui.view.JChartPanel;
 import ec.util.chart.ColorScheme;
 import ec.util.chart.ColorScheme.KnownColor;
@@ -37,15 +38,21 @@ import ec.util.chart.swing.SwingColorSchemeSupport;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics2D;
 import java.awt.Paint;
+import java.awt.Shape;
 import java.awt.Stroke;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ItemEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Ellipse2D;
 import java.beans.PropertyChangeEvent;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -57,13 +64,19 @@ import javax.swing.DefaultComboBoxModel;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import org.jfree.chart.ChartMouseEvent;
+import org.jfree.chart.ChartMouseListener;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.NumberTickUnit;
+import org.jfree.chart.entity.XYItemEntity;
 import org.jfree.chart.plot.DatasetRenderingOrder;
+import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.ValueMarker;
 import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.AbstractRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.data.xy.XYDataset;
 
 /**
  *
@@ -85,6 +98,7 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
 
     private final DemetraUI demetraUI;
     private Formatters.Formatter<Number> formatter;
+    private final DecimalFormat format = new DecimalFormat("0");
     private SwingColorSchemeSupport defaultColorSchemeSupport;
 
     private final XYLineAndShapeRenderer trueDataRenderer;
@@ -101,6 +115,9 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
     private FilterEvaluationSamplePanel filterPanel;
 
     private int indexSelected = -1;
+    private final RevealObs revealObs;
+
+    private static XYItemEntity highlight;
 
     /**
      * Creates new form FixedHorizonsGraphView
@@ -118,24 +135,12 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
         };
 
         this.graphs_ = new LinkedHashMap<>();
+        highlight = null;
+        revealObs = new RevealObs();
 
-        trueDataRenderer = new XYLineAndShapeRenderer(true, false);
-        trueDataRenderer.setAutoPopulateSeriesPaint(false);
-        trueDataRenderer.setBasePaint(defaultColorSchemeSupport.getLineColor(KnownColor.RED));
-
-        forecastsRenderer = new XYLineAndShapeRenderer(true, false);
-        forecastsRenderer.setAutoPopulateSeriesPaint(false);
-        forecastsRenderer.setAutoPopulateSeriesShape(false);
-        forecastsRenderer.setBaseShape(new Ellipse2D.Double(-2, -2, 4, 4));
-        forecastsRenderer.setBasePaint(defaultColorSchemeSupport.getLineColor(KnownColor.BLUE));
-        forecastsRenderer.setBaseShapesFilled(false);
-
-        arimaRenderer = new XYLineAndShapeRenderer(true, false);
-        arimaRenderer.setAutoPopulateSeriesPaint(false);
-        arimaRenderer.setAutoPopulateSeriesShape(false);
-        arimaRenderer.setBaseShape(new Ellipse2D.Double(-2, -2, 4, 4));
-        arimaRenderer.setBasePaint(defaultColorSchemeSupport.getLineColor(KnownColor.GREEN));
-        arimaRenderer.setBaseShapesFilled(false);
+        trueDataRenderer = new LineRenderer(TRUE_DATA_INDEX);
+        forecastsRenderer = new LineRenderer(FCTS_INDEX);
+        arimaRenderer = new LineRenderer(ARIMA_DATA_INDEX);
 
         mainChart = createChart();
         detailChart = createChart();
@@ -167,6 +172,10 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
                 }
             }
         });
+        
+        chartPanel.addChartMouseListener(new HighlightChartMouseListener2());
+        chartPanel.addKeyListener(revealObs);
+        Charts.enableFocusOnClick(chartPanel);
 
         comboBox.setRenderer(new ComboBoxRenderer());
         comboBox.addItemListener((ItemEvent e) -> {
@@ -391,7 +400,6 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
         Double[][] dfmFcts = dfm.getForecastsArray();
         Double[][] arimaFcts = arima.getForecastsArray();
 
-        //Double[][] arimaFcts = arima.getForecastsArray();
         TsPeriod start = filteredPeriods.get(filterPanel.getStart());
         TsPeriod end = filteredPeriods.get(filterPanel.getEnd());
         int startIndex = periods.indexOf(start);
@@ -494,6 +502,184 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
             plot.addDomainMarker(marker);
         }
     }
+    
+    private final class HighlightChartMouseListener2 implements ChartMouseListener {
+
+        @Override
+        public void chartMouseClicked(ChartMouseEvent event) {
+        }
+
+        @Override
+        public void chartMouseMoved(ChartMouseEvent event) {
+            if (event.getEntity() instanceof XYItemEntity) {
+                XYItemEntity xxx = (XYItemEntity) event.getEntity();
+                setHighlightedObs(xxx);
+            } else {
+                setHighlightedObs(null);
+            }
+        }
+    }
+
+    private void setHighlightedObs(XYItemEntity item) {
+        if (item == null || highlight != item) {
+            highlight = item;
+            chartPanel.getChart().fireChartChanged();
+        }
+    }
+
+    private static final Shape ITEM_SHAPE = new Ellipse2D.Double(-3, -3, 6, 6);
+
+    private final class LineRenderer extends XYLineAndShapeRenderer {
+
+        private final int index;
+        private final Color color;
+
+        public LineRenderer(int index) {
+            setBaseItemLabelsVisible(true);
+            setAutoPopulateSeriesShape(false);
+            setAutoPopulateSeriesFillPaint(false);
+            setAutoPopulateSeriesOutlineStroke(false);
+            setAutoPopulateSeriesPaint(false);
+            setBaseShape(ITEM_SHAPE);
+            setUseFillPaint(true);
+            this.index = index;
+            switch (index) {
+                case FCTS_INDEX:
+                    this.color = defaultColorSchemeSupport.getLineColor(KnownColor.BLUE);
+                    break;
+                case ARIMA_DATA_INDEX:
+                    this.color = defaultColorSchemeSupport.getLineColor(KnownColor.GREEN);
+                    break;
+                case TRUE_DATA_INDEX:
+                    this.color = defaultColorSchemeSupport.getLineColor(KnownColor.RED);
+                    break;
+                default:
+                    this.color = defaultColorSchemeSupport.getLineColor(KnownColor.GRAY);
+                    break;
+            }
+        }
+
+        @Override
+        public boolean getItemShapeVisible(int series, int item) {
+            return revealObs.isEnabled() || isObsHighlighted(series, item);
+        }
+
+        private boolean isObsHighlighted(int series, int item) {
+            XYPlot plot = (XYPlot) chartPanel.getChart().getPlot();
+            if (highlight != null && highlight.getDataset().equals(plot.getDataset(index))) {
+                return highlight.getSeriesIndex() == series && highlight.getItem() == item;
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public boolean isItemLabelVisible(int series, int item) {
+            return isObsHighlighted(series, item);
+        }
+
+        @Override
+        public Paint getSeriesPaint(int series) {
+            return color;
+        }
+
+        @Override
+        public Paint getItemPaint(int series, int item) {
+            return color;
+        }
+
+        @Override
+        public Paint getItemFillPaint(int series, int item) {
+            return chartPanel.getChart().getPlot().getBackgroundPaint();
+        }
+
+        @Override
+        public Stroke getSeriesStroke(int series) {
+            return TsCharts.getNormalStroke(LinesThickness.Thin);
+        }
+
+        @Override
+        public Stroke getItemOutlineStroke(int series, int item) {
+            return TsCharts.getNormalStroke(LinesThickness.Thin);
+        }
+
+        @Override
+        protected void drawItemLabel(Graphics2D g2, PlotOrientation orientation, XYDataset dataset, int series, int item, double x, double y, boolean negative) {
+            String label = generateLabel();
+            Font font = chartPanel.getFont();
+            Paint paint = chartPanel.getChart().getPlot().getBackgroundPaint();
+            Paint fillPaint = color;
+            Stroke outlineStroke = AbstractRenderer.DEFAULT_STROKE;
+            Charts.drawItemLabelAsTooltip(g2, x, y, 3d, label, font, paint, fillPaint, paint, outlineStroke);
+        }
+
+        private String generateLabel() {
+            XYDataset dataset = highlight.getDataset();
+            int series = highlight.getSeriesIndex();
+            int item = highlight.getItem();
+
+            String x = "";
+            if (dataset.getSeriesCount() == 1) {
+                x = Integer.toString((int) dataset.getXValue(series, item));
+            } else {
+                for (Bornes b : graphs_.keySet()) {
+                    if (dataset.getXValue(series, item) >= b.min_ && dataset.getXValue(series, item) <= b.max_) {
+                        x = format.format(graphs_.get(b).S3_.getXValue(item));
+                    }
+                }
+            }
+            String name = "";
+            switch (index) {
+                case FCTS_INDEX :
+                    name = "Forecasts";
+                    break;
+                case ARIMA_DATA_INDEX :
+                    name = "Arima";
+                    break;
+                case TRUE_DATA_INDEX:
+                    name = "True data";
+                    break;
+            }
+
+            double y = dataset.getYValue(series, item);
+            return name + "\nHorizon : " + x + "\nValue : " + formatter.format(y);
+        }
+    }
+
+    private final class RevealObs implements KeyListener {
+
+        private boolean enabled = false;
+
+        @Override
+        public void keyTyped(KeyEvent e) {
+        }
+
+        @Override
+        public void keyPressed(KeyEvent e) {
+            if (e.getKeyChar() == 'r') {
+                setEnabled(true);
+            }
+        }
+
+        @Override
+        public void keyReleased(KeyEvent e) {
+            if (e.getKeyChar() == 'r') {
+                setEnabled(false);
+            }
+        }
+
+        private void setEnabled(boolean enabled) {
+            if (this.enabled != enabled) {
+                this.enabled = enabled;
+                firePropertyChange("revealObs", !enabled, enabled);
+                chartPanel.getChart().fireChartChanged();
+            }
+        }
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+    }
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -587,7 +773,7 @@ public class RealTimePerspGraphView extends javax.swing.JPanel {
 
     static class MyTickUnit extends NumberTickUnit {
 
-        private List<String> names;
+        private final List<String> names;
 
         public MyTickUnit(List<String> names) {
             super(1);
