@@ -173,7 +173,7 @@ public class XOutline extends Outline {
 
         result.add(expand);
         result.add(collapse);
-        result.add(OutlineCommand.copyAll().toAction(this)).setText("Copy All");
+        result.add(OutlineCopyCommand.copyAll().toAction(this)).setText("Copy All");
 
         return result;
     }
