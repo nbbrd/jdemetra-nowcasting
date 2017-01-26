@@ -74,8 +74,9 @@ public class SimulationQuantifiedResultsView extends JPanel {
 
     public static final String DFM_SIMULATION_PROPERTY = "dfmSimulation";
     public static final String STD_ASYMP = "Standard asymptotics";
-    public static final String FIXED_SMOOTH_ASYMP = "Fixed smoothing asymptotics",
-            MODEL_ENC = "Model encompasses Benchmark", BENCH_ENC = "Benchmark encompasses Model";
+    public static final String DM_TITLE = "Diebold Mariano (Squared loss)", ENC_TITLE = "Encompassing Test (F.S.A.)",
+            FIXED_SMOOTH_ASYMP = "Fixed smoothing asymptotics", MODEL_ENC = "Model encompasses Benchmark", 
+            BENCH_ENC = "Benchmark encompasses Model", BIAS_TITLE = "Bias", EFFICIENCY_TITLE = "Efficiency Test";
 
     // Top bar
     private final JComboBox comboBox;
@@ -401,20 +402,20 @@ public class SimulationQuantifiedResultsView extends JPanel {
         );
 
         // Accuracy Tests
-        nodes.add(new SimulationNode("Diebold Mariano (Squared loss)")
+        nodes.add(new SimulationNode(DM_TITLE)
                 .addChild(new SimulationNode(STD_ASYMP, map.get("DM"), pValues.get("DM")))
                 .addChild(new SimulationNode(FIXED_SMOOTH_ASYMP, map.get("H_DM"), pValues.get("H_DM")))
         );
 
-        nodes.add(new SimulationNode("Encompassing Test (F.S.A.)")
+        nodes.add(new SimulationNode(ENC_TITLE)
                 .addChild(new SimulationNode(MODEL_ENC, map.get("H_MDL_ENC_BENCH"), pValues.get("H_MDL_ENC_BENCH")))
                 .addChild(new SimulationNode(BENCH_ENC, map.get("H_BENCH_ENC_MDL"), pValues.get("H_BENCH_ENC_MDL")))
         );
 
-        nodes.add(new SimulationNode("Bias")
+        nodes.add(new SimulationNode(BIAS_TITLE)
                 .addChild(new SimulationNode(FIXED_SMOOTH_ASYMP, map.get("H_BIAS"), pValues.get("H_BIAS"))));
 
-        nodes.add(new SimulationNode("Efficiency Test")
+        nodes.add(new SimulationNode(EFFICIENCY_TITLE)
                 .addChild(new SimulationNode(FIXED_SMOOTH_ASYMP, map.get("H_EFFICIENCY"), pValues.get("H_EFFICIENCY"))));
     }
 

@@ -103,6 +103,11 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
     public boolean canHandle(IProcSpecification spec) {
         return spec instanceof DfmSpec;
     }
+    
+    @Override
+    public Map<String, Class> getOutputDictionary(boolean compact) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
 
     @Override
     public IProcessing<TsData[], CompositeResults> generateProcessing(DfmSpec spec, ProcessingContext context) {
@@ -114,11 +119,6 @@ public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode
         HashMap<String, Class> dic = new HashMap<>();
         DfmSpec.fillDictionary(null, dic);
         return dic;
-    }
-
-    @Override
-    public Map<String, Class> getOutputDictionary() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     private SequentialProcessing<TsData[]> create(DfmSpec spec, ProcessingContext context) {

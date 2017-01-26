@@ -69,12 +69,17 @@ public class CustomNode {
             child.parent = this;
         });
     }
+
+    public void setParent(CustomNode parent) {
+        this.parent = parent;
+    }
     
     public CustomNode addChild(CustomNode node) {
         if (children == null) {
             children = new ArrayList<>();
         }
         children.add(node);
+        node.setParent(this);
         
         return this;
     }

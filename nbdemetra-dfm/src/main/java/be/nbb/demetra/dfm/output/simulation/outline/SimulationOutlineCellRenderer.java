@@ -42,6 +42,9 @@ public class SimulationOutlineCellRenderer extends DefaultOutlineCellRenderer {
     private final Color GREEN_1 = new Color(178, 210, 153);
     private final Color GREEN_2 = new Color(89, 191, 86);
     private final Color GREEN_3 = new Color(2, 131, 10);
+    private final Color BLUE_1 = new Color(193, 215, 221);
+    private final Color BLUE_2 = new Color(149, 187, 198);
+    private final Color BLUE_3 = new Color(90, 150, 166);
 
     private final Formatters.Formatter<Number> numberFormatter;
 
@@ -57,7 +60,7 @@ public class SimulationOutlineCellRenderer extends DefaultOutlineCellRenderer {
                 || ((SimulationNode) value).getValues() == null
                 || (Double.isNaN(((SimulationNode) value).getValues().get(column - 1)))) {
             label.setText("");
-            label.setToolTipText(null);
+            label.setToolTipText("P-Value : > " + numberFormatter.formatAsString(0.2));
             return label;
         }
         SimulationNode node = (SimulationNode) value;
@@ -78,34 +81,66 @@ public class SimulationOutlineCellRenderer extends DefaultOutlineCellRenderer {
             Font f = label.getFont();
             if (Double.isNaN(node.getPValues().get(column - 1))) {
                 label.setFont(f.deriveFont(Font.PLAIN));
-                label.setToolTipText("P-Value : NaN");
+                label.setToolTipText("P-Value : > " + numberFormatter.formatAsString(0.2));
                 setColor(label, Color.WHITE);
             } else {
                 double pVal = node.getPValues().get(column - 1);
-                label.setToolTipText("P-Value : " + numberFormatter.formatAsString(pVal));
-                if (node.getName().equals(SimulationQuantifiedResultsView.MODEL_ENC)) {
-                    // Green shades
-                    if (pVal <= 0.05) {
-                        setColor(label, GREEN_3);
-                    } else if (pVal <= 0.1) {
-                        setColor(label, GREEN_2);
-                    } else if (pVal <= 0.2) {
-                        setColor(label, GREEN_1);
-                    }
-                } else // Red shades
-                {
-                    if (pVal <= 0.05) {
-                        setColor(label, RED_3);
-                    } else if (pVal <= 0.1) {
-                        setColor(label, RED_2);
-                    } else if (pVal <= 0.2) {
-                        setColor(label, RED_1);
+                label.setToolTipText("P-Value : \u2264 " + numberFormatter.formatAsString(pVal));
+                if (node.getParent() != null) {
+                    switch (node.getParent().getName()) {
+                        case SimulationQuantifiedResultsView.ENC_TITLE:
+                            switch (node.getName()) {
+                                case MODEL_ENC:
+                                    setRed(label, pVal);
+                                    break;
+                                case BENCH_ENC:
+                                    setGreen(label, pVal);
+                                    break;
+                            }
+                            break;
+                        case SimulationQuantifiedResultsView.BIAS_TITLE:
+                        case SimulationQuantifiedResultsView.EFFICIENCY_TITLE:
+                            setRed(label, pVal);
+                            break;
+                        case SimulationQuantifiedResultsView.DM_TITLE:
+                            setBlue(label, pVal);
+                            break;
                     }
                 }
             }
         }
 
         return label;
+    }
+
+    private void setRed(JLabel l, double pVal) {
+        if (pVal <= 0.05) {
+            setColor(l, RED_3);
+        } else if (pVal <= 0.1) {
+            setColor(l, RED_2);
+        } else if (pVal <= 0.2) {
+            setColor(l, RED_1);
+        }
+    }
+
+    private void setBlue(JLabel l, double pVal) {
+        if (pVal <= 0.05) {
+            setColor(l, BLUE_3);
+        } else if (pVal <= 0.1) {
+            setColor(l, BLUE_2);
+        } else if (pVal <= 0.2) {
+            setColor(l, BLUE_1);
+        }
+    }
+
+    private void setGreen(JLabel l, double pVal) {
+        if (pVal <= 0.05) {
+            setColor(l, GREEN_3);
+        } else if (pVal <= 0.1) {
+            setColor(l, GREEN_2);
+        } else if (pVal <= 0.2) {
+            setColor(l, GREEN_1);
+        }
     }
 
     private void setColor(JLabel l, Color c) {
