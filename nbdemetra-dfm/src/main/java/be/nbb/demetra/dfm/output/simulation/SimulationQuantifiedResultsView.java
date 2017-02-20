@@ -274,6 +274,8 @@ public class SimulationQuantifiedResultsView extends JPanel {
 
     private void calculateData() {
         nodes = new ArrayList<>();
+        map.clear();
+        pValues.clear();
         int selectedIndex = comboBox.getSelectedIndex();
         int type = typeComboBox.getSelectedIndex();
 
