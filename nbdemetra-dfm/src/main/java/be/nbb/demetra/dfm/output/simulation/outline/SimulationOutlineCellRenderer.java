@@ -17,7 +17,9 @@
 package be.nbb.demetra.dfm.output.simulation.outline;
 
 import be.nbb.demetra.dfm.output.simulation.SimulationQuantifiedResultsView;
+import static be.nbb.demetra.dfm.output.simulation.SimulationQuantifiedResultsView.AVG_FCTS_ERROR;
 import static be.nbb.demetra.dfm.output.simulation.SimulationQuantifiedResultsView.BENCH_ENC;
+import static be.nbb.demetra.dfm.output.simulation.SimulationQuantifiedResultsView.FIRST_ORDER_AUTOCORR;
 import static be.nbb.demetra.dfm.output.simulation.SimulationQuantifiedResultsView.FIXED_SMOOTH_ASYMP;
 import static be.nbb.demetra.dfm.output.simulation.SimulationQuantifiedResultsView.MODEL_ENC;
 import static be.nbb.demetra.dfm.output.simulation.SimulationQuantifiedResultsView.STD_ASYMP;
@@ -73,6 +75,8 @@ public class SimulationOutlineCellRenderer extends DefaultOutlineCellRenderer {
                 && !node.getName().equals(FIXED_SMOOTH_ASYMP)
                 && !node.getName().equals(MODEL_ENC)
                 && !node.getName().equals(BENCH_ENC)
+                && !node.getName().equals(AVG_FCTS_ERROR)
+                && !node.getName().equals(FIRST_ORDER_AUTOCORR)
                 && !node.getName().equals(FIXED_SMOOTH_ASYMP)) {
             return label;
         }
@@ -85,7 +89,10 @@ public class SimulationOutlineCellRenderer extends DefaultOutlineCellRenderer {
                 setColor(label, Color.WHITE);
             } else {
                 double pVal = node.getPValues().get(column - 1);
-                label.setToolTipText("P-Value : \u2264 " + numberFormatter.formatAsString(pVal));
+                if (!node.getName().equals(STD_ASYMP)) {
+                    label.setToolTipText("P-Value : \u2264 " + numberFormatter.formatAsString(pVal));
+                }
+
                 if (node.getParent() != null) {
                     switch (node.getParent().getName()) {
                         case SimulationQuantifiedResultsView.ENC_TITLE:

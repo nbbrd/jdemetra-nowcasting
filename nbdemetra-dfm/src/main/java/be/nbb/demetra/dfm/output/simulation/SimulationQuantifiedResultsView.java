@@ -73,10 +73,11 @@ import org.netbeans.swing.outline.OutlineModel;
 public class SimulationQuantifiedResultsView extends JPanel {
 
     public static final String DFM_SIMULATION_PROPERTY = "dfmSimulation";
-    public static final String STD_ASYMP = "Standard asymptotics";
+    public static final String STD_ASYMP = "Standard asymptotics (p-value)";
     public static final String DM_TITLE = "Diebold Mariano (Squared loss)", ENC_TITLE = "Encompassing Test (F.S.A.)",
-            FIXED_SMOOTH_ASYMP = "Fixed smoothing asymptotics", MODEL_ENC = "Model encompasses Benchmark", 
-            BENCH_ENC = "Benchmark encompasses Model", BIAS_TITLE = "Bias", EFFICIENCY_TITLE = "Efficiency Test";
+            FIXED_SMOOTH_ASYMP = "Fixed smoothing asymptotics", MODEL_ENC = "Model encompasses Benchmark (benchmark weight)", 
+            BENCH_ENC = "Benchmark encompasses Model (model weight)", BIAS_TITLE = "Bias", EFFICIENCY_TITLE = "Efficiency Test",
+            FIRST_ORDER_AUTOCORR = "First order autocorrelation", AVG_FCTS_ERROR = "Average forecast error";
 
     // Top bar
     private final JComboBox comboBox;
@@ -415,10 +416,10 @@ public class SimulationQuantifiedResultsView extends JPanel {
         );
 
         nodes.add(new SimulationNode(BIAS_TITLE)
-                .addChild(new SimulationNode(FIXED_SMOOTH_ASYMP, map.get("H_BIAS"), pValues.get("H_BIAS"))));
+                .addChild(new SimulationNode(AVG_FCTS_ERROR, map.get("H_BIAS"), pValues.get("H_BIAS"))));
 
         nodes.add(new SimulationNode(EFFICIENCY_TITLE)
-                .addChild(new SimulationNode(FIXED_SMOOTH_ASYMP, map.get("H_EFFICIENCY"), pValues.get("H_EFFICIENCY"))));
+                .addChild(new SimulationNode(FIRST_ORDER_AUTOCORR, map.get("H_EFFICIENCY"), pValues.get("H_EFFICIENCY"))));
     }
 
     private void addToMap(String key, Double value) {

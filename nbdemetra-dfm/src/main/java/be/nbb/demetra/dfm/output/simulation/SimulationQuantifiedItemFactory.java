@@ -41,7 +41,7 @@ public class SimulationQuantifiedItemFactory extends DfmSimulationResultsItemFac
     }
 
     private static Id newId() {
-        return new LinearId("Forecasts Simulation", "Quantified results");
+        return new LinearId("Forecasts Simulation", "Forecast Accuracy Tests");
     }
     
     private static ItemUI<IProcDocumentView<DfmDocument>, Optional<DfmSimulation>> newItemUI() {
