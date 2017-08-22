@@ -74,6 +74,11 @@ import java.util.Map;
 public class DfmProcessingFactory extends ProcessingHookProvider<IProcessingNode, DfmProcessingFactory.EstimationInfo>
         implements IProcessingFactory<DfmSpec, TsData[], CompositeResults> {
 
+    @Override
+    public Map<String, Class> getOutputDictionary(boolean bln) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
     public static class EstimationInfo {
 
         public EstimationInfo(DynamicFactorModel model, double loglikelihood) {
