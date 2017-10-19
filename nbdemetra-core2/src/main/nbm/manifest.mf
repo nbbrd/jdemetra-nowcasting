@@ -1,2 +1,0 @@
-Manifest-Version: 1.0
-OpenIDE-Module-Localizing-Bundle: be/nbb/demetra/core2/Bundle.properties

@@ -3,10 +3,9 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package be.nbb.demetra.dfm;
 
-import ec.nbdemetra.ws.DefaultFileItemRepository;
+import ec.nbdemetra.ws.AbstractFileItemRepository;
 import ec.nbdemetra.ws.IWorkspaceItemRepository;
 import ec.nbdemetra.ws.WorkspaceItem;
 import ec.tss.dfm.VersionedDfmDocument;
@@ -19,14 +18,7 @@ import org.openide.util.lookup.ServiceProvider;
  * @author palatej
  */
 @ServiceProvider(service = IWorkspaceItemRepository.class)
-public class DfmDocFileRepository extends DefaultFileItemRepository<VersionedDfmDocument> {
-
-    public static final String REPOSITORY = "DfmDoc";
-
-    @Override
-    public String getRepository() {
-        return REPOSITORY;
-    }
+public class DfmDocFileRepository extends AbstractFileItemRepository<VersionedDfmDocument> {
 
     @Override
     public Class<VersionedDfmDocument> getSupportedType() {
@@ -37,5 +29,19 @@ public class DfmDocFileRepository extends DefaultFileItemRepository<VersionedDfm
     public boolean save(WorkspaceItem<VersionedDfmDocument> doc) {
         VersionedDfmDocument element = doc.getElement();
         element.getCurrent().getMetaData().put(MetaData.DATE, new Date().toString());
-        return super.save(doc);
-    }}
+        return storeFile(doc, element, doc::resetDirty);
+    }
+    
+    @Override
+    public boolean delete(WorkspaceItem<VersionedDfmDocument> doc) {
+        return deleteFile(doc);
+    }
+    
+    @Override
+    public boolean load(WorkspaceItem<VersionedDfmDocument> item) {
+        return loadFile(item, (VersionedDfmDocument o) -> {
+            item.setElement(o);
+            item.resetDirty();
+        });
+    }
+}

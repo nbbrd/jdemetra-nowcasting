@@ -28,9 +28,7 @@
     <modules>
         <module>jtstoolkit2</module>
         <module>jtss2</module>
-        <module>nbdemetra-core2</module>
         <module>nbdemetra-dfm</module>
-        <module>nbb-seer-app</module>
     </modules>
     
     <dependencyManagement>
@@ -60,11 +58,11 @@
                 <artifactId>demetra-tss2</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
+            <!--<dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>nbdemetra-core2</artifactId>
                 <version>${project.version}</version>
-            </dependency>
+            </dependency>-->
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>nbdemetra-dfm</artifactId>
@@ -77,6 +75,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
