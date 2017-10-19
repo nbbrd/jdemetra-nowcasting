@@ -1,8 +1,8 @@
 # JDemetra+ Nowcasting plugin
 
-_Current version of the plugin (master branch) needs the version **2.2.0-RC1** of JDemetra+ and JDK 8_
+_Current version of the plugin (master branch) needs the version **2.2.0** of JDemetra+ and JDK 8_
 
-Release 2.1.0 of the Nowcasting plugin is still available [here](https://github.com/nbbrd/jdemetra-nowcasting/releases/tag/v2.1.0).
+Release 2.2.0 of the Nowcasting plugin is available [here](https://github.com/nbbrd/jdemetra-nowcasting/releases/tag/v2.2.0).
 
 ## Features
 - Operationalize the nowcasting process
