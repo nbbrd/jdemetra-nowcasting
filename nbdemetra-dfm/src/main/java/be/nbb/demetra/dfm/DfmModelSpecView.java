@@ -180,6 +180,7 @@ public final class DfmModelSpecView extends JComponent {
         JMenu result = new JMenu();
         result.add(new ApplyToAllCommand().toAction(view)).setText("Apply to all");
         result.add(new RemoveVariableCommand().toAction(view)).setText("Remove");
+        result.add(new RemoveAllVariablesCommand().toAction(view)).setText("Clear all");
         result.add(new Separator());
         result.add(new MoveVariableUpCommand().toAction(view)).setText("Move up");
         result.add(new MoveVariableDownCommand().toAction(view)).setText("Move down");
@@ -300,6 +301,18 @@ public final class DfmModelSpecView extends JComponent {
                     return MeasurementType.class;
                 default:
                     return Boolean.class;
+            }
+        }
+        
+        public void clear() {
+            if (!model.isLocked() && !variables.isEmpty()) {
+                DfmSpec spec = model.getSpecification().cloneDefinition();
+                spec.getModelSpec().getMeasurements().clear();
+                variables.clear();
+
+                model.setInput(variables.toArray());
+                model.setSpecification(spec);
+                firePropertyChange(MODEL_PROPERTY, null, model);
             }
         }
 
@@ -533,6 +546,31 @@ public final class DfmModelSpecView extends JComponent {
         @Override
         public boolean isEnabled(XTable component) {
             return !component.isEditing() && component.getSelectedRowCount() == 1;
+        }
+
+        @Override
+        public JCommand.ActionAdapter toAction(XTable component) {
+            return super.toAction(component)
+                    .withWeakListSelectionListener(component.getSelectionModel())
+                    .withWeakPropertyChangeListener(component, "tableCellEditor");
+        }
+    }
+    
+    private static final class RemoveAllVariablesCommand extends JCommand<XTable> {
+
+        @Override
+        public void execute(XTable component) throws Exception {
+            if (!component.isEnabled()) {
+                return;
+            }
+
+            ModelSpecModel model = (ModelSpecModel) component.getModel();
+            model.clear();
+        }
+
+        @Override
+        public boolean isEnabled(XTable component) {
+            return !component.isEditing();
         }
 
         @Override
