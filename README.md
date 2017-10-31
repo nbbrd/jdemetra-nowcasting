@@ -2,7 +2,7 @@
 
 _Current version of the plugin (master branch) needs the version **2.2.0** of JDemetra+ and JDK 8_
 
-Release 2.2.0 of the Nowcasting plugin is available [here](https://github.com/nbbrd/jdemetra-nowcasting/releases/tag/v2.2.0).
+Release 2.2.1 of the Nowcasting plugin is available [here](https://github.com/nbbrd/jdemetra-nowcasting/releases/tag/v2.2.1).
 
 ## Features
 - Operationalize the nowcasting process
@@ -12,9 +12,8 @@ Release 2.2.0 of the Nowcasting plugin is available [here](https://github.com/nb
 Take a look at the [Wiki](https://github.com/nbbrd/jdemetra-nowcasting/wiki) for more information !
 
 ## Installation
-In order to install the plugin, 2 nbm files have to be added to the JDemetra+ plugins :
+In order to install the plugin, this nbm has to be added to the JDemetra+ plugins :
 
-- nbdemetra-core2-X.X.X.nbm
-- nbdemetra-dfm-X.X.X.nbm
+- nbdemetra-dfm-2.2.1.nbm
 
-where X.X.X is the version of the compiled plugin
+(nbdemetra-core2-2.2.1.nbm plugin isn't needed anymore)

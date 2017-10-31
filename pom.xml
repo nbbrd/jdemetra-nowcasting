@@ -5,7 +5,7 @@
     <groupId>be.nbb.demetra</groupId>
     <artifactId>demetra-seer</artifactId>
     <packaging>pom</packaging>
-    <version>2.2.0</version>
+    <version>2.2.1</version>
 
     <name>nbb-seer</name>
 
@@ -28,9 +28,7 @@
     <modules>
         <module>jtstoolkit2</module>
         <module>jtss2</module>
-        <module>nbdemetra-core2</module>
         <module>nbdemetra-dfm</module>
-        <module>nbb-seer-app</module>
     </modules>
     
     <dependencyManagement>
@@ -62,11 +60,6 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>nbdemetra-core2</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
                 <artifactId>nbdemetra-dfm</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -77,6 +70,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -228,6 +222,10 @@
             <id>netbeans-snapshot</id>
             <name>NetBeans Snapshots</name>
             <url>http://bits.netbeans.org/netbeans/trunk/maven-snapshot/</url>
+        </repository>
+        <repository>
+            <id>oss-jfrog-artifactory-releases</id>
+            <url>https://oss.jfrog.org/artifactory/oss-release-local</url>
         </repository>
     </repositories>    
 </project>
