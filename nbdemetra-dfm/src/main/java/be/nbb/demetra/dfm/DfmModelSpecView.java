@@ -303,7 +303,7 @@ public final class DfmModelSpecView extends JComponent {
                     return Boolean.class;
             }
         }
-        
+
         public void clear() {
             if (!model.isLocked() && !variables.isEmpty()) {
                 DfmSpec spec = model.getSpecification().cloneDefinition();
@@ -340,7 +340,7 @@ public final class DfmModelSpecView extends JComponent {
                 firePropertyChange(MODEL_PROPERTY, null, model);
             }
         }
-        
+
         public void watchSeries(int[] rows) {
             if (!model.isLocked() && rows != null && rows.length > 0 && rows.length <= variables.getCount()) {
                 DfmSpec spec = model.getSpecification().cloneDefinition();
@@ -461,7 +461,7 @@ public final class DfmModelSpecView extends JComponent {
             }
         }
     }
-    
+
     private static final class SeriesNameRenderer extends DefaultTableCellRenderer {
 
         @Override
@@ -555,7 +555,7 @@ public final class DfmModelSpecView extends JComponent {
                     .withWeakPropertyChangeListener(component, "tableCellEditor");
         }
     }
-    
+
     private static final class RemoveAllVariablesCommand extends JCommand<XTable> {
 
         @Override
@@ -642,7 +642,7 @@ public final class DfmModelSpecView extends JComponent {
                     .withWeakPropertyChangeListener(component, "tableCellEditor");
         }
     }
-    
+
     private static final class WatchSerieCommand extends JCommand<XTable> {
 
         @Override
@@ -773,15 +773,13 @@ public final class DfmModelSpecView extends JComponent {
 
         @Override
         public boolean importData(TransferSupport support) {
-            TsCollection col = TssTransferSupport.getDefault().toTsCollection(support.getTransferable());
-            if (col != null) {
-                col.query(TsInformationType.All);
-                if (!col.isEmpty()) {
-                    appendTsVariables(col);
-                }
-                return true;
-            }
-            return false;
+            long count = TssTransferSupport.getDefault()
+                    .toTsCollectionStream(support.getTransferable())
+                    .peek(o -> o.load(TsInformationType.All))
+                    .filter(o -> !o.isEmpty())
+                    .peek(o -> appendTsVariables(o))
+                    .count();
+            return count > 0;
         }
     }
 }
