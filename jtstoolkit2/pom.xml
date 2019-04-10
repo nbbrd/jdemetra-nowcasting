@@ -2,15 +2,35 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   
     <modelVersion>4.0.0</modelVersion>
-  
-    <parent>
-        <groupId>be.nbb.demetra</groupId>
-        <artifactId>demetra-seer</artifactId>
-        <version>2.2.1</version>
-    </parent>
-  
+
+    <groupId>be.nbb.demetra</groupId>
     <artifactId>demetra-tstoolkit2</artifactId>
     <name>Demetra - Tstoolkit 2</name>
+    <version>2.2.2</version>
+    <url>https://github.com/nbbrd/jdemetra-nowcasting</url>
+    
+    <organization>
+        <name>National Bank of Belgium</name>
+    </organization>
+
+    <licenses>
+        <license>
+            <name>European Union Public Licence (EUPL)</name>
+            <url>https://joinup.ec.europa.eu/page/eupl-text-11-12</url>
+        </license>
+    </licenses>
+    
+    <properties>
+        <!-- build -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
+
+        <!-- dependencies -->
+        <jdemetra.version>2.2.2</jdemetra.version>
+        <lombok.version>1.18.6</lombok.version>
+    </properties>
 
     <dependencyManagement>
         <dependencies>
@@ -21,14 +41,14 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-             <dependency>
+            <dependency>
                 <groupId>eu.europa.ec.joinup.sat</groupId>
                 <artifactId>demetra-tstoolkit</artifactId>
                 <version>${jdemetra.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-       </dependencies>
+        </dependencies>
     </dependencyManagement>
 
     <dependencies>
@@ -45,6 +65,20 @@
             <artifactId>jsr305</artifactId>
             <scope>provided</scope>
         </dependency>        
+        
+        <!-- test only -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+    
+    <repositories>     
+        <repository>
+            <id>oss-jfrog-artifactory-releases</id>
+            <url>https://oss.jfrog.org/artifactory/oss-release-local</url>
+        </repository>
+    </repositories>
   
 </project>

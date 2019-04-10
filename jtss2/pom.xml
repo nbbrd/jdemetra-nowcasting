@@ -2,14 +2,34 @@
   
     <modelVersion>4.0.0</modelVersion>
   
-    <parent>
-        <groupId>be.nbb.demetra</groupId>
-        <artifactId>demetra-seer</artifactId>
-        <version>2.2.1</version>
-    </parent>
-  
+    <groupId>be.nbb.demetra</groupId>
     <artifactId>demetra-tss2</artifactId>
     <name>Demetra - Tss 2</name>
+    <version>2.2.2</version>
+    <url>https://github.com/nbbrd/jdemetra-nowcasting</url>
+    
+    <organization>
+        <name>National Bank of Belgium</name>
+    </organization>
+
+    <licenses>
+        <license>
+            <name>European Union Public Licence (EUPL)</name>
+            <url>https://joinup.ec.europa.eu/page/eupl-text-11-12</url>
+        </license>
+    </licenses>
+    
+    <properties>
+        <!-- build -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
+
+        <!-- dependencies -->
+        <jdemetra.version>2.2.2</jdemetra.version>
+        <lombok.version>1.18.6</lombok.version>
+    </properties>
 
     <dependencyManagement>
         <dependencies>
@@ -39,6 +59,7 @@
         <dependency>
             <groupId>be.nbb.demetra</groupId>
             <artifactId>demetra-tstoolkit2</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
@@ -55,16 +76,43 @@
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
         </dependency>
+        
+        <!-- test only -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     
-    <reporting>
-        <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>cobertura-maven-plugin</artifactId>
-                <version>2.4</version>
-            </plugin>
-        </plugins>
-    </reporting>
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven-compiler-plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+    
+    <repositories>
+        <repository>
+            <id>netbeans-releases</id>
+            <url>http://bits.netbeans.org/maven2/</url>
+        </repository>        
+        <repository>
+            <id>oss-jfrog-artifactory-releases</id>
+            <url>https://oss.jfrog.org/artifactory/oss-release-local</url>
+        </repository>
+        <repository>
+            <id>projectlombok.org</id>
+            <url>https://projectlombok.org/edge-releases</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
   
 </project>

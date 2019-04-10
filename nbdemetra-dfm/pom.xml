@@ -1,18 +1,78 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <parent>
-        <artifactId>demetra-seer</artifactId>
-        <groupId>be.nbb.demetra</groupId>
-        <version>2.2.1</version>
-    </parent>
 
+    <groupId>be.nbb.demetra</groupId>
     <artifactId>nbdemetra-dfm</artifactId>
+    <version>2.2.2</version>
     <packaging>nbm</packaging>
 
     <name>NbDemetra - Dynamic Factor Model</name>
+    <url>https://github.com/nbbrd/jdemetra-nowcasting</url>
+    
+    <organization>
+        <name>National Bank of Belgium</name>
+    </organization>
+
+    <licenses>
+        <license>
+            <name>European Union Public Licence (EUPL)</name>
+            <url>https://joinup.ec.europa.eu/page/eupl-text-11-12</url>
+        </license>
+    </licenses>
+    
+    <properties>
+        <!-- build -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
+        <maven-jar-plugin.version>3.1.1</maven-jar-plugin.version>
+        <nbm-maven-plugin.version>4.1</nbm-maven-plugin.version>
+
+        <!-- dependencies -->
+        <jdemetra.version>2.2.2</jdemetra.version>
+    </properties>
+    
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>eu.europa.ec.joinup.sat</groupId>
+                <artifactId>demetra-parent</artifactId>
+                <version>${jdemetra.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>eu.europa.ec.joinup.sat</groupId>
+                <artifactId>nbdemetra-parent</artifactId>
+                <version>${jdemetra.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>demetra-tstoolkit2</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>demetra-tss2</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     
     <dependencies>
+        <!-- compile only -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        
+        <!-- compile and runtime -->
         <dependency>
             <groupId>org.netbeans.api</groupId>
             <artifactId>org-netbeans-api-annotations-common</artifactId>
@@ -115,12 +175,50 @@
             </exclusions>
         </dependency>
     </dependencies>
+    
+    <repositories>
+        <repository>
+            <id>netbeans-releases</id>
+            <url>http://bits.netbeans.org/maven2/</url>
+        </repository>        
+        <repository>
+            <id>oss-jfrog-artifactory-releases</id>
+            <url>https://oss.jfrog.org/artifactory/oss-release-local</url>
+        </repository>
+        <repository>
+            <id>oss-jfrog-artifactory-snapshots</id>
+            <url>https://oss.jfrog.org/artifactory/oss-snapshot-local</url>
+        </repository>
+    </repositories>
 
     <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven-compiler-plugin.version}</version>
+                </plugin> 
+            </plugins>
+        </pluginManagement>
+        
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>${maven-jar-plugin.version}</version>
+                <configuration>
+                    <!-- to have the jar plugin pickup the nbm generated manifest -->
+                    <archive>
+                        <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+                    </archive>
+                </configuration>
+            </plugin>            
+            
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>nbm-maven-plugin</artifactId>
+                <version>${nbm-maven-plugin.version}</version>
                 <extensions>true</extensions>
                 <configuration>
                     <useOSGiDependencies>false</useOSGiDependencies>    
@@ -131,9 +229,5 @@
                 </configuration>
             </plugin>
         </plugins>
-    </build>
-    <properties>
-        <netbeans.run.params.ide/>
-        <netbeans.run.params>${netbeans.run.params.ide}</netbeans.run.params>
-    </properties>
+    </build>        
 </project>
