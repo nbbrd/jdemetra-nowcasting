@@ -143,7 +143,7 @@ public final class DfmExecViewTopComponent extends AbstractDfmDocumentTopCompone
         clear.setToolTipText("Clear");
 
         SwingColorSchemeSupport colorSchemeSupport = SwingColorSchemeSupport.from(DemetraUI.getInstance().getColorScheme());
-        sparkline = (ChartPanel) toolBar.add(Charts.avoidScaling(new ChartPanel(Charts.createSparkLineChart(null))));
+        sparkline = (ChartPanel) toolBar.add(Charts.avoidScaling(new ChartPanel(Charts.createSparkLineChart(Charts.emptyXYDataset()))));
         sparkline.setPreferredSize(new Dimension(150, 16));
         sparkline.setMaximumSize(new Dimension(150, 16));
         sparkline.getChart().getXYPlot().setDataset(dataset);
