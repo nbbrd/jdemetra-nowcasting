@@ -287,4 +287,29 @@
         </plugins>
     </build>
         
+    <!-- Custom repositories: order matters! -->
+    <!-- Maven Central is enforced at top to prevent dependabot to use snapshots as releases -->
+    <repositories>
+        <repository>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>jfrog-maven-mirror</id>
+            <url>https://raw.githubusercontent.com/nbbrd/jfrog-maven-mirror/main</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>netbeans-releases-mirror</id>
+            <url>https://raw.githubusercontent.com/nbbrd/netbeans-maven-mirror/main</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 </project>
