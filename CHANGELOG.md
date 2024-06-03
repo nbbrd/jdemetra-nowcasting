@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.4] - 2024-06-03
+
 ### Fixed
 
 - Fix NPE when using the plugin with JD+ v2.2.4 [#16](https://github.com/nbbrd/jdemetra-nowcasting/issues/16)
@@ -25,7 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.0] - 2015-11-18
 
-[Unreleased]: https://github.com/nbbrd/jdemetra-nowcasting/compare/v2.2.3...HEAD
+[Unreleased]: https://github.com/nbbrd/jdemetra-nowcasting/compare/v2.2.4...HEAD
+[2.2.4]: https://github.com/nbbrd/jdemetra-nowcasting/compare/v2.2.3...v2.2.4
 [2.2.3]: https://github.com/nbbrd/jdemetra-nowcasting/compare/v2.2.3-RC1...v2.2.3
 [2.2.3-RC1]: https://github.com/nbbrd/jdemetra-nowcasting/compare/v2.2.2...v2.2.3-RC1
 [2.2.2]: https://github.com/nbbrd/jdemetra-nowcasting/compare/v2.2.1...v2.2.2
